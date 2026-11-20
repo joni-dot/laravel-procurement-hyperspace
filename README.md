@@ -9,7 +9,7 @@ It works as a single-page app: pages change without full reloads.
 
 This repository continues the [laravel-srm](https://github.com/joni-dot/laravel-srm) and [laravel-ppr](https://github.com/joni-dot/laravel-ppr) apps, and both apps' git history is kept here. The goal is a cloud service that many companies can use, which people can also host themselves. Steps towards it:
 
-1. One repository, with the supplier features as a module _(in progress)_
+1. One repository, with the supplier features as a module _(done)_
 2. Companies: one account per person, invitations to several companies and a company switcher, each company's data kept apart
 3. The project procurement register joins as a module
 4. The modules work together: packages linked to suppliers, one dashboard and one set of notifications
@@ -89,7 +89,7 @@ Suppliers are archived, never deleted, and can be restored. Contacts are people,
 - **Contracts are left out of risk on purpose:** viewers can see risk, but not contract details.
 - **Spend** is one amount per supplier per year, visible only to buyers and admins. Amounts in different currencies are not added together.
 
-The thresholds are in `app/Enums/RiskLevel.php`. The rules exist twice and must change together: `app/Compliance/SupplierRisk.php` (the page) and `Supplier::withRiskLevel()` (the list filter). `SupplierRiskTest` fails if they disagree.
+The thresholds are in `app/Modules/Srm/Enums/RiskLevel.php`. The rules exist twice and must change together: `app/Modules/Srm/Compliance/SupplierRisk.php` (the page) and `Supplier::withRiskLevel()` (the list filter). `SupplierRiskTest` fails if they disagree.
 
 ## Contracts and documents
 
@@ -137,6 +137,10 @@ curl -H "Authorization: Bearer $ACCESS_TOKEN" "https://hyperspace.example.com/ap
 ```
 
 On a server, create the signing keys once with `artisan passport:keys`, or put them in `PASSPORT_PRIVATE_KEY` and `PASSPORT_PUBLIC_KEY`. Keep the same keys across deployments; new keys log every system out (they simply fetch a new token).
+
+## How the code is organised
+
+The app has a **Core** (sign-in, users, settings, API clients and the layout) and **modules**. Each module keeps its code, database tables, pages and tests in its own folders, for example `app/Modules/Srm` and `resources/js/pages/srm`, and plugs itself into Core. Core never depends on a module, so a module can be switched off later without breaking the rest; a test checks this. CLAUDE.md lists the folders.
 
 ## Everyday commands
 

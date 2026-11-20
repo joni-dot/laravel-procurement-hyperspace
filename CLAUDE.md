@@ -24,6 +24,21 @@ Helper scripts for several agents working at once, run from the host: `bin/agent
 
 If a result makes no sense, Docker Desktop may have missed a quick file edit. Run `bin/sync-check --fix`, which compares every changed file on the host and in the container and rewrites the ones that differ.
 
+## Modules
+
+Core (sign-in, users, settings, API clients, layout) lives in Laravel's usual folders. Each module keeps its own code apart:
+
+| What                         | Where (SRM as the example)                                                                                                |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| PHP code                     | `app/Modules/Srm/...` (namespace `App\Modules\Srm`), plugged in by `SrmServiceProvider` in `bootstrap/providers.php`      |
+| Routes, timed jobs, commands | `app/Modules/Srm/routes/*.php`; schedule and commands in `SrmServiceProvider`                                             |
+| Migrations, factories        | `app/Modules/Srm/Database/{Migrations,Factories}`; models name their factory with `#[UseFactory]`, factories set `$model` |
+| Pages, components, types     | `resources/js/pages/srm`, `resources/js/components/srm`, `@/types/srm`                                                    |
+| Mail views                   | `resources/views/mail/srm`                                                                                                |
+| Tests                        | `tests/Feature/Srm`, `tests/Unit/Srm`                                                                                     |
+
+Core never uses a module's code, and modules don't use each other's; `ModuleBoundariesTest` checks this, with the exceptions listed in it. A module uses Core freely. Seeders in `database/seeders` may fill data for every module.
+
 ## Git workflow
 
 - Never commit to `main`. GitHub refuses direct pushes, and the `ci` check must pass before a merge.
@@ -38,7 +53,7 @@ If a result makes no sense, Docker Desktop may have missed a quick file edit. Ru
 - **Performance is a top priority.** Avoid repeated queries in lists, and check new filters against the demo data (about 2,000 suppliers).
 - **Code explains itself** through clear names and small functions. Comments are for why, not what.
 - **Controllers follow CRUD where it makes sense.** Use only `index`, `create`, `store`, `show`, `edit`, `update` and `destroy`, and leave out the ones a feature doesn't need. An action that doesn't fit CRUD, or a controller that would have only one method, becomes a single-action controller named verb + noun (for example `ArchiveSupplierController`).
-- **Action classes are single-action.** Each class in `app/Actions` is named verb + noun and has one public `handle()` method, except where a framework interface requires another name (Fortify's `reset()`). An action that needs another action receives it through its constructor.
+- **Action classes are single-action.** Each class in an `Actions` folder (`app/Actions`, `app/Modules/*/Actions`) is named verb + noun and has one public `handle()` method, except where a framework interface requires another name (Fortify's `reset()`). An action that needs another action receives it through its constructor.
 - **New behaviour comes with tests.** Add a browser test in `tests/Browser` when a feature adds a page or a user flow.
 - **Report the result.** Every change summary includes a short security and performance check.
 - **Explain in plain language.** Keep it brief, define unavoidable technical terms and give the reason for each decision. Ask when a choice is really the user's to make.
@@ -47,11 +62,11 @@ If a result makes no sense, Docker Desktop may have missed a quick file edit. Ru
 
 - **Viewers must not get restricted data.** Only buyers and admins see contract details (`ContractPolicy::viewDetails`), including comments about contracts, and spend (`SupplierSpendPolicy::viewAny`). Enforce this on the server by leaving the data out of the response, not by hiding it in Vue.
 - **Some rules exist twice, in PHP for a page and in SQL for a list filter, and must change together.** Tests fail if they disagree:
-    - Risk: `app/Compliance/SupplierRisk.php` and `Supplier::withRiskLevel()`
-    - Required certificates: `app/Compliance/RequiredCertificates.php` and `Supplier::missingRequiredCertificates()`
+    - Risk: `app/Modules/Srm/Compliance/SupplierRisk.php` and `Supplier::withRiskLevel()`
+    - Required certificates: `app/Modules/Srm/Compliance/RequiredCertificates.php` and `Supplier::missingRequiredCertificates()`
     - Contract health: `Contract::health()` and `Contract::needingActionSoon()`
 - **Dashboard tile counts must equal the supplier list each tile links to.** Archived suppliers never count.
-- **Overall rating scores are calculated in one place only:** `app/Actions/Ratings/RecalculateOverallScores.php`.
+- **Overall rating scores are calculated in one place only:** `app/Modules/Srm/Actions/Ratings/RecalculateOverallScores.php`.
 - **Links in emails come from `APP_URL`,** never from the request's host name (`ResetPasswordLink`, trusted hosts in `bootstrap/app.php`). A new email with a link must do the same.
 - **Account forms must not reveal who has an account.** Forgot password and reset password give the same answer for every address (`app/Http/Responses`); keep any new sign-in or reset message the same for known and unknown addresses.
 - **Records are kept.** Suppliers are archived and users are deactivated, never deleted. Contacts are truly deleted for privacy.
