@@ -37,7 +37,7 @@ Core (sign-in, users, settings, API clients, layout) lives in Laravel's usual fo
 | Mail views                   | `resources/views/mail/srm`                                                                                                |
 | Tests                        | `tests/Feature/Srm`, `tests/Unit/Srm`                                                                                     |
 
-Core never uses a module's code, and modules don't use each other's; `ModuleBoundariesTest` checks this, with the exceptions listed in it. A module uses Core freely. Seeders in `database/seeders` may fill data for every module.
+Core never uses a module's code, and modules don't use each other's; `ModuleBoundariesTest` checks PHP code for this, with the exceptions listed in it. A module uses Core freely. Known links the test can't see, until modules get their own menus: `/` and the sign-in redirect go to `/dashboard`, an SRM route, and `AppSidebar.vue` imports SRM route helpers. Seeders in `database/seeders` may fill data for every module.
 
 ## Git workflow
 

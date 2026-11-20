@@ -140,7 +140,7 @@ On a server, create the signing keys once with `artisan passport:keys`, or put t
 
 ## How the code is organised
 
-The app has a **Core** (sign-in, users, settings, API clients and the layout) and **modules**. Each module keeps its code, database tables, pages and tests in its own folders, for example `app/Modules/Srm` and `resources/js/pages/srm`, and plugs itself into Core. Core never depends on a module, so a module can be switched off later without breaking the rest; a test checks this. CLAUDE.md lists the folders.
+The app has a **Core** (sign-in, users, settings, API clients and the layout) and **modules**. Each module keeps its code, database tables, pages and tests in its own folders, for example `app/Modules/Srm` and `resources/js/pages/srm`, and plugs itself into Core. Core's server code doesn't use a module's code, and a test checks this. A few links remain until modules get their own menus in a later step: the dashboard belongs to the supplier module for now, and the sidebar lists its pages, so a module can't be switched off yet. CLAUDE.md lists the folders.
 
 ## Everyday commands
 
