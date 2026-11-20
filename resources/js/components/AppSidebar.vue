@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import {
     BadgeCheck,
     Building2,
+    Code,
     KeyRound,
     FileText,
     LayoutGrid,
@@ -136,6 +137,25 @@ const adminNavItems = computed<NavItem[]>(() => {
         </SidebarContent>
 
         <SidebarFooter>
+            <SidebarMenu>
+                <SidebarMenuItem>
+                    <SidebarMenuButton
+                        as-child
+                        size="sm"
+                        tooltip="Source code"
+                        class="text-muted-foreground"
+                    >
+                        <a
+                            :href="page.props.sourceCodeUrl"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            <Code />
+                            <span>Source code</span>
+                        </a>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            </SidebarMenu>
             <NavUser />
         </SidebarFooter>
     </Sidebar>
