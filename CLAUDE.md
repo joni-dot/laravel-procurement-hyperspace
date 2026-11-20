@@ -1,8 +1,8 @@
-# SRM – instructions for Claude
+# Procurement Hyperspace – instructions for Claude
 
-Supplier relationship management app for procurement teams. Laravel 13 (PHP 8.5), Inertia v3, Vue 3 + TypeScript, Tailwind 4, PostgreSQL 18 and Redis. It is a single-company app and a single-page app: no full page reloads.
+Procurement Hyperspace: open-source software for procurement teams, built from modules (supplier relationship management now, the project procurement register later). Laravel 13 (PHP 8.5), Inertia v3, Vue 3 + TypeScript, Tailwind 4, PostgreSQL 18 and Redis. It is a single-page app: no full page reloads. It is still a single-company app; support for many companies comes in a later step (see the README's step list).
 
-[README.md](README.md) explains setup, roles and business rules. Read the relevant section before changing a feature. This repository is public, so never put secrets or real supplier data in it.
+[README.md](README.md) explains setup, roles and business rules. Read the relevant section before changing a feature. This repository is public and licensed AGPL-3.0-only, so never put secrets or real company or supplier data in it, and never copy in code or assets whose licence doesn't allow that (record copied code in `THIRD-PARTY-NOTICES.md`).
 
 ## Commands
 
@@ -18,15 +18,17 @@ The host has only Docker and git. Run PHP and Node commands through Sail.
 tests/Browser/run.sh                     # real-browser tests, run from the host; see /browser-test
 ```
 
+Helper scripts for several agents working at once, run from the host: `bin/agent-test <name>` (tests on the agent's own database), `bin/browser-test` (browser tests behind a lock), `bin/sync-check --fix` and `bin/lint-files <files>`.
+
 `ci:check` runs the frontend checks, TypeScript, Pint, PHPStan and all tests. GitHub runs the same command and the browser tests on every pull request.
 
-If a result makes no sense, Docker Desktop may have missed a quick file edit. Compare the file's sha256 on the host and in the container. If they differ, run `sail down` and then `sail up -d`.
+If a result makes no sense, Docker Desktop may have missed a quick file edit. Run `bin/sync-check --fix`, which compares every changed file on the host and in the container and rewrites the ones that differ.
 
 ## Git workflow
 
 - Never commit to `main`. GitHub refuses direct pushes, and the `ci` check must pass before a merge.
 - Use one branch per change, from an up-to-date `main`, named `<type>/<short-name>` (for example `feat/audit-log` or `fix/reminder-date`).
-- Use Conventional Commits: `type(optional scope): short imperative summary`.
+- Use Conventional Commits: `type(optional scope): short imperative summary`, signed off with `git commit -s` (the DCO in CONTRIBUTING.md).
 - Commit, push and open pull requests only when asked. The user merges pull requests.
 - Before committing, check that no secrets are staged.
 
@@ -54,4 +56,5 @@ If a result makes no sense, Docker Desktop may have missed a quick file edit. Co
 - **Account forms must not reveal who has an account.** Forgot password and reset password give the same answer for every address (`app/Http/Responses`); keep any new sign-in or reset message the same for known and unknown addresses.
 - **Records are kept.** Suppliers are archived and users are deactivated, never deleted. Contacts are truly deleted for privacy.
 - **Seeders must refuse to run in production.** `SeedersRefuseProductionTest` covers this, so add any new seeder to it.
+- **Every app page links to the source code** (`SOURCE_CODE_URL`, shared as `sourceCodeUrl`, shown in the sidebar and on the sign-in pages). The AGPL licence needs it; keep it on new Inertia layouts. Laravel's plain error pages don't have it yet.
 - **Generated code:** `resources/js/actions`, `resources/js/routes` and `resources/js/wayfinder` are generated and ignored by git. Don't edit them.
