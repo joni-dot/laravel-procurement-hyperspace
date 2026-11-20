@@ -8,4 +8,9 @@ export type PlatformCompanyRow = {
     pending_invitations_count: number;
     /** YYYY-MM-DD */
     created_at: string;
+    /** Set only while the company has no active admin: whom the waiting admin invitation went to. */
+    first_admin_invitation: {
+        name: string | null;
+        email: string | null;
+    } | null;
 };

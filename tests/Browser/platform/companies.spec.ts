@@ -30,6 +30,26 @@ test('a platform admin creates a company, changes its address, suspends and reop
     await expect(row.getByText('/browser-platform-company')).toBeVisible();
     await expect(row.getByText('0 members, 1 invited')).toBeVisible();
 
+    // The first admin's address was mistyped: send the invitation to the corrected one.
+    await page
+        .getByRole('button', { name: `Invite the first admin of ${name}` })
+        .click();
+    const firstAdmin = page.getByRole('dialog');
+    await expect(firstAdmin.getByLabel("Admin's email")).toHaveValue(
+        'first-admin@browser-test.example',
+    );
+    await firstAdmin
+        .getByLabel("Admin's email")
+        .fill('corrected-admin@browser-test.example');
+    await firstAdmin.getByRole('button', { name: 'Send invitation' }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(
+        page.getByText(
+            `corrected-admin@browser-test.example was invited to be the admin of ${name}`,
+        ),
+    ).toBeVisible();
+    await expect(row.getByText('0 members, 1 invited')).toBeVisible();
+
     await page.getByRole('button', { name: `Edit ${name}` }).click();
     await page
         .getByRole('dialog')

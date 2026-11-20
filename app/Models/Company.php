@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Enums\Role;
 use Carbon\CarbonImmutable;
 use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use LogicException;
 
 /**
@@ -76,6 +78,24 @@ class Company extends Model
     public function memberships(): HasMany
     {
         return $this->hasMany(Membership::class);
+    }
+
+    /**
+     * The newest invitation to be an admin that hasn't been accepted or withdrawn.
+     *
+     * @return HasOne<Membership, $this>
+     */
+    public function pendingAdminInvitation(): HasOne
+    {
+        return $this->hasOne(Membership::class)->ofMany(
+            ['invitation_sent_at' => 'max', 'id' => 'max'],
+            fn ($memberships) => $memberships->pendingInvitation()->where('role', Role::Admin),
+        );
+    }
+
+    public function hasActiveAdmin(): bool
+    {
+        return $this->memberships()->active()->where('role', Role::Admin)->exists();
     }
 
     public function isSuspended(): bool

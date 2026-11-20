@@ -53,6 +53,8 @@ class CompanyManagementTest extends TestCase
                     'active_members_count' => 2,
                     'pending_invitations_count' => 1,
                     'created_at' => today()->toDateString(),
+                    // Members but no admin: nobody there can invite people, so the platform may.
+                    'first_admin_invitation' => ['name' => null, 'email' => null],
                 ])
                 ->where('companies.data.1.id', $suspended->id)
                 ->where('companies.data.1.is_suspended', true)

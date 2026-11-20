@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { useDebounceFn } from '@vueuse/core';
-import { Pause, Pencil, Play, Plus, Search } from '@lucide/vue';
+import { Pause, Pencil, Play, Plus, Search, UserPlus } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import CompanyController from '@/actions/App/Http/Controllers/Platform/CompanyController';
 import ReopenCompanyController from '@/actions/App/Http/Controllers/Platform/ReopenCompanyController';
@@ -10,6 +10,7 @@ import ConfirmActionDialog from '@/components/ConfirmActionDialog.vue';
 import Heading from '@/components/Heading.vue';
 import Pagination from '@/components/Pagination.vue';
 import CompanyDialog from '@/components/platform/CompanyDialog.vue';
+import FirstAdminDialog from '@/components/platform/FirstAdminDialog.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +32,7 @@ const isAdding = ref(false);
 const companyBeingEdited = ref<PlatformCompanyRow | null>(null);
 const companyBeingSuspended = ref<PlatformCompanyRow | null>(null);
 const companyBeingReopened = ref<PlatformCompanyRow | null>(null);
+const companyNeedingAdmin = ref<PlatformCompanyRow | null>(null);
 
 const search = ref(props.filters.search);
 
@@ -135,6 +137,15 @@ function memberSummary(company: PlatformCompanyRow): string {
                         </td>
                         <td class="px-4 py-3 text-right whitespace-nowrap">
                             <Button
+                                v-if="company.first_admin_invitation"
+                                variant="ghost"
+                                size="icon-sm"
+                                :aria-label="`Invite the first admin of ${company.name}`"
+                                @click="companyNeedingAdmin = company"
+                            >
+                                <UserPlus />
+                            </Button>
+                            <Button
                                 variant="ghost"
                                 size="icon-sm"
                                 :aria-label="`Edit ${company.name}`"
@@ -188,6 +199,13 @@ function memberSummary(company: PlatformCompanyRow): string {
         :company="companyBeingEdited"
         :open="true"
         @update:open="companyBeingEdited = null"
+    />
+
+    <FirstAdminDialog
+        v-if="companyNeedingAdmin"
+        :company="companyNeedingAdmin"
+        :open="true"
+        @update:open="companyNeedingAdmin = null"
     />
 
     <ConfirmActionDialog

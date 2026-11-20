@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Platform;
 
 use App\Actions\Companies\CreateCompany;
+use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Platform\StoreCompanyRequest;
 use App\Http\Requests\Platform\UpdateCompanyRequest;
@@ -29,7 +30,9 @@ class CompanyController extends Controller
             ->withCount([
                 'memberships as active_members_count' => fn ($memberships) => $memberships->active(),
                 'memberships as pending_invitations_count' => fn ($memberships) => $memberships->pendingInvitation(),
+                'memberships as active_admins_count' => fn ($memberships) => $memberships->active()->where('role', Role::Admin),
             ])
+            ->with('pendingAdminInvitation:id,memberships.company_id,known_name,known_email')
             ->when($search !== '', fn ($query) => $query->whereAny(['name', 'slug'], 'ilike', "%{$search}%"))
             ->orderBy('name')
             ->orderBy('id')
@@ -43,6 +46,11 @@ class CompanyController extends Controller
                 'active_members_count' => $company->getAttribute('active_members_count'),
                 'pending_invitations_count' => $company->getAttribute('pending_invitations_count'),
                 'created_at' => $company->created_at?->toDateString(),
+                // Only for a company nobody can run yet: whom the waiting admin invitation went to,
+                // as the platform (or the company) typed it.
+                'first_admin_invitation' => $company->getAttribute('active_admins_count') === 0
+                    ? ['name' => $company->pendingAdminInvitation?->known_name, 'email' => $company->pendingAdminInvitation?->known_email]
+                    : null,
             ]);
 
         return Inertia::render('platform/companies/Index', [

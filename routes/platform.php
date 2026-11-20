@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Platform\CompanyController;
+use App\Http\Controllers\Platform\InviteFirstAdminController;
 use App\Http\Controllers\Platform\ReopenCompanyController;
 use App\Http\Controllers\Platform\SuspendCompanyController;
 use Illuminate\Auth\Middleware\RequirePassword;
@@ -20,6 +21,12 @@ Route::middleware(['auth', 'platform', RequirePassword::class])->prefix('platfor
     Route::put('companies/{company}', [CompanyController::class, 'update'])
         ->whereNumber('company')
         ->name('companies.update');
+
+    // Only while the company has no admin; after that its own admins invite people.
+    Route::post('companies/{company}/first-admin', InviteFirstAdminController::class)
+        ->whereNumber('company')
+        ->middleware('throttle:20,1')
+        ->name('companies.first-admin');
 
     Route::post('companies/{company}/suspend', SuspendCompanyController::class)
         ->whereNumber('company')
