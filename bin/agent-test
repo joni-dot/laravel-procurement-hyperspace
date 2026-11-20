@@ -47,6 +47,8 @@ fi
 
 if [ "$(psql "SELECT 1 FROM pg_database WHERE datname = '${database}'")" != '1' ]; then
     psql "CREATE DATABASE ${database}" >/dev/null
+    # The app's restricted database user needs the same rights here as in the other databases.
+    docker compose exec -T pgsql sh -c 'psql -v ON_ERROR_STOP=1 -q -U "$POSTGRES_USER" -d "$1" -v app_user="$APP_DB_USERNAME" -v owner="$POSTGRES_USER" -f /docker-entrypoint-initdb.d/app-role.sql.inc' _ "$database" >/dev/null
     echo "Created ${database}."
 fi
 

@@ -20,6 +20,7 @@ class PrepareBrowserTests extends Command
         }
 
         return $this->call('migrate:fresh', [
+            '--database' => 'owner',
             '--force' => true,
             '--seed' => true,
             '--seeder' => BrowserTestSeeder::class,
