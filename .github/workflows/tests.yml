@@ -18,12 +18,12 @@ jobs:
         image: postgres:18-alpine
         env:
           POSTGRES_DB: testing
-          POSTGRES_USER: srm
+          POSTGRES_USER: hyperspace
           POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U srm -d testing"
+          --health-cmd "pg_isready -U hyperspace -d testing"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10

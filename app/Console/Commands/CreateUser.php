@@ -21,7 +21,7 @@ class CreateUser extends Command
 
     protected $signature = 'app:create-user';
 
-    protected $description = 'Create a user who can sign in to the SRM';
+    protected $description = 'Create a user who can sign in to Procurement Hyperspace';
 
     public function handle(): int
     {
