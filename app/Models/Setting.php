@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
-use App\Enums\SettingKey;
+use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
 
 /**
  * Settings that admins can change in the app, stored as simple key/value pairs.
+ *
+ * Each module names its own keys with a string-backed enum, so Core doesn't need to know them.
  *
  * @property string $key
  * @property string|null $value
@@ -21,13 +23,13 @@ class Setting extends Model
 
     protected $fillable = ['key', 'value'];
 
-    public static function get(SettingKey $key): ?string
+    public static function get(BackedEnum $key): ?string
     {
-        return static::query()->whereKey($key->value)->value('value');
+        return static::query()->whereKey((string) $key->value)->value('value');
     }
 
-    public static function put(SettingKey $key, ?string $value): void
+    public static function put(BackedEnum $key, ?string $value): void
     {
-        static::query()->updateOrCreate(['key' => $key->value], ['value' => $value]);
+        static::query()->updateOrCreate(['key' => (string) $key->value], ['value' => $value]);
     }
 }

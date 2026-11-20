@@ -3,12 +3,12 @@
 namespace App\Http\Middleware;
 
 use App\Models\ApiClient;
-use App\Models\Category;
-use App\Models\CertificateType;
-use App\Models\ContractType;
-use App\Models\RatingCriterion;
 use App\Models\Setting;
 use App\Models\User;
+use App\Modules\Srm\Models\Category;
+use App\Modules\Srm\Models\CertificateType;
+use App\Modules\Srm\Models\ContractType;
+use App\Modules\Srm\Models\RatingCriterion;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 

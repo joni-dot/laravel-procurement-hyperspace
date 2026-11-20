@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Actions\Certificates\SaveCertificate;
-use App\Models\CertificateType;
-use App\Models\Supplier;
+use App\Modules\Srm\Actions\Certificates\SaveCertificate;
+use App\Modules\Srm\Models\CertificateType;
+use App\Modules\Srm\Models\Supplier;
 use Illuminate\Database\Seeder;
 use RuntimeException;
 

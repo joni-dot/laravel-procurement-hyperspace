@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\Category;
-use App\Models\Contact;
-use App\Models\Supplier;
+use App\Modules\Srm\Models\Category;
+use App\Modules\Srm\Models\Contact;
+use App\Modules\Srm\Models\Supplier;
 use Illuminate\Database\Seeder;
 use RuntimeException;
 
