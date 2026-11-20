@@ -19,7 +19,11 @@ class UserInvitation extends Notification implements ShouldBeEncrypted, ShouldQu
         private readonly string $companyName,
         private readonly bool $hasAccount,
         private readonly int $expiresInDays,
-    ) {}
+    ) {
+        // Queued only once the invitation (and a new person's account) is saved, or the worker could
+        // pick the job up first and fail to find the account.
+        $this->afterCommit();
+    }
 
     /**
      * @return list<string>

@@ -14,7 +14,7 @@ class ResendInvitationController extends Controller
     {
         $sendInvitation->handle($membership);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Invitation sent to :email.', ['email' => $membership->invited_email])]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Invitation sent to :email.', ['email' => $membership->known_email])]);
 
         return back();
     }

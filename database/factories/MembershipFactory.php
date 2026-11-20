@@ -38,8 +38,8 @@ class MembershipFactory extends Factory
             'invitation_token' => hash('sha256', Str::random(64)),
             'invitation_sent_at' => now(),
         ])->afterMaking(function (Membership $membership): void {
-            $membership->invited_name ??= $membership->user->name;
-            $membership->invited_email ??= $membership->user->email;
+            $membership->known_name ??= $membership->user->name;
+            $membership->known_email ??= $membership->user->email;
         });
     }
 

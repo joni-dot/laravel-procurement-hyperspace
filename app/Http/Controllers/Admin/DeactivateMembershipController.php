@@ -15,6 +15,7 @@ class DeactivateMembershipController extends Controller
 {
     public function __invoke(Membership $membership): RedirectResponse
     {
+        $membership->rememberWhatTheCompanyKnew();
         $membership->forceFill([
             'deactivated_at' => now(),
             'invitation_token' => null,

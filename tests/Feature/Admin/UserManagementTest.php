@@ -77,7 +77,8 @@ class UserManagementTest extends TestCase
         $this->inviteAs($admin, 'Ivan Invited', 'ivan@example.com');
         $expired = $this->inviteAs($admin, 'Erin Expired', 'erin@example.com');
         $expired->forceFill(['invitation_sent_at' => now()->subDays(4)])->save();
-        User::factory()->create(['name' => 'Dan Deactivated'])->memberships()->update(['deactivated_at' => now()]);
+        User::factory()->create(['name' => 'Dan Deactivated'])->memberships()
+            ->update(['deactivated_at' => now(), 'known_name' => 'Dan Deactivated', 'known_email' => 'dan@example.com']);
 
         $this->actingAs($admin)
             ->get(route('admin.users.index'))
@@ -214,6 +215,49 @@ class UserManagementTest extends TestCase
         $this->assertSame('Kim Existing', $existing->refresh()->name);
     }
 
+    public function test_a_former_members_later_account_changes_never_show()
+    {
+        $admin = User::factory()->admin()->create(['name' => 'Ada Admin']);
+        $lea = User::factory()->create(['name' => 'Lea Leaving', 'email' => 'lea@example.com']);
+        $membership = $lea->memberships()->sole();
+
+        $this->actingAs($admin)->post(route('admin.users.deactivate', $membership))->assertRedirect();
+        $lea->update(['name' => 'Lea Elsewhere', 'email' => 'lea@competitor.example']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.users.index'))
+            ->assertDontSee('competitor')
+            ->assertDontSee('Lea Elsewhere')
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('users.data.1.name', 'Lea Leaving')
+                ->where('users.data.1.email', 'lea@example.com'));
+        $this->actingAs($admin)
+            ->get(route('admin.users.index', ['search' => 'competitor']))
+            ->assertInertia(fn (AssertableInertia $page) => $page->has('users.data', 0));
+
+        // Back as an active member, the company sees the account as it is now.
+        $this->actingAs($admin)->post(route('admin.users.reactivate', $membership))->assertRedirect();
+        $this->actingAs($admin)
+            ->get(route('admin.users.index'))
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('users.data.1.email', 'lea@competitor.example'));
+    }
+
+    public function test_inviting_an_address_again_after_its_account_changed_address_keeps_one_invitation()
+    {
+        $admin = User::factory()->admin()->create();
+        $existing = User::factory()->withoutCompany()->create(['email' => 'x@example.com']);
+        $this->inviteAs($admin, 'X Person', 'x@example.com');
+        $existing->update(['email' => 'x2@example.com']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.users.store'), ['name' => 'X Person', 'email' => 'x@example.com', 'role' => 'viewer'])
+            ->assertSessionHasNoErrors();
+
+        // A second row (and a second account) would tell the inviter an account was behind the first.
+        $this->assertSame(1, Membership::query()->where('company_id', $this->company->id)->where('known_email', 'x@example.com')->count());
+        $this->assertFalse(User::query()->where('email', 'x@example.com')->exists());
+    }
+
     public function test_inviting_someone_with_a_pending_invitation_sends_it_again()
     {
         $admin = User::factory()->admin()->create();
@@ -227,7 +271,7 @@ class UserManagementTest extends TestCase
         $membership->refresh();
         $this->assertNotSame($oldToken, $membership->invitation_token);
         $this->assertSame(Role::Admin, $membership->role);
-        $this->assertSame('Ivan Again', $membership->invited_name);
+        $this->assertSame('Ivan Again', $membership->known_name);
         Notification::assertSentToTimes($membership->user, UserInvitation::class, 2);
     }
 

@@ -66,7 +66,9 @@ class EnterCompany
         $path = $company->slug.substr($request->path(), strlen($oldSlug));
         $query = $request->getQueryString();
 
-        return redirect()->to('/'.$path.($query ? '?'.$query : ''), 301);
+        // Temporary, not 301: browsers keep a 301 for good, and a company may go back to an old address,
+        // which would then send its members round in a loop.
+        return redirect()->to('/'.$path.($query ? '?'.$query : ''), 302);
     }
 
     private function rememberAsLastCompany(User $user, Company $company): void

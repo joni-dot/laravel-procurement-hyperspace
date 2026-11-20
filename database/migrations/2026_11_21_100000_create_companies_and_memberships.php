@@ -33,7 +33,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->restrictOnDelete();
             $table->string('role', 20);
             // An invitation is a membership that hasn't been accepted yet (joined_at is null).
-            $table->string('invited_name')->nullable();
+            $table->string('known_name')->nullable();
             $table->foreignId('invited_by_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('invitation_token', 64)->nullable()->unique();
             $table->timestamp('invitation_sent_at')->nullable();

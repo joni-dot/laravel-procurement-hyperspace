@@ -63,7 +63,8 @@ class EnterCompanyTest extends TestCase
         $this->actingAs($member)
             ->get("/{$oldSlug}/suppliers?status=active")
             ->assertRedirect('/renamed-company/suppliers?status=active')
-            ->assertStatus(301);
+            // Temporary: browsers keep a 301 for good, and a company may go back to an old address.
+            ->assertStatus(302);
 
         $this->actingAs(User::factory()->withoutCompany()->create())->get("/{$oldSlug}/suppliers")->assertNotFound();
         $this->actingAs($member)->post("/{$oldSlug}/suppliers")->assertNotFound();

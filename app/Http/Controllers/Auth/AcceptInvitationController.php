@@ -41,7 +41,8 @@ class AcceptInvitationController extends Controller
             return Inertia::render('auth/AcceptInvitation', [
                 'token' => $token,
                 'email' => $invitedUser->email,
-                'name' => $invitedUser->name,
+                // What this invitation's inviter typed: the account may carry another company's text.
+                'name' => $membership->known_name ?? $invitedUser->name,
                 'passwordRules' => PasswordRule::defaults()->toPasswordRulesString(),
             ]);
         }

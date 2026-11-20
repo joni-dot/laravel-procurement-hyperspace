@@ -21,8 +21,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $company_id
  * @property int $user_id
  * @property Role $role
- * @property string|null $invited_name the name the inviter gave; the list shows it until the person joins
- * @property string|null $invited_email the address the inviter typed
+ * @property string|null $known_name what the company knows the person as while they aren't an active member: the name the inviter typed, or the name they had when deactivated
+ * @property string|null $known_email the address the inviter typed, or the one they had when deactivated
  * @property int|null $invited_by_user_id
  * @property string|null $invitation_token a hash; the email holds the token itself
  * @property CarbonImmutable|null $invitation_sent_at
@@ -34,7 +34,7 @@ class Membership extends Model
     /** @use HasFactory<MembershipFactory> */
     use HasFactory;
 
-    protected $fillable = ['company_id', 'user_id', 'role', 'invited_name', 'invited_email', 'invited_by_user_id', 'joined_at'];
+    protected $fillable = ['company_id', 'user_id', 'role', 'known_name', 'known_email', 'invited_by_user_id', 'joined_at'];
 
     protected $hidden = ['invitation_token'];
 
@@ -134,14 +134,27 @@ class Membership extends Model
     }
 
     /**
-     * The name the company knows the person by: their own once they've joined, before that only
-     * what the inviter typed. The account's name isn't the company's to see until then.
+     * The name the company knows the person by. Only while they're an active member does the
+     * company see their account's own (current) name; before they join it sees what the inviter
+     * typed, and after they leave the name they had when they were deactivated. The account
+     * belongs to the person, and later changes to it are none of a former company's business.
      */
     public function nameForCompany(): string
     {
-        return $this->joined_at !== null
+        return $this->isActive()
             ? $this->user->name
-            : ($this->invited_name ?? $this->invited_email ?? '');
+            : ($this->known_name ?? $this->known_email ?? '');
+    }
+
+    /**
+     * Keeps the name and address the company knew, for when the person is no longer an active
+     * member. Only joined members have account details the company has seen.
+     */
+    public function rememberWhatTheCompanyKnew(): void
+    {
+        if ($this->joined_at !== null) {
+            $this->forceFill(['known_name' => $this->user->name, 'known_email' => $this->user->email]);
+        }
     }
 
     public function status(): MembershipStatus

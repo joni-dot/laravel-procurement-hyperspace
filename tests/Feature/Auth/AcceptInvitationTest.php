@@ -4,6 +4,7 @@ namespace Tests\Feature\Auth;
 
 use App\Actions\Companies\InviteMember;
 use App\Enums\Role;
+use App\Models\Company;
 use App\Models\Membership;
 use App\Models\User;
 use App\Notifications\UserInvitation;
@@ -52,6 +53,16 @@ class AcceptInvitationTest extends TestCase
                 ->where('email', 'new@example.com')
                 ->where('name', 'Nina New')
             );
+    }
+
+    public function test_the_form_offers_the_name_this_invitation_used_not_another_companys()
+    {
+        $this->invite('kim@example.com', 'Kimmo (Acme contractor)');
+        $this->enterCompany(Company::factory()->create());
+        $membership = app(InviteMember::class)->handle($this->company, 'Kim Virtanen', 'kim@example.com', Role::Viewer);
+        $link = Notification::sent($membership->user, UserInvitation::class)->last()->toMail($membership->user)->actionUrl;
+
+        $this->get($link)->assertInertia(fn (AssertableInertia $page) => $page->where('name', 'Kim Virtanen'));
     }
 
     public function test_a_new_account_sets_its_password_joins_and_is_signed_in()

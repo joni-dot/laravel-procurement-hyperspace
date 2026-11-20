@@ -24,13 +24,15 @@ class MembershipController extends Controller
     private const int MEMBERS_PER_PAGE = 25;
 
     /**
-     * Until someone joins, the company knows them only by what the inviter typed. The account's own
-     * name and address stay out of the list, its search and its order, so the list never tells
-     * whether an address already had an account.
+     * Only active members are shown with their account's own (current) name and address. Before
+     * someone joins, the company knows them only by what the inviter typed, and after they're
+     * deactivated by what they were called then (Membership::rememberWhatTheCompanyKnew()). So
+     * the list, its search and its order never tell whether an address had an account, nor show
+     * a former member's later changes.
      */
-    private const string NAME = 'CASE WHEN memberships.joined_at IS NULL THEN COALESCE(memberships.invited_name, memberships.invited_email) ELSE users.name END';
+    private const string NAME = 'CASE WHEN memberships.joined_at IS NOT NULL AND memberships.deactivated_at IS NULL THEN users.name ELSE COALESCE(memberships.known_name, memberships.known_email) END';
 
-    private const string EMAIL = 'CASE WHEN memberships.joined_at IS NULL THEN memberships.invited_email ELSE users.email END';
+    private const string EMAIL = 'CASE WHEN memberships.joined_at IS NOT NULL AND memberships.deactivated_at IS NULL THEN users.email ELSE memberships.known_email END';
 
     public function __construct(private readonly CurrentCompany $currentCompany) {}
 

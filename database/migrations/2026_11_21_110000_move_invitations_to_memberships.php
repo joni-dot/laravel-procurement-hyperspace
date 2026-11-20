@@ -15,16 +15,16 @@ return new class extends Migration
         // The address the company typed, so its list never shows an address the person changed to
         // later: that one belongs to their account, which the company doesn't see until they join.
         Schema::table('memberships', function (Blueprint $table) {
-            $table->string('invited_email')->nullable()->after('invited_name');
+            $table->string('known_email')->nullable()->after('known_name');
         });
 
-        DB::statement('UPDATE memberships SET invited_email = users.email FROM users WHERE users.id = memberships.user_id AND memberships.joined_at IS NULL');
+        DB::statement('UPDATE memberships SET known_email = users.email FROM users WHERE users.id = memberships.user_id AND memberships.joined_at IS NULL');
     }
 
     public function down(): void
     {
         Schema::table('memberships', function (Blueprint $table) {
-            $table->dropColumn('invited_email');
+            $table->dropColumn('known_email');
         });
 
         Schema::create('invitation_tokens', function (Blueprint $table) {

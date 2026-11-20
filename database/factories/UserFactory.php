@@ -125,8 +125,8 @@ class UserFactory extends Factory
             'role' => $this->companyRole,
             'joined_at' => $this->joinsCompany ? now() : null,
             ...($this->joinsCompany ? [] : [
-                'invited_name' => $user->name,
-                'invited_email' => $user->email,
+                'known_name' => $user->name,
+                'known_email' => $user->email,
                 'invitation_token' => hash('sha256', Str::random(64)),
                 'invitation_sent_at' => now(),
             ]),

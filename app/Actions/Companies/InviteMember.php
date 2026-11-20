@@ -23,10 +23,20 @@ class InviteMember
     {
         return DB::transaction(function () use ($company, $name, $email, $role, $invitedBy): Membership {
             $email = Str::lower(trim($email));
-            $user = User::query()->where('email', $email)->first()
-                ?? User::query()->create(['name' => $name, 'email' => $email]);
 
-            $membership = Membership::query()->firstOrNew(['company_id' => $company->id, 'user_id' => $user->id]);
+            // An invitation already sent to this address is sent again, even if the account behind
+            // it has changed its address since. Looking the account up by its current address
+            // instead would add a second row, which would tell the inviter an account existed.
+            $membership = Membership::query()
+                ->where('company_id', $company->id)
+                ->whereNull('joined_at')
+                ->where('known_email', $email)
+                ->first()
+                ?? Membership::query()->firstOrNew([
+                    'company_id' => $company->id,
+                    'user_id' => (User::query()->where('email', $email)->first()
+                        ?? User::query()->create(['name' => $name, 'email' => $email]))->id,
+                ]);
 
             if ($membership->joined_at !== null) {
                 throw new LogicException('This person is already a member of the company.');
@@ -34,8 +44,8 @@ class InviteMember
 
             $membership->fill([
                 'role' => $role,
-                'invited_name' => $name,
-                'invited_email' => $email,
+                'known_name' => $name,
+                'known_email' => $email,
                 'invited_by_user_id' => $invitedBy?->id,
             ]);
             // Inviting again after the invitation was withdrawn makes it a live invitation again.
