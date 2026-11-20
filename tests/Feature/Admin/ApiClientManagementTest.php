@@ -5,11 +5,11 @@ namespace Tests\Feature\Admin;
 use App\Enums\ApiScope;
 use App\Models\ApiClient;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Support\SessionKey;
 use Inertia\Testing\AssertableInertia;
 use Tests\Concerns\IssuesApiTokens;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class ApiClientManagementTest extends TestCase

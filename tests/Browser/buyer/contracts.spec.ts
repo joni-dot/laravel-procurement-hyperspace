@@ -1,3 +1,4 @@
+import { company } from '../support/test-data';
 import { createSupplier, daysFromToday, expect, test } from '../support/test';
 
 test('a contract ending soon appears under "Contracts needing action"', async ({
@@ -13,7 +14,7 @@ test('a contract ending soon appears under "Contracts needing action"', async ({
     await page.getByRole('button', { name: 'Create contract' }).click();
     await expect(page.getByRole('heading', { name: title })).toBeVisible();
 
-    await page.goto('/suppliers');
+    await page.goto(`${company}/suppliers`);
     await page.getByLabel('Search suppliers').fill(name);
     await expect(page.getByRole('link', { name })).toBeVisible();
 

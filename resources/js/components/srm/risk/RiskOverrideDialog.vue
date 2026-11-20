@@ -35,7 +35,9 @@ const reason = ref(props.currentReason ?? '');
     <Dialog v-model:open="isOpen">
         <DialogContent>
             <Form
-                v-bind="RiskOverrideController.update.form(supplierId)"
+                v-bind="
+                    RiskOverrideController.update.form({ supplier: supplierId })
+                "
                 :options="{ preserveScroll: true }"
                 @success="isOpen = false"
                 class="space-y-6"

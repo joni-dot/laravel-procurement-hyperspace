@@ -9,9 +9,9 @@ use Database\Seeders\DemoContractSeeder;
 use Database\Seeders\DemoRatingSeeder;
 use Database\Seeders\DemoSupplierSeeder;
 use Illuminate\Database\Seeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class SeedersRefuseProductionTest extends TestCase

@@ -5,10 +5,10 @@ namespace Tests\Feature\Auth;
 use App\Actions\Users\SendInvitation;
 use App\Models\User;
 use App\Notifications\UserInvitation;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class AcceptInvitationTest extends TestCase

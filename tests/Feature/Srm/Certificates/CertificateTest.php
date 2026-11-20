@@ -6,9 +6,9 @@ use App\Models\User;
 use App\Modules\Srm\Models\Certificate;
 use App\Modules\Srm\Models\CertificateType;
 use App\Modules\Srm\Models\Supplier;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class CertificateTest extends TestCase

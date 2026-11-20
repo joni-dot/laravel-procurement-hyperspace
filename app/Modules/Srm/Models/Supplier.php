@@ -2,6 +2,7 @@
 
 namespace App\Modules\Srm\Models;
 
+use App\Companies\BelongsToCompany;
 use App\Models\User;
 use App\Modules\Srm\Database\Factories\SupplierFactory;
 use App\Modules\Srm\Enums\Currency;
@@ -55,6 +56,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[UseFactory(SupplierFactory::class)]
 class Supplier extends Model
 {
+    use BelongsToCompany;
+
     /** @use HasFactory<SupplierFactory> */
     use HasFactory;
 

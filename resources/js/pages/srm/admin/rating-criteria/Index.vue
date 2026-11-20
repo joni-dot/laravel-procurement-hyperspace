@@ -107,7 +107,7 @@ function removalDescription(criterion: CriterionRow): string {
 
 function restore(criterion: CriterionRow): void {
     router.post(
-        RestoreRatingCriterionController.url(criterion.id),
+        RestoreRatingCriterionController.url({ ratingCriterion: criterion.id }),
         {},
         { preserveScroll: true },
     );
@@ -259,7 +259,9 @@ function restore(criterion: CriterionRow): void {
     <ConfirmActionDialog
         v-if="criterionBeingRemoved"
         :action="
-            RatingCriterionController.destroy.form(criterionBeingRemoved.id)
+            RatingCriterionController.destroy.form({
+                ratingCriterion: criterionBeingRemoved.id,
+            })
         "
         :title="`Remove ${criterionBeingRemoved.name}?`"
         :description="removalDescription(criterionBeingRemoved)"

@@ -117,7 +117,11 @@ function certificateCount(type: CertificateTypeRow): string {
 
     <ConfirmActionDialog
         v-if="typeBeingDeleted"
-        :action="CertificateTypeController.destroy.form(typeBeingDeleted.id)"
+        :action="
+            CertificateTypeController.destroy.form({
+                certificateType: typeBeingDeleted.id,
+            })
+        "
         :title="`Delete ${typeBeingDeleted.name}?`"
         description="No certificates use this type, so nothing else is affected."
         confirm-label="Delete"

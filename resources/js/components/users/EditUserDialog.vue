@@ -30,7 +30,7 @@ const isOpen = defineModel<boolean>('open', { required: true });
     <Dialog v-model:open="isOpen">
         <DialogContent>
             <Form
-                v-bind="UserController.update.form(user.id)"
+                v-bind="UserController.update.form({ user: user.id })"
                 :options="{ preserveScroll: true }"
                 @success="isOpen = false"
                 class="space-y-6"

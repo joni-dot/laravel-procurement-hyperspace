@@ -21,7 +21,9 @@ const props = defineProps<{
 const isOpen = defineModel<boolean>('open', { required: true });
 
 const action = props.contractType
-    ? ContractTypeController.update.form(props.contractType.id)
+    ? ContractTypeController.update.form({
+          contractType: props.contractType.id,
+      })
     : ContractTypeController.store.form();
 </script>
 

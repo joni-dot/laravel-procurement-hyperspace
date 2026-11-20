@@ -52,7 +52,7 @@ function todayAsDate(): string {
     <Dialog v-model:open="isOpen">
         <DialogContent>
             <Form
-                v-bind="RatingController.store.form(supplierId)"
+                v-bind="RatingController.store.form({ supplier: supplierId })"
                 :options="{ preserveScroll: true }"
                 @success="isOpen = false"
                 class="space-y-6"

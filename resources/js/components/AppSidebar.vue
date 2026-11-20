@@ -33,25 +33,31 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
+import { dashboard, home } from '@/routes';
 import type { NavItem } from '@/types';
 
 const page = usePage();
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-    {
-        title: 'Suppliers',
-        href: SupplierController.index(),
-        icon: Building2,
-    },
-];
+// Links point into the open company (or the person's home company on account pages), so they are
+// worked out again whenever the company changes. Without any company there is nothing to link to.
+const mainNavItems = computed<NavItem[]>(() =>
+    page.props.company
+        ? [
+              { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
+              {
+                  title: 'Suppliers',
+                  href: SupplierController.index(),
+                  icon: Building2,
+              },
+          ]
+        : [],
+);
 
 const adminNavItems = computed<NavItem[]>(() => {
+    if (!page.props.company) {
+        return [];
+    }
+
     const can = page.props.auth.can;
 
     const items: { isVisible: boolean; item: NavItem }[] = [
@@ -119,7 +125,7 @@ const adminNavItems = computed<NavItem[]>(() => {
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
-                        <Link :href="dashboard()">
+                        <Link :href="home()">
                             <AppLogo />
                         </Link>
                     </SidebarMenuButton>
@@ -128,7 +134,11 @@ const adminNavItems = computed<NavItem[]>(() => {
         </SidebarHeader>
 
         <SidebarContent>
-            <NavMain label="Platform" :items="mainNavItems" />
+            <NavMain
+                v-if="mainNavItems.length > 0"
+                label="Platform"
+                :items="mainNavItems"
+            />
             <NavMain
                 v-if="adminNavItems.length > 0"
                 label="Administration"

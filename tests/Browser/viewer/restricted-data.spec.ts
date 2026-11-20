@@ -1,11 +1,11 @@
-import { seeded } from '../support/test-data';
+import { company, seeded } from '../support/test-data';
 import { expect, test } from '../support/test';
 
 // Reading the raw response also catches data that is sent to the browser but
 // hidden on screen. tests/Browser/buyer/full-access.spec.ts proves these same
 // values do appear for a buyer, so these checks cannot pass by accident.
 
-for (const url of [seeded.supplierUrl, '/dashboard']) {
+for (const url of [seeded.supplierUrl, `${company}/dashboard`]) {
     test(`${url} never sends contract or spend data`, async ({ page }) => {
         const response = await page.request.get(url);
         const body = await response.text();
@@ -54,10 +54,10 @@ for (const url of [
     `${seeded.contractUrl}/edit`,
     `${seeded.supplierUrl}/edit`,
     `${seeded.supplierUrl}/contracts/create`,
-    '/suppliers/create',
-    '/admin/users',
-    '/admin/settings',
-    '/admin/api-clients',
+    `${company}/suppliers/create`,
+    `${company}/admin/users`,
+    `${company}/admin/settings`,
+    `${company}/admin/api-clients`,
 ]) {
     test(`${url} is forbidden`, async ({ page }) => {
         const response = await page.request.get(url);

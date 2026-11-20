@@ -11,12 +11,12 @@ use App\Models\User;
 use App\Modules\Srm\Models\Supplier;
 use App\Providers\ApiServiceProvider;
 use Carbon\CarbonInterval;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Laravel\Passport\Passport;
 use Mockery;
 use Psr\Log\LoggerInterface;
 use Tests\Concerns\IssuesApiTokens;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class ApiAuthenticationTest extends TestCase

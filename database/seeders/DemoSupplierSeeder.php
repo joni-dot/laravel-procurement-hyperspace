@@ -27,6 +27,8 @@ class DemoSupplierSeeder extends Seeder
             throw new RuntimeException('Demo data must never be added to production.');
         }
 
+        DemoCompany::enter();
+
         $categories = collect(self::CATEGORY_NAMES)
             ->map(fn (string $name) => Category::firstOrCreate(['name' => $name]));
 

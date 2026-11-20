@@ -6,10 +6,10 @@ use App\Models\User;
 use App\Modules\Srm\Models\Contract;
 use App\Modules\Srm\Models\Document;
 use App\Modules\Srm\Models\Supplier;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 use ZipArchive;
 

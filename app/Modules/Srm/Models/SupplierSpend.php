@@ -2,6 +2,7 @@
 
 namespace App\Modules\Srm\Models;
 
+use App\Companies\BelongsToCompany;
 use App\Modules\Srm\Database\Factories\SupplierSpendFactory;
 use App\Modules\Srm\Enums\Currency;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -21,6 +22,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[UseFactory(SupplierSpendFactory::class)]
 class SupplierSpend extends Model
 {
+    use BelongsToCompany;
+
     /** @use HasFactory<SupplierSpendFactory> */
     use HasFactory;
 

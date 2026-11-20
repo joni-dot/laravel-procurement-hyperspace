@@ -86,7 +86,7 @@ const isClearing = ref(false);
 
     <ConfirmActionDialog
         v-if="isClearing"
-        :action="RiskOverrideController.destroy.form(supplierId)"
+        :action="RiskOverrideController.destroy.form({ supplier: supplierId })"
         title="Use the calculated level?"
         description="The manually set level and its reason are removed."
         confirm-label="Use calculated level"

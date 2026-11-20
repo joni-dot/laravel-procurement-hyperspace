@@ -3,6 +3,7 @@
 use App\Http\Middleware\AddContentSecurityPolicy;
 use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\EnterCompany;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LimitPasswordResetAttempts;
@@ -11,6 +12,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\AuthenticateSession;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,6 +37,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Whoever ends up on the sign-in page (session expired, signed out by a password change
         // elsewhere) may not be the person who used this browser, so the kept pages are forgotten.
+        // The dashboard lives inside a company, so signed-in people start at / which opens one.
+        $middleware->redirectUsersTo('/');
+
         $middleware->redirectGuestsTo(function (): string {
             Inertia::clearHistory();
 
@@ -42,6 +47,10 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
+
+        // Records in the address are looked up inside the company, so the company is opened first.
+        $middleware->alias(['company' => EnterCompany::class]);
+        $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: EnterCompany::class);
 
         $middleware->web(append: [
             // Signs out every other session once the password changes.

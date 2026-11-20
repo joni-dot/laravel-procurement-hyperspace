@@ -2,7 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Companies\CurrentCompany;
 use App\Models\ApiClient;
+use App\Models\Company;
 use App\Models\Setting;
 use App\Models\User;
 use App\Modules\Srm\Models\Category;
@@ -22,6 +24,8 @@ class HandleInertiaRequests extends Middleware
      * @var string
      */
     protected $rootView = 'app';
+
+    public function __construct(private readonly CurrentCompany $currentCompany) {}
 
     /**
      * Determines the current asset version.
@@ -46,7 +50,9 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'name' => config('app.name'),
             'sourceCodeUrl' => config('app.source_code_url'),
-            'auth' => [
+            // Closures run when the page renders, after EnterCompany has opened the company.
+            'company' => fn (): ?array => $this->navigationCompany($request)?->only(['name', 'slug']),
+            'auth' => fn (): array => $this->insideNavigationCompany($request, fn (): array => [
                 'user' => $request->user()?->only(['id', 'name', 'email', 'role']),
                 'can' => [
                     'manageUsers' => (bool) $request->user()?->can('viewAny', User::class),
@@ -57,8 +63,39 @@ class HandleInertiaRequests extends Middleware
                     'manageSettings' => (bool) $request->user()?->can('manage', Setting::class),
                     'manageApiClients' => (bool) $request->user()?->can('manage', ApiClient::class),
                 ],
-            ],
+            ]),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
+    }
+
+    /**
+     * The company the menu links point into: the open one, or on pages outside any company (such
+     * as account settings) the one the person would land in.
+     */
+    private function navigationCompany(Request $request): ?Company
+    {
+        $user = $request->user();
+
+        return $this->currentCompany->get() ?? ($user instanceof User ? $user->homeCompany() : null);
+    }
+
+    /**
+     * Works out the menu permissions as they are in the navigation company, so account pages show
+     * the same menu as the company pages. Only the person's own role is read, never company data.
+     *
+     * @template TResult
+     *
+     * @param  callable(): TResult  $callback
+     * @return TResult
+     */
+    private function insideNavigationCompany(Request $request, callable $callback): mixed
+    {
+        $company = $this->navigationCompany($request);
+
+        if ($company === null || $this->currentCompany->get() !== null) {
+            return $callback();
+        }
+
+        return $this->currentCompany->runAs($company, fn () => $callback());
     }
 }

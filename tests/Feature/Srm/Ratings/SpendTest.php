@@ -6,7 +6,7 @@ use App\Models\User;
 use App\Modules\Srm\Enums\Currency;
 use App\Modules\Srm\Models\Supplier;
 use App\Modules\Srm\Models\SupplierSpend;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class SpendTest extends TestCase

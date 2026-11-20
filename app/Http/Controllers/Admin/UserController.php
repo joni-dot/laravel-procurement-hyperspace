@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Actions\Users\SendInvitation;
+use App\Companies\CurrentCompany;
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreUserRequest;
@@ -17,12 +18,15 @@ class UserController extends Controller
 {
     private const int USERS_PER_PAGE = 25;
 
+    public function __construct(private readonly CurrentCompany $currentCompany) {}
+
     public function index(Request $request): Response
     {
         $search = $request->string('search')->trim()->limit(100, '')->toString();
 
         $users = User::query()
-            ->select(['id', 'name', 'email', 'role', 'password', 'deactivated_at'])
+            ->select(['id', 'name', 'email', 'password', 'deactivated_at'])
+            ->whereHas('memberships', fn ($memberships) => $memberships->where('company_id', $this->currentCompany->id()))
             ->when($search !== '', fn ($query) => $query->whereAny(['name', 'email'], 'ilike', "%{$search}%"))
             ->orderBy('name')
             ->paginate(self::USERS_PER_PAGE)
@@ -50,9 +54,12 @@ class UserController extends Controller
 
     public function store(StoreUserRequest $request, SendInvitation $sendInvitation): RedirectResponse
     {
-        $user = new User($request->safe()->only(['name', 'email']));
-        $user->role = $request->enum('role', Role::class);
-        $user->save();
+        $user = User::query()->create($request->safe()->only(['name', 'email']));
+        $user->memberships()->create([
+            'company_id' => $this->currentCompany->id(),
+            'role' => $request->enum('role', Role::class),
+            'joined_at' => now(),
+        ]);
 
         $sendInvitation->handle($user);
 
@@ -64,8 +71,9 @@ class UserController extends Controller
     public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
         $user->name = $request->validated('name');
-        $user->role = $request->enum('role', Role::class);
         $user->save();
+        $user->memberships()->where('company_id', $this->currentCompany->id())
+            ->update(['role' => $request->enum('role', Role::class)]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('User updated.')]);
 

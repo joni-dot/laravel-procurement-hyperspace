@@ -2,6 +2,7 @@
 
 namespace App\Modules\Srm\Models;
 
+use App\Companies\BelongsToCompany;
 use App\Models\User;
 use App\Modules\Srm\Database\Factories\CommentFactory;
 use Carbon\CarbonImmutable;
@@ -27,6 +28,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[UseFactory(CommentFactory::class)]
 class Comment extends Model
 {
+    use BelongsToCompany;
+
     /** @use HasFactory<CommentFactory> */
     use HasFactory;
 

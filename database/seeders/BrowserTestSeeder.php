@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Companies\CurrentCompany;
+use App\Models\Company;
 use App\Models\User;
 use App\Modules\Srm\Comments\CommentFeed;
 use App\Modules\Srm\Enums\Currency;
@@ -24,6 +26,10 @@ class BrowserTestSeeder extends Seeder
         if (app()->isProduction()) {
             throw new RuntimeException('Browser test data must never be added to production.');
         }
+
+        // tests/Browser/support/test-data.ts expects this address.
+        $company = Company::factory()->create(['name' => 'Browser Test Company', 'slug' => 'browser-test']);
+        app(CurrentCompany::class)->set($company);
 
         User::factory()->admin()->create(['name' => 'Browser Admin', 'email' => 'admin@browser-test.example']);
         $buyer = User::factory()->buyer()->create(['name' => 'Browser Buyer', 'email' => 'buyer@browser-test.example']);

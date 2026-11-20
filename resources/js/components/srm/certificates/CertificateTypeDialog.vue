@@ -25,7 +25,9 @@ const props = defineProps<{
 const isOpen = defineModel<boolean>('open', { required: true });
 
 const action = props.certificateType
-    ? CertificateTypeController.update.form(props.certificateType.id)
+    ? CertificateTypeController.update.form({
+          certificateType: props.certificateType.id,
+      })
     : CertificateTypeController.store.form();
 </script>
 

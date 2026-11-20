@@ -8,10 +8,10 @@ use App\Notifications\ResetPasswordLink;
 use App\Notifications\UserInvitation;
 use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Fortify\Features;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class PasswordResetTest extends TestCase

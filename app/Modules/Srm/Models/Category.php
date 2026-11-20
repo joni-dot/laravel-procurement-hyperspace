@@ -2,6 +2,7 @@
 
 namespace App\Modules\Srm\Models;
 
+use App\Companies\BelongsToCompany;
 use App\Modules\Srm\Database\Factories\CategoryFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
@@ -17,6 +18,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 #[UseFactory(CategoryFactory::class)]
 class Category extends Model
 {
+    use BelongsToCompany;
+
     /** @use HasFactory<CategoryFactory> */
     use HasFactory;
 

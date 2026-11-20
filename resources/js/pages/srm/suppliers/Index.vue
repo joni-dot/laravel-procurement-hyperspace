@@ -226,7 +226,11 @@ watch(
                     >
                         <td class="px-4 py-3 font-medium">
                             <Link
-                                :href="SupplierController.show(supplier.id)"
+                                :href="
+                                    SupplierController.show({
+                                        supplier: supplier.id,
+                                    })
+                                "
                                 class="hover:underline"
                             >
                                 {{ supplier.name }}

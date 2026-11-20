@@ -72,7 +72,7 @@ function hasActions(user: ManagedUser): boolean {
 
 function reactivate(user: ManagedUser): void {
     router.post(
-        ReactivateUserController.url(user.id),
+        ReactivateUserController.url({ user: user.id }),
         {},
         { preserveScroll: true },
     );
@@ -80,7 +80,7 @@ function reactivate(user: ManagedUser): void {
 
 function resendInvitation(user: ManagedUser): void {
     router.post(
-        ResendInvitationController.url(user.id),
+        ResendInvitationController.url({ user: user.id }),
         {},
         { preserveScroll: true },
     );
@@ -209,7 +209,9 @@ function resendInvitation(user: ManagedUser): void {
 
     <ConfirmActionDialog
         v-if="userBeingDeactivated"
-        :action="DeactivateUserController.form(userBeingDeactivated.id)"
+        :action="
+            DeactivateUserController.form({ user: userBeingDeactivated.id })
+        "
         :title="`Deactivate ${userBeingDeactivated.name}?`"
         description="They will be signed out right away and can't log in until an admin reactivates them. Nothing they created is deleted."
         confirm-label="Deactivate"

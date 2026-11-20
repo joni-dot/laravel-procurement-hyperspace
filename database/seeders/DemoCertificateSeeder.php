@@ -27,6 +27,8 @@ class DemoCertificateSeeder extends Seeder
             throw new RuntimeException('Demo data must never be added to production.');
         }
 
+        DemoCompany::enter();
+
         $types = collect(self::TYPES)->map(fn (bool $isRequired, string $name) => CertificateType::firstOrCreate(
             ['name' => $name],
             ['is_required' => $isRequired],

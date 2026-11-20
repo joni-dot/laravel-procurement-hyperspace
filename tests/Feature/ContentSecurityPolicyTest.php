@@ -3,11 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Vite;
 use RuntimeException;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class ContentSecurityPolicyTest extends TestCase

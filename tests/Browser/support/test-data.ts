@@ -2,6 +2,9 @@
 // every run, so the first supplier and contract always have id 1.
 export const password = 'password';
 
+// Every company page lives under the company's address; the seeder creates this company.
+export const company = '/browser-test';
+
 export const users = {
     admin: 'admin@browser-test.example',
     buyer: 'buyer@browser-test.example',
@@ -9,15 +12,15 @@ export const users = {
 } as const;
 
 export const seeded = {
-    supplierUrl: '/suppliers/1',
+    supplierUrl: `${company}/suppliers/1`,
     supplierName: 'Browser Test Supplier',
-    contractUrl: '/suppliers/1/contracts/1',
+    contractUrl: `${company}/suppliers/1/contracts/1`,
     contractTitle: 'Confidential browser test contract',
     contractValue: '123456',
     spendAmount: '987654',
     requiredCertificate: 'ISO 9001',
     supplierComment: 'Browser test supplier comment',
     contractComment: 'Secret negotiation note',
-    busySupplierUrl: '/suppliers/2',
+    busySupplierUrl: `${company}/suppliers/2`,
     busySupplierCommentCount: 25,
 } as const;

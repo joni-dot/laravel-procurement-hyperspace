@@ -10,10 +10,10 @@ use App\Modules\Srm\Models\Contract;
 use App\Modules\Srm\Models\ContractReminder;
 use App\Modules\Srm\Models\Supplier;
 use App\Modules\Srm\Notifications\ContractsNeedAction;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class ContractJobsTest extends TestCase

@@ -19,6 +19,8 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             sourceCodeUrl: string;
+            /** The open company, or on account pages the one the menu links into. */
+            company: { name: string; slug: string } | null;
             auth: Auth;
             sidebarOpen: boolean;
             [key: string]: unknown;

@@ -6,8 +6,8 @@ use App\Models\User;
 use App\Modules\Srm\Enums\SupplierStatus;
 use App\Modules\Srm\Models\Category;
 use App\Modules\Srm\Models\Supplier;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class SupplierListTest extends TestCase
@@ -106,6 +106,8 @@ class SupplierListTest extends TestCase
         DB::enableQueryLog();
         $this->get(route('suppliers.index'))->assertOk();
 
-        $this->assertLessThanOrEqual(6, count(DB::getQueryLog()));
+        // 6 for the list, plus 4 to open the company: find it, check the membership, set the
+        // database's company and remember it as the last one used.
+        $this->assertLessThanOrEqual(6 + 4, count(DB::getQueryLog()));
     }
 }

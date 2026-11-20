@@ -2,13 +2,12 @@
 
 namespace App\Modules\Srm\Http\Requests\Suppliers;
 
-use App\Enums\Role;
-use App\Models\User;
 use App\Modules\Srm\Enums\Currency;
 use App\Modules\Srm\Enums\DeliveryTerm;
 use App\Modules\Srm\Enums\SupplierStatus;
 use App\Modules\Srm\Models\Supplier;
 use App\Modules\Srm\Rules\FinnishBusinessId;
+use App\Rules\ActiveBuyerOrAdmin;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
@@ -34,9 +33,7 @@ class SupplierRequest extends FormRequest
             'status' => ['required', Rule::enum(SupplierStatus::class)],
             'responsible_user_id' => [
                 'nullable', 'integer',
-                Rule::exists(User::class, 'id')
-                    ->whereIn('role', [Role::Admin->value, Role::Buyer->value])
-                    ->whereNull('deactivated_at'),
+                new ActiveBuyerOrAdmin,
             ],
             'country_code' => ['required', 'string', Rule::in(Countries::getCountryCodes())],
             'business_id' => [

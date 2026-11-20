@@ -107,7 +107,11 @@ function contractCount(type: ContractTypeRow): string {
 
     <ConfirmActionDialog
         v-if="typeBeingDeleted"
-        :action="ContractTypeController.destroy.form(typeBeingDeleted.id)"
+        :action="
+            ContractTypeController.destroy.form({
+                contractType: typeBeingDeleted.id,
+            })
+        "
         :title="`Delete ${typeBeingDeleted.name}?`"
         description="No contracts use this type, so nothing else is affected."
         confirm-label="Delete"

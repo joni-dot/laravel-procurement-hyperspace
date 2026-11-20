@@ -6,7 +6,7 @@ use App\Models\User;
 use App\Modules\Srm\Models\RatingCriterion;
 use App\Modules\Srm\Models\Supplier;
 use App\Modules\Srm\Models\SupplierRating;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class RatingTest extends TestCase

@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Companies\CurrentCompany;
 use App\Enums\UserStatus;
 use App\Models\User;
 
@@ -23,7 +24,18 @@ class UserPolicy
 
     public function update(User $actor, User $user): bool
     {
-        return $actor->isAdmin() && $actor->isNot($user);
+        return $actor->isAdmin() && $actor->isNot($user) && $this->isInCurrentCompany($user);
+    }
+
+    /**
+     * Admins manage only their own company's people; someone from another company is out of reach
+     * even when their id is typed into the address.
+     */
+    private function isInCurrentCompany(User $user): bool
+    {
+        $companyId = app(CurrentCompany::class)->id();
+
+        return $companyId !== null && $user->memberships()->where('company_id', $companyId)->exists();
     }
 
     public function deactivate(User $actor, User $user): bool

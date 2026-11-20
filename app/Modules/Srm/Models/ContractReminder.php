@@ -2,6 +2,7 @@
 
 namespace App\Modules\Srm\Models;
 
+use App\Companies\BelongsToCompany;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -17,6 +18,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['days_before', 'remind_on'])]
 class ContractReminder extends Model
 {
+    use BelongsToCompany;
+
     public $timestamps = false;
 
     /**

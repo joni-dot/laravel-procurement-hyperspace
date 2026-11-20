@@ -7,8 +7,8 @@ use App\Modules\Srm\Comments\CommentFeed;
 use App\Modules\Srm\Models\Comment;
 use App\Modules\Srm\Models\Contract;
 use App\Modules\Srm\Models\Supplier;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class CommentTest extends TestCase
@@ -174,7 +174,7 @@ class CommentTest extends TestCase
     public function test_an_author_who_became_a_viewer_can_no_longer_change_their_comments()
     {
         $comment = Comment::factory()->create();
-        $comment->author->forceFill(['role' => 'viewer'])->save();
+        $comment->author->memberships()->update(['role' => 'viewer']);
 
         $this->actingAs($comment->author)
             ->delete(route('suppliers.comments.destroy', [$comment->supplier_id, $comment]))
@@ -346,6 +346,8 @@ class CommentTest extends TestCase
         };
 
         Comment::factory()->for($supplier)->create();
+        // The first visit also remembers the company as the person's last one; count from the second.
+        $queriesFor();
         $withOne = $queriesFor();
 
         Comment::factory()->for($supplier)->count(10)->create();

@@ -21,7 +21,9 @@ const props = defineProps<{
 const isOpen = defineModel<boolean>('open', { required: true });
 
 const action = props.criterion
-    ? RatingCriterionController.update.form(props.criterion.id)
+    ? RatingCriterionController.update.form({
+          ratingCriterion: props.criterion.id,
+      })
     : RatingCriterionController.store.form();
 </script>
 

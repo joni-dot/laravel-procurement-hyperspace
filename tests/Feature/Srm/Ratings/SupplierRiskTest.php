@@ -10,8 +10,8 @@ use App\Modules\Srm\Models\Certificate;
 use App\Modules\Srm\Models\CertificateType;
 use App\Modules\Srm\Models\Contract;
 use App\Modules\Srm\Models\Supplier;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class SupplierRiskTest extends TestCase
@@ -193,7 +193,8 @@ class SupplierRiskTest extends TestCase
         });
         $this->get(route('suppliers.index'))->assertOk();
 
-        $this->assertLessThanOrEqual(10, $queries);
+        // 10 for the list, plus 4 to open the company (see SupplierListTest).
+        $this->assertLessThanOrEqual(10 + 4, $queries);
     }
 
     private function withRating(Supplier $supplier, string $score): Supplier

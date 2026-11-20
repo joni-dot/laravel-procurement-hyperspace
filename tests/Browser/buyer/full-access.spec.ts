@@ -1,4 +1,4 @@
-import { seeded } from '../support/test-data';
+import { company, seeded } from '../support/test-data';
 import { expect, test } from '../support/test';
 
 test('a buyer gets the contract and spend data a viewer does not', async ({
@@ -24,7 +24,7 @@ test('a buyer gets the contract and spend data a viewer does not', async ({
 test('the dashboard shows a buyer the biggest suppliers by spend', async ({
     page,
 }) => {
-    await page.goto('/dashboard');
+    await page.goto(`${company}/dashboard`);
 
     await expect(
         page.getByRole('heading', { name: /Biggest suppliers by spend/ }),
@@ -35,10 +35,10 @@ test('the dashboard shows a buyer the biggest suppliers by spend', async ({
 });
 
 for (const url of [
-    '/admin/users',
-    '/admin/categories',
-    '/admin/settings',
-    '/admin/api-clients',
+    `${company}/admin/users`,
+    `${company}/admin/categories`,
+    `${company}/admin/settings`,
+    `${company}/admin/api-clients`,
 ]) {
     test(`${url} is forbidden for a buyer`, async ({ page }) => {
         const response = await page.request.get(url);

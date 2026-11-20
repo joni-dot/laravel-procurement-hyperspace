@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use Database\Seeders\DatabaseSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class DatabaseSeederTest extends TestCase

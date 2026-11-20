@@ -1,8 +1,8 @@
-import { password, users } from './support/test-data';
+import { company, password, users } from './support/test-data';
 import { expect, test } from './support/test';
 
 test('signed-out visitors are sent to the login page', async ({ page }) => {
-    await page.goto('/suppliers');
+    await page.goto(`${company}/suppliers`);
 
     await expect(page).toHaveURL(/\/login$/);
 });

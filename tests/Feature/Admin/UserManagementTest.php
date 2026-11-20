@@ -5,10 +5,10 @@ namespace Tests\Feature\Admin;
 use App\Enums\Role;
 use App\Models\User;
 use App\Notifications\UserInvitation;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class UserManagementTest extends TestCase

@@ -34,7 +34,7 @@ const currencyCode = ref(props.spend?.currency_code ?? 'EUR');
     <Dialog v-model:open="isOpen">
         <DialogContent>
             <Form
-                v-bind="SpendController.store.form(supplierId)"
+                v-bind="SpendController.store.form({ supplier: supplierId })"
                 :options="{ preserveScroll: true }"
                 @success="isOpen = false"
                 class="space-y-6"

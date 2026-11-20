@@ -1,9 +1,10 @@
+import { company } from '../support/test-data';
 import { createSupplier, expect, test } from '../support/test';
 
 test('moving between pages does not reload the whole page', async ({
     page,
 }) => {
-    await page.goto('/dashboard');
+    await page.goto(`${company}/dashboard`);
     await page.evaluate(() => {
         document.documentElement.dataset.notReloaded = 'true';
     });
@@ -22,7 +23,7 @@ test('moving between pages does not reload the whole page', async ({
 test('a required field left empty keeps the user on the form', async ({
     page,
 }) => {
-    await page.goto('/suppliers/create');
+    await page.goto(`${company}/suppliers/create`);
     await page.getByRole('button', { name: 'Create supplier' }).click();
 
     await expect(page).toHaveURL(/\/suppliers\/create$/);
@@ -38,7 +39,7 @@ test('a buyer can create, find, edit, archive and restore a supplier', async ({
     await page.getByRole('button', { name: 'Save changes' }).click();
     await expect(page.getByText('Tampere')).toBeVisible();
 
-    await page.goto('/suppliers');
+    await page.goto(`${company}/suppliers`);
     await page.getByLabel('Search suppliers').fill(name);
     // Wait for the search to finish: it runs 300 ms after typing stops.
     await expect(page).toHaveURL(/search=/);
@@ -51,7 +52,7 @@ test('a buyer can create, find, edit, archive and restore a supplier', async ({
         .click();
     await expect(page.getByText('This supplier was archived')).toBeVisible();
 
-    await page.goto('/suppliers');
+    await page.goto(`${company}/suppliers`);
     await page.getByLabel('Search suppliers').fill(name);
     await expect(page.getByText('No suppliers')).toBeVisible();
 

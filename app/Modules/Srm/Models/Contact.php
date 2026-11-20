@@ -2,6 +2,7 @@
 
 namespace App\Modules\Srm\Models;
 
+use App\Companies\BelongsToCompany;
 use App\Modules\Srm\Database\Factories\ContactFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
@@ -22,6 +23,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[UseFactory(ContactFactory::class)]
 class Contact extends Model
 {
+    use BelongsToCompany;
+
     /** @use HasFactory<ContactFactory> */
     use HasFactory;
 

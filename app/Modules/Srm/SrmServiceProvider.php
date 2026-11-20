@@ -2,6 +2,9 @@
 
 namespace App\Modules\Srm;
 
+use App\Companies\CurrentCompany;
+use App\Models\Company;
+use App\Modules\Srm\Actions\AddStartingLists;
 use App\Modules\Srm\Console\Commands\RenewContracts;
 use App\Modules\Srm\Console\Commands\SendCertificateReminders;
 use App\Modules\Srm\Console\Commands\SendContractReminders;
@@ -18,8 +21,19 @@ class SrmServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadMigrationsFrom(__DIR__.'/Database/Migrations');
+        $this->startNewCompanies();
         $this->registerRoutes();
         $this->registerCommands();
+    }
+
+    private function startNewCompanies(): void
+    {
+        Company::created(function (Company $company): void {
+            $this->app->make(CurrentCompany::class)->runAs(
+                $company,
+                fn () => $this->app->make(AddStartingLists::class)->handle(),
+            );
+        });
     }
 
     private function registerRoutes(): void
@@ -28,7 +42,10 @@ class SrmServiceProvider extends ServiceProvider
             return;
         }
 
-        Route::middleware('web')->group(__DIR__.'/routes/web.php');
+        Route::middleware(['web', 'company'])
+            ->prefix('{company}')
+            ->where(['company' => Company::SLUG_PATTERN])
+            ->group(__DIR__.'/routes/web.php');
         Route::middleware('api')->prefix('api')->group(__DIR__.'/routes/api.php');
     }
 

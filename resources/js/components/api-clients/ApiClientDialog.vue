@@ -32,7 +32,7 @@ const isOpen = defineModel<boolean>('open', { required: true });
 const responsibleUserId = ref(props.apiClient?.responsible_user_id ?? '');
 
 const action = props.apiClient
-    ? ApiClientController.update.form(props.apiClient.id)
+    ? ApiClientController.update.form({ apiClient: props.apiClient.id })
     : ApiClientController.store.form();
 
 function hasScope(scope: string): boolean {

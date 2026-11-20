@@ -1,4 +1,4 @@
-import { password } from '../support/test-data';
+import { company, password } from '../support/test-data';
 import { expect, test } from '../support/test';
 
 const pages = {
@@ -12,7 +12,7 @@ const pages = {
 
 for (const [url, title] of Object.entries(pages)) {
     test(`${url} opens without browser errors`, async ({ page }) => {
-        await page.goto(url);
+        await page.goto(`${company}${url}`);
 
         await expect(
             page.getByRole('heading', { name: title, exact: true }),
@@ -21,7 +21,7 @@ for (const [url, title] of Object.entries(pages)) {
 }
 
 test('an admin can add a category', async ({ page }) => {
-    await page.goto('/admin/categories');
+    await page.goto(`${company}/admin/categories`);
 
     await page.getByRole('button', { name: 'Add category' }).click();
     const dialog = page.getByRole('dialog');
@@ -35,7 +35,7 @@ test('an admin can add a category', async ({ page }) => {
 test('an admin can add an API client, see its secret once and revoke it', async ({
     page,
 }) => {
-    await page.goto('/admin/api-clients');
+    await page.goto(`${company}/admin/api-clients`);
     await expect(
         page.getByRole('heading', { name: 'Confirm password' }),
     ).toBeVisible();

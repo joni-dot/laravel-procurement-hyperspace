@@ -4,7 +4,7 @@ namespace Tests\Feature\Srm\Suppliers;
 
 use App\Models\User;
 use App\Modules\Srm\Models\Supplier;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class ArchiveSupplierTest extends TestCase

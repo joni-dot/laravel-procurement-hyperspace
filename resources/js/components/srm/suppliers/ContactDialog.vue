@@ -29,7 +29,7 @@ const action = props.contact
           supplier: props.supplierId,
           contact: props.contact.id,
       })
-    : ContactController.store.form(props.supplierId);
+    : ContactController.store.form({ supplier: props.supplierId });
 </script>
 
 <template>

@@ -22,7 +22,7 @@ const props = defineProps<{
 const isOpen = defineModel<boolean>('open', { required: true });
 
 const action = props.category
-    ? CategoryController.update.form(props.category.id)
+    ? CategoryController.update.form({ category: props.category.id })
     : CategoryController.store.form();
 </script>
 

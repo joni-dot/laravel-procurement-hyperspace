@@ -2,6 +2,7 @@
 
 namespace App\Modules\Srm\Models;
 
+use App\Companies\BelongsToCompany;
 use App\Models\User;
 use App\Modules\Srm\Database\Factories\ContractFactory;
 use App\Modules\Srm\Enums\ContractHealth;
@@ -45,6 +46,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[UseFactory(ContractFactory::class)]
 class Contract extends Model
 {
+    use BelongsToCompany;
+
     /** @use HasFactory<ContractFactory> */
     use HasFactory;
 

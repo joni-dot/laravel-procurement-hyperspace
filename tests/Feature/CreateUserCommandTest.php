@@ -4,8 +4,8 @@ namespace Tests\Feature;
 
 use App\Enums\Role;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class CreateUserCommandTest extends TestCase
