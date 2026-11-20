@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\AuthenticateSession;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -56,6 +57,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        // Laravel's message for a missing record names the model class ("No query results for model
+        // [App\...]"), which tells outsiders how the code is built and changes when a class moves.
+        $exceptions->render(function (NotFoundHttpException $e, Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json(['message' => 'Not found.'], 404);
+            }
+        });
 
         // A redirect after a PUT, PATCH or DELETE must be 303, or the browser repeats the same
         // method. HandleInertiaRequests does this for normal responses, but an exception thrown

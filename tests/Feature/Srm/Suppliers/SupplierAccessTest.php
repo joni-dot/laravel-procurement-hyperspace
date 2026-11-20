@@ -65,6 +65,14 @@ class SupplierAccessTest extends TestCase
             );
     }
 
+    public function test_a_json_request_for_a_missing_supplier_does_not_name_the_app_code()
+    {
+        $this->actingAs(User::factory()->create())
+            ->getJson(route('suppliers.show', 999999))
+            ->assertNotFound()
+            ->assertExactJson(['message' => 'Not found.']);
+    }
+
     #[DataProvider('editingRoutes')]
     public function test_viewers_cannot_change_anything(string $method, string $route)
     {

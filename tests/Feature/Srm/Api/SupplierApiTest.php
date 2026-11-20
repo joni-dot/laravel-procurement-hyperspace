@@ -137,4 +137,11 @@ class SupplierApiTest extends TestCase
         $this->getJson(route('api.v1.suppliers.show', 999999), $this->headers)->assertNotFound();
         $this->getJson('/api/v1/suppliers/not-a-number', $this->headers)->assertNotFound();
     }
+
+    public function test_not_found_answers_never_name_the_app_code()
+    {
+        $this->getJson(route('api.v1.suppliers.show', 999999), $this->headers)
+            ->assertNotFound()
+            ->assertExactJson(['message' => 'Not found.']);
+    }
 }
