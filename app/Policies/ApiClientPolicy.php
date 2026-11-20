@@ -13,10 +13,12 @@ class ApiClientPolicy
     }
 
     /**
-     * A revoked client stays revoked, so its history is kept; a new client is created instead.
+     * A revoked client stays revoked, so its history is kept; a new client is created instead. Route
+     * binding already finds only the open company's clients; the company is checked here as well so
+     * the rule holds wherever the policy is used.
      */
     public function update(User $user, ApiClient $apiClient): bool
     {
-        return $user->isAdmin() && ! $apiClient->revoked;
+        return $user->isAdmin() && $apiClient->belongsToCurrentCompany() && ! $apiClient->revoked;
     }
 }

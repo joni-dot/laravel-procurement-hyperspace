@@ -21,6 +21,8 @@
 *.p12
 *.pfx
 *.sql
+# The database rights script is code, not a dump.
+!docker/pgsql/app-role.sql
 *.sql.gz
 *.dump
 *.bak

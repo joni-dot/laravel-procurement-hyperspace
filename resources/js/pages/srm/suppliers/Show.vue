@@ -50,7 +50,7 @@ setLayoutProps({
         { title: 'Suppliers', href: SupplierController.index() },
         {
             title: props.supplier.name,
-            href: SupplierController.show(props.supplier.id),
+            href: SupplierController.show({ supplier: props.supplier.id }),
         },
     ],
 });
@@ -89,7 +89,7 @@ const archivedOn = computed(() =>
 
 function restore(): void {
     router.post(
-        RestoreSupplierController.url(props.supplier.id),
+        RestoreSupplierController.url({ supplier: props.supplier.id }),
         {},
         { preserveScroll: true },
     );
@@ -145,7 +145,11 @@ function restore(): void {
 
             <div class="flex gap-2">
                 <Button v-if="can.update" variant="outline" as-child>
-                    <Link :href="SupplierController.edit(supplier.id)">
+                    <Link
+                        :href="
+                            SupplierController.edit({ supplier: supplier.id })
+                        "
+                    >
                         <Pencil /> Edit
                     </Link>
                 </Button>
@@ -263,7 +267,9 @@ function restore(): void {
             title="Documents"
             :supplier-id="supplier.id"
             :documents="supplier.documents"
-            :upload-action="DocumentController.store.form(supplier.id)"
+            :upload-action="
+                DocumentController.store.form({ supplier: supplier.id })
+            "
             :can-edit="can.update"
         />
 
@@ -282,7 +288,7 @@ function restore(): void {
 
     <ConfirmActionDialog
         v-model:open="isConfirmingArchive"
-        :action="ArchiveSupplierController.form(supplier.id)"
+        :action="ArchiveSupplierController.form({ supplier: supplier.id })"
         :title="`Archive ${supplier.name}?`"
         description="It will be hidden from the supplier list, but nothing is deleted. You can restore it at any time."
         confirm-label="Archive"

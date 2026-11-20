@@ -5,8 +5,8 @@ namespace Tests\Feature\Srm\Contracts;
 use App\Models\User;
 use App\Modules\Srm\Models\Contract;
 use App\Modules\Srm\Models\Supplier;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class ContractAccessTest extends TestCase

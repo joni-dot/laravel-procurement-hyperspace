@@ -3,16 +3,18 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class HomeRedirectTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_home_redirects_to_the_dashboard()
+    public function test_home_opens_the_dashboard_of_the_persons_company()
     {
-        $this->get(route('home'))->assertRedirect(route('dashboard'));
+        $this->actingAs(User::factory()->create())
+            ->get(route('home'))
+            ->assertRedirect(route('dashboard'));
     }
 
     public function test_guests_end_up_on_the_login_page()

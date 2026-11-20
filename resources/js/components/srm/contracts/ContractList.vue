@@ -38,7 +38,9 @@ function value(contract: ContractSummary): string {
         <div class="flex items-center justify-between gap-4">
             <Heading variant="small" title="Contracts" />
             <Button v-if="canEdit" variant="outline" size="sm" as-child>
-                <Link :href="ContractController.create(supplierId)">
+                <Link
+                    :href="ContractController.create({ supplier: supplierId })"
+                >
                     <Plus /> Add contract
                 </Link>
             </Button>

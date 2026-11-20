@@ -17,11 +17,11 @@ setLayoutProps({
         { title: 'Suppliers', href: SupplierController.index() },
         {
             title: props.supplier.name,
-            href: SupplierController.show(props.supplier.id),
+            href: SupplierController.show({ supplier: props.supplier.id }),
         },
         {
             title: 'New contract',
-            href: ContractController.create(props.supplier.id),
+            href: ContractController.create({ supplier: props.supplier.id }),
         },
     ],
 });
@@ -33,8 +33,10 @@ setLayoutProps({
     <div class="p-4">
         <Heading title="New contract" :description="supplier.name" />
         <ContractForm
-            :action="ContractController.store.form(supplier.id)"
-            :cancel-href="SupplierController.show.url(supplier.id)"
+            :action="ContractController.store.form({ supplier: supplier.id })"
+            :cancel-href="
+                SupplierController.show.url({ supplier: supplier.id })
+            "
             submit-label="Create contract"
             :options="props"
         />

@@ -6,9 +6,9 @@ use App\Models\User;
 use App\Modules\Srm\Models\Certificate;
 use App\Modules\Srm\Models\CertificateType;
 use App\Modules\Srm\Models\Supplier;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class CertificateTest extends TestCase
@@ -39,7 +39,7 @@ class CertificateTest extends TestCase
         $certificate = Certificate::sole();
 
         $this->assertSame('iso-9001.pdf', $certificate->file_name);
-        $this->assertStringStartsWith("certificates/{$this->supplier->id}/", (string) $certificate->file_path);
+        $this->assertStringStartsWith("companies/{$this->company->id}/certificates/{$this->supplier->id}/", (string) $certificate->file_path);
         Storage::disk('local')->assertExists((string) $certificate->file_path);
 
         $this->assertEqualsCanonicalizing(

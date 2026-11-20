@@ -2,6 +2,7 @@
 
 namespace App\Modules\Srm\Models;
 
+use App\Companies\BelongsToCompany;
 use App\Modules\Srm\Database\Factories\CertificateTypeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
@@ -18,6 +19,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[UseFactory(CertificateTypeFactory::class)]
 class CertificateType extends Model
 {
+    use BelongsToCompany;
+
     /** @use HasFactory<CertificateTypeFactory> */
     use HasFactory;
 

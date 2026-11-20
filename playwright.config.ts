@@ -27,5 +27,11 @@ export default defineConfig({
             dependencies: ['sign-in'],
             use: { storageState: `tests/Browser/.auth/${role}.json` },
         })),
+        {
+            name: 'platform',
+            testMatch: 'platform/*.spec.ts',
+            dependencies: ['sign-in'],
+            use: { storageState: 'tests/Browser/.auth/platform.json' },
+        },
     ],
 });

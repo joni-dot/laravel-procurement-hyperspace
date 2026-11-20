@@ -2,6 +2,7 @@
 
 namespace App\Modules\Srm\Models;
 
+use App\Companies\BelongsToCompany;
 use App\Modules\Srm\Database\Factories\RatingCriterionFactory;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -24,6 +25,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[UseFactory(RatingCriterionFactory::class)]
 class RatingCriterion extends Model
 {
+    use BelongsToCompany;
+
     public const int MAX_TOTAL_WEIGHT = 100;
 
     /** @use HasFactory<RatingCriterionFactory> */

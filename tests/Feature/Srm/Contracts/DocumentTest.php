@@ -2,14 +2,16 @@
 
 namespace Tests\Feature\Srm\Contracts;
 
+use App\Companies\CurrentCompany;
+use App\Models\Company;
 use App\Models\User;
 use App\Modules\Srm\Models\Contract;
 use App\Modules\Srm\Models\Document;
 use App\Modules\Srm\Models\Supplier;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 use ZipArchive;
 
@@ -38,7 +40,7 @@ class DocumentTest extends TestCase
 
         $this->assertNull($document->contract_id);
         $this->assertSame('price list.pdf', $document->file_name);
-        $this->assertStringStartsWith("documents/{$this->supplier->id}/", $document->file_path);
+        $this->assertStringStartsWith("companies/{$this->company->id}/documents/{$this->supplier->id}/", $document->file_path);
         Storage::disk('local')->assertExists($document->file_path);
         $this->assertSame(auth()->id(), $document->uploaded_by_user_id);
     }
@@ -153,6 +155,18 @@ class DocumentTest extends TestCase
         $this->get(route('suppliers.documents.download', [$other, $document]))->assertNotFound();
         $this->delete(route('suppliers.documents.destroy', [$other, $document]))->assertNotFound();
         $this->assertModelExists($document);
+    }
+
+    public function test_a_document_of_another_company_is_not_found()
+    {
+        $otherCompany = Company::factory()->create();
+        $theirs = app(CurrentCompany::class)->runAs($otherCompany, fn () => Document::factory()->create());
+        Storage::disk('local')->put($theirs->file_path, 'their file');
+
+        $this->get(route('suppliers.documents.download', [$this->supplier, $theirs]))->assertNotFound();
+        $this->get(route('suppliers.documents.download', [$theirs->supplier_id, $theirs]))->assertNotFound();
+        $this->delete(route('suppliers.documents.destroy', [$theirs->supplier_id, $theirs]))->assertNotFound();
+        Storage::disk('local')->assertExists($theirs->file_path);
     }
 
     public function test_documents_of_an_archived_supplier_cannot_be_deleted()

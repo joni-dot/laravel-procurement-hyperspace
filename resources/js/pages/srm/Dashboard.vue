@@ -108,7 +108,7 @@ const deadlineLabels: Record<UpcomingDeadline['kind'], string> = {
 
 function deadlineLink(deadline: UpcomingDeadline) {
     return deadline.contract_id === null
-        ? SupplierController.show(deadline.supplier_id)
+        ? SupplierController.show({ supplier: deadline.supplier_id })
         : ContractController.show({
               supplier: deadline.supplier_id,
               contract: deadline.contract_id,
@@ -137,7 +137,7 @@ function deadlineLink(deadline: UpcomingDeadline) {
                 <Link
                     v-for="tile in attentionTiles"
                     :key="tile.label"
-                    :href="SupplierController.index({ query: tile.query })"
+                    :href="SupplierController.index({}, { query: tile.query })"
                     class="flex flex-col gap-2 rounded-xl border p-4 transition-colors hover:bg-muted/30"
                 >
                     <span class="flex items-center gap-2 text-sm font-medium">
@@ -206,9 +206,9 @@ function deadlineLink(deadline: UpcomingDeadline) {
                                 <td class="px-4 py-3">
                                     <Link
                                         :href="
-                                            SupplierController.show(
-                                                deadline.supplier_id,
-                                            )
+                                            SupplierController.show({
+                                                supplier: deadline.supplier_id,
+                                            })
                                         "
                                         class="hover:underline"
                                     >
@@ -236,9 +236,10 @@ function deadlineLink(deadline: UpcomingDeadline) {
                         <li v-for="risk in riskLevels" :key="risk.level">
                             <Link
                                 :href="
-                                    SupplierController.index({
-                                        query: { risk: risk.level },
-                                    })
+                                    SupplierController.index(
+                                        {},
+                                        { query: { risk: risk.level } },
+                                    )
                                 "
                                 class="flex items-center justify-between gap-4 px-4 py-3 hover:bg-muted/30"
                             >
@@ -257,9 +258,10 @@ function deadlineLink(deadline: UpcomingDeadline) {
                         <li v-for="item in statuses" :key="item.status">
                             <Link
                                 :href="
-                                    SupplierController.index({
-                                        query: { status: item.status },
-                                    })
+                                    SupplierController.index(
+                                        {},
+                                        { query: { status: item.status } },
+                                    )
                                 "
                                 class="flex items-center justify-between gap-4 px-4 py-3 hover:bg-muted/30"
                             >
@@ -306,7 +308,11 @@ function deadlineLink(deadline: UpcomingDeadline) {
                         >
                             <td class="px-4 py-3">
                                 <Link
-                                    :href="SupplierController.show(supplier.id)"
+                                    :href="
+                                        SupplierController.show({
+                                            supplier: supplier.id,
+                                        })
+                                    "
                                     class="hover:underline"
                                 >
                                     {{ supplier.name }}

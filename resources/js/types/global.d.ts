@@ -19,7 +19,13 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             sourceCodeUrl: string;
+            /** The open company, or on account pages the one the menu links into. */
+            company: { name: string; slug: string } | null;
+            /** Every company the person belongs to, for the company switcher. */
+            companies: { name: string; slug: string; suspended: boolean }[];
             auth: Auth;
+            /** Invitations to join a company that the person can still accept. */
+            invitationCount: number;
             sidebarOpen: boolean;
             [key: string]: unknown;
         };

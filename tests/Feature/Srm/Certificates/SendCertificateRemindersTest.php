@@ -10,10 +10,10 @@ use App\Modules\Srm\Models\CertificateReminder;
 use App\Modules\Srm\Models\CertificateType;
 use App\Modules\Srm\Models\Supplier;
 use App\Modules\Srm\Notifications\CertificatesExpiring;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class SendCertificateRemindersTest extends TestCase
@@ -108,7 +108,7 @@ class SendCertificateRemindersTest extends TestCase
         $supplier = Supplier::factory()->create(['name' => '[Click here](https://evil.example) <b>Oy</b>']);
         $certificate = $this->certificateWithReminderDueToday($supplier);
 
-        $html = (string) (new CertificatesExpiring(collect([$certificate->load('supplier', 'type')])))
+        $html = (string) (new CertificatesExpiring($this->company->name, collect([$certificate->load('supplier', 'type')])))
             ->toMail(new AnonymousNotifiable)
             ->render();
 

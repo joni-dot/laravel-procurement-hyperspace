@@ -8,7 +8,7 @@ use App\Modules\Srm\Enums\DeliveryTerm;
 use App\Modules\Srm\Enums\SupplierStatus;
 use App\Modules\Srm\Models\Category;
 use App\Modules\Srm\Models\Supplier;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class SupplierFormTest extends TestCase

@@ -1,5 +1,6 @@
 import { expect, test as base } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import { company } from './test-data';
 
 /**
  * Every test also fails on a JavaScript error or a Content Security Policy
@@ -34,7 +35,7 @@ export async function createSupplier(
     supplierCount += 1;
     const name = `${namePrefix} ${supplierCount}`;
 
-    await page.goto('/suppliers/create');
+    await page.goto(`${company}/suppliers/create`);
     await page.getByLabel('Name', { exact: true }).fill(name);
     await page.getByLabel('Status').selectOption({ label: 'Active' });
     await page.getByRole('button', { name: 'Create supplier' }).click();

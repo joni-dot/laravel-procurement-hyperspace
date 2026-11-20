@@ -2,14 +2,12 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use RuntimeException;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
+    // Model events stay on: a new company records its address and gets its starting lists through them.
 
     /**
      * Seed the application's database.
@@ -20,11 +18,6 @@ class DatabaseSeeder extends Seeder
             throw new RuntimeException('The default admin must never be added to production.');
         }
 
-        // User::factory(10)->create();
-
-        User::factory()->admin()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        DemoCompany::enter();
     }
 }

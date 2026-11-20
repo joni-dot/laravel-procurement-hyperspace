@@ -4,9 +4,9 @@ namespace Tests\Feature\Settings;
 
 use App\Models\User;
 use App\Notifications\EmailAddressChanged;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Notification;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class ProfileUpdateTest extends TestCase

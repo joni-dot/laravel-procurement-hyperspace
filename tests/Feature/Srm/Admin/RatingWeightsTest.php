@@ -9,7 +9,7 @@ use App\Modules\Srm\Enums\RiskLevel;
 use App\Modules\Srm\Models\RatingCriterion;
 use App\Modules\Srm\Models\Supplier;
 use App\Modules\Srm\Models\SupplierRating;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class RatingWeightsTest extends TestCase

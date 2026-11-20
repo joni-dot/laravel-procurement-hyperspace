@@ -67,6 +67,13 @@ jobs:
           node-version: '24'
           cache: pnpm
 
+      # Same split as in docker/pgsql: the owner runs migrations, the app connects as a restricted
+      # user, so the companies' row-level security applies to the tests.
+      - name: Create the app's restricted database user
+        run: |
+          psql -h 127.0.0.1 -U hyperspace -d testing -v ON_ERROR_STOP=1 -c 'CREATE ROLE hyperspace_app LOGIN NOSUPERUSER NOBYPASSRLS'
+          psql -h 127.0.0.1 -U hyperspace -d testing -v ON_ERROR_STOP=1 -v app_user=hyperspace_app -v owner=hyperspace -f docker/pgsql/app-role.sql
+
       - name: Setup Application
         run: composer setup
 

@@ -52,7 +52,7 @@ const action = props.certificate
           supplier: props.supplierId,
           certificate: props.certificate.id,
       })
-    : CertificateController.store.form(props.supplierId);
+    : CertificateController.store.form({ supplier: props.supplierId });
 </script>
 
 <template>

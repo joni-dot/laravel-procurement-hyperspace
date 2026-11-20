@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware\Api;
 
+use App\Companies\CurrentCompany;
 use App\Models\ApiClient;
 use Closure;
 use Illuminate\Auth\AuthenticationException;
@@ -12,24 +13,36 @@ use League\OAuth2\Server\Exception\OAuthServerException;
 use League\OAuth2\Server\ResourceServer;
 use Symfony\Bridge\PsrHttpMessage\Factory\PsrHttpFactory;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
- * Lets a request through only with a valid, unexpired and unrevoked access token of an active API client.
+ * Lets a request through only with a valid, unexpired and unrevoked access token of an active API client,
+ * and opens the client's company: the request sees that company's data and nothing else.
  *
  * Implementing AuthenticatesRequests makes Laravel run this before route model binding,
- * so callers without a token cannot learn which records exist from 404 answers.
+ * so callers without a token cannot learn which records exist from 404 answers, and records in
+ * the address are looked up inside the client's company.
  */
 class AuthenticateApiClient implements AuthenticatesRequests
 {
-    public function __construct(private readonly ResourceServer $server) {}
+    public function __construct(
+        private readonly ResourceServer $server,
+        private readonly CurrentCompany $currentCompany,
+    ) {}
 
     public function handle(Request $request, Closure $next): Response
     {
         $token = $this->validToken($request);
         $client = $this->activeClientOf($token);
-
-        $client->recordUse();
         $request->attributes->set(ApiClient::class, $client);
+
+        // A token issued just before the company was suspended is still unexpired for a few minutes.
+        if ($client->company->isSuspended()) {
+            throw new AccessDeniedHttpException('This company\'s account is suspended.');
+        }
+
+        $this->currentCompany->set($client->company);
+        $client->recordUse();
         $request->attributes->set(AccessToken::class, $token);
 
         return $next($request);
@@ -58,7 +71,7 @@ class AuthenticateApiClient implements AuthenticatesRequests
     private function activeClientOf(AccessToken $token): ApiClient
     {
         $isClientToken = $token->oauth_user_id === $token->oauth_client_id;
-        $client = $isClientToken ? ApiClient::query()->active()->find($token->oauth_client_id) : null;
+        $client = $isClientToken ? ApiClient::query()->active()->with('company')->find($token->oauth_client_id) : null;
 
         return $client ?? throw new AuthenticationException;
     }

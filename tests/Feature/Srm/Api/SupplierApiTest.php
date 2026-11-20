@@ -9,9 +9,9 @@ use App\Modules\Srm\Http\Requests\Api\V1\ListSuppliersRequest;
 use App\Modules\Srm\Models\Category;
 use App\Modules\Srm\Models\Contact;
 use App\Modules\Srm\Models\Supplier;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\Concerns\IssuesApiTokens;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class SupplierApiTest extends TestCase

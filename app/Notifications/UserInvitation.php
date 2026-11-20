@@ -16,8 +16,14 @@ class UserInvitation extends Notification implements ShouldBeEncrypted, ShouldQu
 
     public function __construct(
         private readonly string $token,
+        private readonly string $companyName,
+        private readonly bool $hasAccount,
         private readonly int $expiresInDays,
-    ) {}
+    ) {
+        // Queued only once the invitation (and a new person's account) is saved, or the worker could
+        // pick the job up first and fail to find the account.
+        $this->afterCommit();
+    }
 
     /**
      * @return list<string>
@@ -29,15 +35,18 @@ class UserInvitation extends Notification implements ShouldBeEncrypted, ShouldQu
 
     public function toMail(User $notifiable): MailMessage
     {
-        $appName = config('app.name');
+        $replace = ['app' => config('app.name'), 'company' => $this->companyName];
+
+        // The link comes from APP_URL, never from a request's host name, even if the queue runs
+        // this right away during the inviter's request.
+        $link = rtrim((string) config('app.url'), '/').route('invitation.show', ['token' => $this->token], false);
 
         return (new MailMessage)
-            ->subject(__('You are invited to :app', ['app' => $appName]))
-            ->line(__('An account has been created for you in :app. Set your password to get started.', ['app' => $appName]))
-            ->action(__('Set password'), route('invitation.show', [
-                'token' => $this->token,
-                'email' => $notifiable->email,
-            ]))
+            ->subject(__('You are invited to :company in :app', $replace))
+            ->line($this->hasAccount
+                ? __('You have been invited to join :company in :app. Sign in with your account to accept.', $replace)
+                : __('You have been invited to join :company in :app. Set your password to get started.', $replace))
+            ->action($this->hasAccount ? __('Accept invitation') : __('Set password'), $link)
             ->line(__('This link expires in :days days.', ['days' => $this->expiresInDays]));
     }
 }

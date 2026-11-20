@@ -4,22 +4,20 @@ namespace App\Console\Commands;
 
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
-use App\Enums\Role;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 
 use function Laravel\Prompts\password;
-use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
 
 class CreateUser extends Command
 {
     use PasswordValidationRules, ProfileValidationRules;
 
-    protected $signature = 'app:create-user';
+    protected $signature = 'app:create-user
+        {--platform-admin : Let the account run the service: create, suspend and reopen companies}';
 
     protected $description = 'Create a user who can sign in to Procurement Hyperspace';
 
@@ -30,13 +28,11 @@ class CreateUser extends Command
             'email' => Str::lower(text('Email', required: true)),
             'password' => password('Password', required: true),
             'password_confirmation' => password('Confirm password', required: true),
-            'role' => select('Role', array_column(Role::options(), 'label', 'value'), default: Role::Viewer->value),
         ];
 
         $validator = Validator::make($input, [
             ...$this->profileRules(),
             'password' => $this->passwordRules(),
-            'role' => ['required', Rule::enum(Role::class)],
         ]);
 
         if ($validator->fails()) {
@@ -47,11 +43,17 @@ class CreateUser extends Command
             return self::FAILURE;
         }
 
-        $user = new User($validator->safe()->only(['name', 'email', 'password']));
-        $user->role = Role::from($input['role']);
-        $user->save();
+        $user = User::query()->create($validator->safe()->only(['name', 'email', 'password']));
 
-        $this->components->info("User {$user->email} created with the {$user->role->label()} role.");
+        if ($this->option('platform-admin')) {
+            // Not fillable, so no form can ever make someone a platform admin.
+            $user->forceFill(['is_platform_admin' => true])->save();
+            $this->components->info("Platform admin {$user->email} created. Sign in, turn on two-factor authentication in the security settings, and then open /platform/companies.");
+
+            return self::SUCCESS;
+        }
+
+        $this->components->info("Account {$user->email} created. It belongs to no company yet.");
 
         return self::SUCCESS;
     }

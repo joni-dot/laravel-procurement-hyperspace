@@ -2,6 +2,7 @@
 
 namespace App\Modules\Srm\Models;
 
+use App\Companies\BelongsToCompany;
 use App\Modules\Srm\Database\Factories\ContractTypeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
@@ -17,6 +18,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[UseFactory(ContractTypeFactory::class)]
 class ContractType extends Model
 {
+    use BelongsToCompany;
+
     /** @use HasFactory<ContractTypeFactory> */
     use HasFactory;
 

@@ -8,10 +8,10 @@ use App\Notifications\ResetPasswordLink;
 use App\Notifications\UserInvitation;
 use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Fortify\Features;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class PasswordResetTest extends TestCase
@@ -205,7 +205,7 @@ class PasswordResetTest extends TestCase
     public function test_the_reset_and_invitation_emails_are_encrypted_in_the_queue()
     {
         $this->assertInstanceOf(ShouldBeEncrypted::class, new ResetPasswordLink('token'));
-        $this->assertInstanceOf(ShouldBeEncrypted::class, new UserInvitation('token', 3));
+        $this->assertInstanceOf(ShouldBeEncrypted::class, new UserInvitation('token', 'Acme', false, 3));
     }
 
     public function test_the_default_reset_wait_is_well_above_the_time_to_hash_a_token()

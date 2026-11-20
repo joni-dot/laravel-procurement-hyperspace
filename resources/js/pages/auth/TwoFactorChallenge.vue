@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Form, Head, setLayoutProps } from '@inertiajs/vue3';
-import { computed, ref, watchEffect } from 'vue';
+import { Form, Head, resetLayoutProps, setLayoutProps } from '@inertiajs/vue3';
+import { computed, onUnmounted, ref, watchEffect } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +39,10 @@ watchEffect(() => {
         description: authConfigContent.value.description,
     });
 });
+
+// Layout props set here outlive this page; without the reset, the next sign-in page (such as
+// "Confirm password") would keep this page's heading.
+onUnmounted(() => resetLayoutProps());
 
 const toggleRecoveryMode = (clearErrors: () => void): void => {
     showRecoveryInput.value = !showRecoveryInput.value;

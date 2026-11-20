@@ -4,12 +4,13 @@ namespace Tests\Feature\Admin;
 
 use App\Enums\ApiScope;
 use App\Models\ApiClient;
+use App\Models\Company;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Support\SessionKey;
 use Inertia\Testing\AssertableInertia;
 use Tests\Concerns\IssuesApiTokens;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class ApiClientManagementTest extends TestCase
@@ -136,9 +137,48 @@ class ApiClientManagementTest extends TestCase
         $this->post(route('admin.api-clients.revoke', $client))->assertForbidden();
     }
 
+    public function test_an_admin_sees_and_manages_only_their_own_companys_clients()
+    {
+        $ours = $this->createApiClient();
+        $otherCompany = Company::factory()->create();
+        $theirs = $this->createApiClient(company: $otherCompany);
+        $theirHash = $theirs->getRawOriginal('secret');
+
+        $this->asConfirmedAdmin()
+            ->get(route('admin.api-clients.index'))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('apiClients', 1)
+                ->where('apiClients.0.id', $ours->id));
+
+        foreach ([$this->company->slug, $otherCompany->slug] as $slug) {
+            $this->put(route('admin.api-clients.update', ['company' => $slug, 'apiClient' => $theirs]), $this->validInput(['name' => 'Taken over']))->assertNotFound();
+            $this->post(route('admin.api-clients.secret.regenerate', ['company' => $slug, 'apiClient' => $theirs]))->assertNotFound();
+            $this->post(route('admin.api-clients.revoke', ['company' => $slug, 'apiClient' => $theirs]))->assertNotFound();
+        }
+
+        $theirs = ApiClient::query()->findOrFail($theirs->id);
+        $this->assertSame('Test integration', $theirs->name);
+        $this->assertSame($theirHash, $theirs->getRawOriginal('secret'));
+        $this->assertFalse($theirs->revoked);
+    }
+
+    public function test_a_new_client_belongs_to_the_open_company()
+    {
+        $this->asConfirmedAdmin()->post(route('admin.api-clients.store'), $this->validInput())->assertSessionHasNoErrors();
+
+        $this->assertSame($this->company->id, ApiClient::sole()->company_id);
+    }
+
+    public function test_the_policy_refuses_another_companys_client()
+    {
+        $theirs = $this->createApiClient(company: Company::factory()->create());
+
+        $this->assertFalse($this->admin->can('update', $theirs));
+    }
+
     public function test_a_malformed_client_id_is_not_found()
     {
-        $this->asConfirmedAdmin()->post('/admin/api-clients/not-a-uuid/revoke')->assertNotFound();
+        $this->asConfirmedAdmin()->post("/{$this->company->slug}/admin/api-clients/not-a-uuid/revoke")->assertNotFound();
     }
 
     private function asConfirmedAdmin(): static

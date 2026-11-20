@@ -2,6 +2,7 @@
 import { Form, Head } from '@inertiajs/vue3';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
 import Heading from '@/components/Heading.vue';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ import ManageTwoFactor from '@/components/ManageTwoFactor.vue';
 // oxfmt-ignore
 type Props = {
     passwordRules: string;
+    platformNeedsTwoFactor: boolean;
 } & ManagePasskeysProps &
     ManageTwoFactorProps;
 
@@ -36,6 +38,14 @@ defineOptions({
     <Head title="Security settings" />
 
     <h1 class="sr-only">Security settings</h1>
+
+    <Alert v-if="props.platformNeedsTwoFactor" class="mb-6">
+        <AlertTitle>Two-factor authentication is needed</AlertTitle>
+        <AlertDescription>
+            Platform admins must turn on two-factor authentication below before
+            the platform pages open.
+        </AlertDescription>
+    </Alert>
 
     <div class="space-y-6">
         <Heading

@@ -3,11 +3,14 @@
 namespace Tests\Concerns;
 
 use App\Actions\ApiClients\CreateApiClient;
+use App\Companies\CurrentCompany;
 use App\Enums\ApiScope;
 use App\Models\ApiClient;
+use App\Models\Company;
 use App\Models\User;
 use Illuminate\Support\Once;
 use Illuminate\Testing\TestResponse;
+use LogicException;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -29,15 +32,20 @@ trait IssuesApiTokens
     }
 
     /**
+     * Creates a client of the company the test is in, unless another company is given.
+     *
      * @param  list<ApiScope>  $scopes
      */
-    protected function createApiClient(array $scopes = [ApiScope::SuppliersRead]): ApiClient
+    protected function createApiClient(array $scopes = [ApiScope::SuppliersRead], ?Company $company = null): ApiClient
     {
-        return app(CreateApiClient::class)->handle(
+        $company ??= app(CurrentCompany::class)->get() ?? throw new LogicException('An API client belongs to a company.');
+
+        return app(CurrentCompany::class)->runAs($company, fn () => app(CreateApiClient::class)->handle(
+            $company,
             'Test integration',
             array_map(fn (ApiScope $scope) => $scope->value, $scopes),
             User::factory()->admin()->create()->id,
-        );
+        ));
     }
 
     /**

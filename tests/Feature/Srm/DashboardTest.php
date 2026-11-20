@@ -13,8 +13,8 @@ use App\Modules\Srm\Models\Contract;
 use App\Modules\Srm\Models\Supplier;
 use App\Modules\Srm\Models\SupplierRating;
 use App\Modules\Srm\Models\SupplierSpend;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class DashboardTest extends TestCase

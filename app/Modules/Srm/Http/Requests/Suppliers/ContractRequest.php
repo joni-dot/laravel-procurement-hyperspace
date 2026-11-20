@@ -2,12 +2,12 @@
 
 namespace App\Modules\Srm\Http\Requests\Suppliers;
 
-use App\Models\User;
 use App\Modules\Srm\Enums\ContractStatus;
 use App\Modules\Srm\Enums\ContractValuePeriod;
 use App\Modules\Srm\Enums\Currency;
 use App\Modules\Srm\Models\Contract;
 use App\Modules\Srm\Models\ContractType;
+use App\Rules\ActiveBuyerOrAdmin;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -30,7 +30,7 @@ class ContractRequest extends FormRequest
             'status' => ['required', Rule::enum(ContractStatus::class)],
             'owner_user_id' => [
                 'nullable', 'integer',
-                Rule::exists(User::class, 'id')->where(fn ($query) => $query->whereIn('role', ['admin', 'buyer'])->whereNull('deactivated_at')),
+                new ActiveBuyerOrAdmin,
             ],
             'starts_on' => ['nullable', 'date_format:Y-m-d'],
             'ends_on' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:starts_on', 'required_if_accepted:auto_renews'],

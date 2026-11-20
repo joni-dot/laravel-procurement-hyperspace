@@ -2,18 +2,30 @@
 
 namespace App\Modules\Srm\Console\Commands;
 
+use App\Companies\EveryActiveCompany;
+use App\Models\Company;
 use App\Modules\Srm\Actions\Contracts\SaveContract;
 use App\Modules\Srm\Enums\ContractStatus;
 use App\Modules\Srm\Models\Contract;
 use Illuminate\Console\Command;
 
+/**
+ * Goes through the companies one at a time; a contract can only be read and saved inside its own company.
+ */
 class RenewContracts extends Command
 {
     protected $signature = 'app:renew-contracts';
 
     protected $description = 'Move the end date of auto-renewing contracts that were not cancelled';
 
-    public function handle(SaveContract $saveContract): int
+    public function handle(EveryActiveCompany $everyActiveCompany, SaveContract $saveContract): int
+    {
+        $succeeded = $everyActiveCompany->run(fn (Company $company) => $this->renewFor($company, $saveContract));
+
+        return $succeeded ? self::SUCCESS : self::FAILURE;
+    }
+
+    private function renewFor(Company $company, SaveContract $saveContract): void
     {
         $renewedCount = 0;
 
@@ -33,9 +45,9 @@ class RenewContracts extends Command
                 $renewedCount++;
             });
 
-        $this->components->info("Renewed {$renewedCount} contract(s).");
-
-        return self::SUCCESS;
+        if ($renewedCount > 0) {
+            $this->components->info("Renewed {$renewedCount} contract(s) of {$company->name}.");
+        }
     }
 
     /**

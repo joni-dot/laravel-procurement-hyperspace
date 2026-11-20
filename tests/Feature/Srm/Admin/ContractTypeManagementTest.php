@@ -5,7 +5,7 @@ namespace Tests\Feature\Srm\Admin;
 use App\Models\User;
 use App\Modules\Srm\Models\Contract;
 use App\Modules\Srm\Models\ContractType;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class ContractTypeManagementTest extends TestCase

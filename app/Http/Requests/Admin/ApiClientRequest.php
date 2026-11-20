@@ -3,8 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\ApiScope;
-use App\Enums\Role;
-use App\Models\User;
+use App\Rules\ActiveBuyerOrAdmin;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -22,9 +21,7 @@ class ApiClientRequest extends FormRequest
             'scopes.*' => ['required', 'distinct', Rule::enum(ApiScope::class)],
             'responsible_user_id' => [
                 'required', 'integer',
-                Rule::exists(User::class, 'id')
-                    ->whereIn('role', [Role::Admin->value, Role::Buyer->value])
-                    ->whereNull('deactivated_at'),
+                new ActiveBuyerOrAdmin,
             ],
         ];
     }

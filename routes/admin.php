@@ -1,40 +1,46 @@
 <?php
 
 use App\Http\Controllers\Admin\ApiClientController;
-use App\Http\Controllers\Admin\DeactivateUserController;
-use App\Http\Controllers\Admin\ReactivateUserController;
+use App\Http\Controllers\Admin\DeactivateMembershipController;
+use App\Http\Controllers\Admin\MembershipController;
+use App\Http\Controllers\Admin\ReactivateMembershipController;
 use App\Http\Controllers\Admin\RegenerateApiClientSecretController;
 use App\Http\Controllers\Admin\ResendInvitationController;
 use App\Http\Controllers\Admin\RevokeApiClientController;
-use App\Http\Controllers\Admin\UserController;
 use App\Models\ApiClient;
-use App\Models\User;
+use App\Models\Membership;
 use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
-    Route::get('users', [UserController::class, 'index'])
-        ->can('viewAny', User::class)
+    Route::get('users', [MembershipController::class, 'index'])
+        ->can('viewAny', Membership::class)
         ->name('users.index');
 
-    Route::post('users', [UserController::class, 'store'])
-        ->can('create', User::class)
+    Route::post('users', [MembershipController::class, 'store'])
+        ->can('create', Membership::class)
+        ->middleware('throttle:20,1')
         ->name('users.store');
 
-    Route::patch('users/{user}', [UserController::class, 'update'])
-        ->can('update', 'user')
+    // {membership} only ever finds a membership of the open company (Membership::resolveRouteBinding).
+    Route::patch('users/{membership}', [MembershipController::class, 'update'])
+        ->whereNumber('membership')
+        ->can('update', 'membership')
         ->name('users.update');
 
-    Route::post('users/{user}/deactivate', DeactivateUserController::class)
-        ->can('deactivate', 'user')
+    Route::post('users/{membership}/deactivate', DeactivateMembershipController::class)
+        ->whereNumber('membership')
+        ->can('deactivate', 'membership')
         ->name('users.deactivate');
 
-    Route::post('users/{user}/reactivate', ReactivateUserController::class)
-        ->can('reactivate', 'user')
+    Route::post('users/{membership}/reactivate', ReactivateMembershipController::class)
+        ->whereNumber('membership')
+        ->can('reactivate', 'membership')
         ->name('users.reactivate');
 
-    Route::post('users/{user}/invitation', ResendInvitationController::class)
-        ->can('resendInvitation', 'user')
+    Route::post('users/{membership}/invitation', ResendInvitationController::class)
+        ->whereNumber('membership')
+        ->can('resendInvitation', 'membership')
         ->middleware('throttle:6,1')
         ->name('users.invitation.resend');
 

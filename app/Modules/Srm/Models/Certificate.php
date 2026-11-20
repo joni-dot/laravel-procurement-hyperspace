@@ -2,6 +2,7 @@
 
 namespace App\Modules\Srm\Models;
 
+use App\Companies\BelongsToCompany;
 use App\Modules\Srm\Database\Factories\CertificateFactory;
 use App\Modules\Srm\Enums\CertificateStatus;
 use Carbon\CarbonImmutable;
@@ -30,6 +31,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[UseFactory(CertificateFactory::class)]
 class Certificate extends Model
 {
+    use BelongsToCompany;
+
     /** @use HasFactory<CertificateFactory> */
     use HasFactory;
 
@@ -103,7 +106,8 @@ class Certificate extends Model
 
         $query
             ->where('certificates.expires_on', '<', $soon)
-            ->whereNotExists(self::query()
+            // Same supplier means same company, and the company filter would name the outer table here.
+            ->whereNotExists(self::query()->withoutGlobalScope('company')
                 ->from('certificates as replacement')
                 ->whereColumn('replacement.supplier_id', 'certificates.supplier_id')
                 ->whereColumn('replacement.certificate_type_id', 'certificates.certificate_type_id')

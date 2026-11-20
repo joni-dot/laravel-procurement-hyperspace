@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { useDebounceFn } from '@vueuse/core';
 import { MoreHorizontal, Search } from '@lucide/vue';
 import { ref, watch } from 'vue';
-import DeactivateUserController from '@/actions/App/Http/Controllers/Admin/DeactivateUserController';
-import ReactivateUserController from '@/actions/App/Http/Controllers/Admin/ReactivateUserController';
+import DeactivateMembershipController from '@/actions/App/Http/Controllers/Admin/DeactivateMembershipController';
+import MembershipController from '@/actions/App/Http/Controllers/Admin/MembershipController';
+import ReactivateMembershipController from '@/actions/App/Http/Controllers/Admin/ReactivateMembershipController';
 import ResendInvitationController from '@/actions/App/Http/Controllers/Admin/ResendInvitationController';
-import UserController from '@/actions/App/Http/Controllers/Admin/UserController';
 import ConfirmActionDialog from '@/components/ConfirmActionDialog.vue';
 import Heading from '@/components/Heading.vue';
 import Pagination from '@/components/Pagination.vue';
@@ -18,38 +18,36 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import EditUserDialog from '@/components/users/EditUserDialog.vue';
+import ChangeRoleDialog from '@/components/users/ChangeRoleDialog.vue';
 import InviteUserDialog from '@/components/users/InviteUserDialog.vue';
-import UserStatusBadge from '@/components/users/UserStatusBadge.vue';
-import type { ManagedUser, Paginated, RoleOption } from '@/types';
+import MembershipStatusBadge from '@/components/users/MembershipStatusBadge.vue';
+import type { Member, Paginated, RoleOption } from '@/types';
 
 defineOptions({
     layout: {
         breadcrumbs: [
             {
                 title: 'Users',
-                href: UserController.index(),
+                href: MembershipController.index(),
             },
         ],
     },
 });
 
 const props = defineProps<{
-    users: Paginated<ManagedUser>;
+    users: Paginated<Member>;
     filters: { search: string };
     roles: RoleOption[];
 }>();
 
-const currentUserId = usePage().props.auth.user.id;
-
-const userBeingEdited = ref<ManagedUser | null>(null);
-const userBeingDeactivated = ref<ManagedUser | null>(null);
+const memberChangingRole = ref<Member | null>(null);
+const memberBeingDeactivated = ref<Member | null>(null);
 
 const search = ref(props.filters.search);
 
-const searchUsers = useDebounceFn((term: string) => {
+const searchMembers = useDebounceFn((term: string) => {
     router.get(
-        UserController.index.url(),
+        MembershipController.index.url(),
         { search: term || undefined },
         {
             only: ['users', 'filters'],
@@ -60,27 +58,27 @@ const searchUsers = useDebounceFn((term: string) => {
     );
 }, 300);
 
-watch(search, searchUsers);
+watch(search, searchMembers);
 
-function roleLabel(user: ManagedUser): string {
-    return props.roles.find((role) => role.value === user.role)?.label ?? '';
+function roleLabel(member: Member): string {
+    return props.roles.find((role) => role.value === member.role)?.label ?? '';
 }
 
-function hasActions(user: ManagedUser): boolean {
-    return Object.values(user.can).some(Boolean);
+function hasActions(member: Member): boolean {
+    return Object.values(member.can).some(Boolean);
 }
 
-function reactivate(user: ManagedUser): void {
+function reactivate(member: Member): void {
     router.post(
-        ReactivateUserController.url(user.id),
+        ReactivateMembershipController.url({ membership: member.id }),
         {},
         { preserveScroll: true },
     );
 }
 
-function resendInvitation(user: ManagedUser): void {
+function resendInvitation(member: Member): void {
     router.post(
-        ResendInvitationController.url(user.id),
+        ResendInvitationController.url({ membership: member.id }),
         {},
         { preserveScroll: true },
     );
@@ -94,7 +92,7 @@ function resendInvitation(user: ManagedUser): void {
         <div class="flex flex-wrap items-start justify-between gap-4">
             <Heading
                 title="Users"
-                description="Invite people and decide what they can do"
+                description="Invite people to this company and decide what they can do here"
                 class="mb-0"
             />
             <InviteUserDialog :roles="roles" />
@@ -129,54 +127,56 @@ function resendInvitation(user: ManagedUser): void {
                     </tr>
                 </thead>
                 <tbody class="divide-y">
-                    <tr v-for="user in users.data" :key="user.id">
+                    <tr v-for="member in users.data" :key="member.id">
                         <td class="px-4 py-3 font-medium">
-                            {{ user.name }}
+                            {{ member.name }}
                             <span
-                                v-if="user.id === currentUserId"
+                                v-if="member.isYou"
                                 class="font-normal text-muted-foreground"
                                 >(you)</span
                             >
                         </td>
-                        <td class="px-4 py-3">{{ user.email }}</td>
-                        <td class="px-4 py-3">{{ roleLabel(user) }}</td>
+                        <td class="px-4 py-3">{{ member.email }}</td>
+                        <td class="px-4 py-3">{{ roleLabel(member) }}</td>
                         <td class="px-4 py-3">
-                            <UserStatusBadge :status="user.status" />
+                            <MembershipStatusBadge :status="member.status" />
                         </td>
                         <td class="px-4 py-3 text-right">
-                            <DropdownMenu v-if="hasActions(user)">
+                            <DropdownMenu v-if="hasActions(member)">
                                 <DropdownMenuTrigger as-child>
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        :aria-label="`Actions for ${user.name}`"
+                                        :aria-label="`Actions for ${member.name}`"
                                     >
                                         <MoreHorizontal />
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuItem
-                                        v-if="user.can.update"
-                                        @select="userBeingEdited = user"
+                                        v-if="member.can.update"
+                                        @select="memberChangingRole = member"
                                     >
-                                        Edit
+                                        Change role
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
-                                        v-if="user.can.resendInvitation"
-                                        @select="resendInvitation(user)"
+                                        v-if="member.can.resendInvitation"
+                                        @select="resendInvitation(member)"
                                     >
                                         Resend invitation
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
-                                        v-if="user.can.reactivate"
-                                        @select="reactivate(user)"
+                                        v-if="member.can.reactivate"
+                                        @select="reactivate(member)"
                                     >
                                         Reactivate
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
-                                        v-if="user.can.deactivate"
+                                        v-if="member.can.deactivate"
                                         variant="destructive"
-                                        @select="userBeingDeactivated = user"
+                                        @select="
+                                            memberBeingDeactivated = member
+                                        "
                                     >
                                         Deactivate
                                     </DropdownMenuItem>
@@ -199,21 +199,25 @@ function resendInvitation(user: ManagedUser): void {
         <Pagination :paginator="users" />
     </div>
 
-    <EditUserDialog
-        v-if="userBeingEdited"
-        :user="userBeingEdited"
+    <ChangeRoleDialog
+        v-if="memberChangingRole"
+        :member="memberChangingRole"
         :roles="roles"
         :open="true"
-        @update:open="userBeingEdited = null"
+        @update:open="memberChangingRole = null"
     />
 
     <ConfirmActionDialog
-        v-if="userBeingDeactivated"
-        :action="DeactivateUserController.form(userBeingDeactivated.id)"
-        :title="`Deactivate ${userBeingDeactivated.name}?`"
-        description="They will be signed out right away and can't log in until an admin reactivates them. Nothing they created is deleted."
+        v-if="memberBeingDeactivated"
+        :action="
+            DeactivateMembershipController.form({
+                membership: memberBeingDeactivated.id,
+            })
+        "
+        :title="`Deactivate ${memberBeingDeactivated.name}?`"
+        description="They can't open this company until an admin reactivates them, and an invitation link stops working. Their account, their other companies and everything they did here stay."
         confirm-label="Deactivate"
         :open="true"
-        @update:open="userBeingDeactivated = null"
+        @update:open="memberBeingDeactivated = null"
     />
 </template>

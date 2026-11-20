@@ -16,9 +16,12 @@ setLayoutProps({
         { title: 'Suppliers', href: SupplierController.index() },
         {
             title: props.supplier.name,
-            href: SupplierController.show(props.supplier.id),
+            href: SupplierController.show({ supplier: props.supplier.id }),
         },
-        { title: 'Edit', href: SupplierController.edit(props.supplier.id) },
+        {
+            title: 'Edit',
+            href: SupplierController.edit({ supplier: props.supplier.id }),
+        },
     ],
 });
 </script>
@@ -29,8 +32,10 @@ setLayoutProps({
     <div class="p-4">
         <Heading :title="`Edit ${supplier.name}`" />
         <SupplierForm
-            :action="SupplierController.update.form(supplier.id)"
-            :cancel-href="SupplierController.show.url(supplier.id)"
+            :action="SupplierController.update.form({ supplier: supplier.id })"
+            :cancel-href="
+                SupplierController.show.url({ supplier: supplier.id })
+            "
             submit-label="Save changes"
             :options="props"
             :supplier="supplier"

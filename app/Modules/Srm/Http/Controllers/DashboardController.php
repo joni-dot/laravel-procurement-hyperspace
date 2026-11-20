@@ -138,7 +138,8 @@ class DashboardController extends Controller
     private function topSpend(int $year): array
     {
         $rankedSpends = SupplierSpend::query()
-            ->select(['supplier_id', 'amount', 'currency_code'])
+            // company_id too: the outer query filters by company like every SupplierSpend query.
+            ->select(['company_id', 'supplier_id', 'amount', 'currency_code'])
             ->selectRaw('ROW_NUMBER() OVER (PARTITION BY currency_code ORDER BY amount DESC, supplier_id) AS spend_rank')
             ->where('year', $year)
             ->whereHas('supplier', fn (Builder $supplier) => $supplier->whereNull('archived_at'));

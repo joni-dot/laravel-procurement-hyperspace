@@ -100,7 +100,11 @@ function supplierCount(category: CategoryWithCount): string {
 
     <ConfirmActionDialog
         v-if="categoryBeingDeleted"
-        :action="CategoryController.destroy.form(categoryBeingDeleted.id)"
+        :action="
+            CategoryController.destroy.form({
+                category: categoryBeingDeleted.id,
+            })
+        "
         :title="`Delete ${categoryBeingDeleted.name}?`"
         :description="`It is removed from ${supplierCount(categoryBeingDeleted)}. The suppliers themselves are kept.`"
         confirm-label="Delete"

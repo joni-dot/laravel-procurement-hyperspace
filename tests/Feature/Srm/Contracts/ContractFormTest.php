@@ -8,7 +8,7 @@ use App\Modules\Srm\Enums\ContractStatus;
 use App\Modules\Srm\Models\Contract;
 use App\Modules\Srm\Models\ContractType;
 use App\Modules\Srm\Models\Supplier;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class ContractFormTest extends TestCase

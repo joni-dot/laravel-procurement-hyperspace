@@ -22,6 +22,8 @@ class DemoRatingSeeder extends Seeder
             throw new RuntimeException('Demo data must never be added to production.');
         }
 
+        DemoCompany::enter();
+
         $criterionIds = RatingCriterion::query()->inUse()->pluck('id');
         $rater = User::query()->activeBuyersAndAdmins()->firstOrFail();
 

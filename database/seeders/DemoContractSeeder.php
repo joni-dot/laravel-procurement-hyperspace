@@ -23,6 +23,8 @@ class DemoContractSeeder extends Seeder
             throw new RuntimeException('Demo data must never be added to production.');
         }
 
+        DemoCompany::enter();
+
         $typeIds = ContractType::query()->pluck('id');
 
         Supplier::query()->whereDoesntHave('contracts')->inRandomOrder()->limit(600)->get()->each(function (Supplier $supplier) use ($typeIds, $saveContract) {

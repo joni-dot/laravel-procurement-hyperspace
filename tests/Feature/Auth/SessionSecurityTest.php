@@ -3,8 +3,8 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Middleware\TrustHosts;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class SessionSecurityTest extends TestCase

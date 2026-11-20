@@ -29,7 +29,7 @@ setLayoutProps({
         { title: 'Suppliers', href: SupplierController.index() },
         {
             title: props.supplier.name,
-            href: SupplierController.show(props.supplier.id),
+            href: SupplierController.show({ supplier: props.supplier.id }),
         },
         { title: props.contract.title, href: ContractController.show(route) },
     ],

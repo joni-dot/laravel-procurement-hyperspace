@@ -157,7 +157,9 @@ function scopeLabels(client: ApiClientRow): string {
     <ConfirmActionDialog
         v-if="clientGettingNewSecret"
         :action="
-            RegenerateApiClientSecretController.form(clientGettingNewSecret.id)
+            RegenerateApiClientSecretController.form({
+                apiClient: clientGettingNewSecret.id,
+            })
         "
         :title="`New secret for ${clientGettingNewSecret.name}?`"
         description="The old secret and its access tokens stop working at once. The system needs the new secret before it can connect again."
@@ -168,7 +170,9 @@ function scopeLabels(client: ApiClientRow): string {
 
     <ConfirmActionDialog
         v-if="clientBeingRevoked"
-        :action="RevokeApiClientController.form(clientBeingRevoked.id)"
+        :action="
+            RevokeApiClientController.form({ apiClient: clientBeingRevoked.id })
+        "
         :title="`Revoke ${clientBeingRevoked.name}?`"
         description="The system loses API access at once, and this cannot be undone. The client stays in the list for the record."
         confirm-label="Revoke"

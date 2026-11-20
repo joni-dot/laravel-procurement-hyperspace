@@ -61,7 +61,7 @@ function showOlder(): void {
 
         <Form
             v-if="canComment"
-            v-bind="CommentController.store.form(supplierId)"
+            v-bind="CommentController.store.form({ supplier: supplierId })"
             :reset-on-success="['body']"
             :options="{ preserveScroll: true }"
             class="space-y-3"

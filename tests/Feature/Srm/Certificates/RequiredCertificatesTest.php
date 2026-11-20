@@ -8,7 +8,7 @@ use App\Modules\Srm\Enums\SupplierStatus;
 use App\Modules\Srm\Models\Certificate;
 use App\Modules\Srm\Models\CertificateType;
 use App\Modules\Srm\Models\Supplier;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class RequiredCertificatesTest extends TestCase

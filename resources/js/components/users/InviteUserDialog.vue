@@ -2,7 +2,7 @@
 import { Form } from '@inertiajs/vue3';
 import { UserPlus } from '@lucide/vue';
 import { ref } from 'vue';
-import UserController from '@/actions/App/Http/Controllers/Admin/UserController';
+import MembershipController from '@/actions/App/Http/Controllers/Admin/MembershipController';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,7 +36,7 @@ const isOpen = ref(false);
 
         <DialogContent>
             <Form
-                v-bind="UserController.store.form()"
+                v-bind="MembershipController.store.form()"
                 :options="{ preserveScroll: true }"
                 reset-on-success
                 @success="isOpen = false"
@@ -46,7 +46,7 @@ const isOpen = ref(false);
                 <DialogHeader>
                     <DialogTitle>Invite user</DialogTitle>
                     <DialogDescription>
-                        We'll email them a link to set their password. The link
+                        We'll email them a link to join this company. The link
                         works for 3 days.
                     </DialogDescription>
                 </DialogHeader>
