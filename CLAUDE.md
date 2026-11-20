@@ -1,6 +1,6 @@
 # Procurement Hyperspace – instructions for Claude
 
-Procurement Hyperspace: open-source software for procurement teams, built from modules (supplier relationship management now, the project procurement register later). Laravel 13 (PHP 8.5), Inertia v3, Vue 3 + TypeScript, Tailwind 4, PostgreSQL 18 and Redis. It is a single-page app: no full page reloads. It is still a single-company app; support for many companies comes in a later step (see the README's step list).
+Procurement Hyperspace: open-source software for procurement teams, built from modules (supplier relationship management now, the project procurement register later). Laravel 13 (PHP 8.5), Inertia v3, Vue 3 + TypeScript, Tailwind 4, PostgreSQL 18 and Redis. It is a single-page app: no full page reloads. It is a multi-company service: one account per person, companies kept apart in the app and in PostgreSQL (README "Companies").
 
 [README.md](README.md) explains setup, roles and business rules. Read the relevant section before changing a feature. This repository is public and licensed AGPL-3.0-only, so never put secrets or real company or supplier data in it, and never copy in code or assets whose licence doesn't allow that (record copied code in `THIRD-PARTY-NOTICES.md`).
 
@@ -11,6 +11,7 @@ The host has only Docker and git. Run PHP and Node commands through Sail.
 ```bash
 ./vendor/bin/sail up -d                  # start everything
 ./vendor/bin/sail composer ci:check      # all checks; must pass before a pull request
+./vendor/bin/sail artisan migrate --database=owner   # migrations run as the owner; the app's own user can't create tables
 ./vendor/bin/sail artisan test --filter=SupplierRiskTest   # one test class
 ./vendor/bin/sail composer lint          # fix PHP style
 ./vendor/bin/sail pnpm run check:fix     # fix frontend style and lint
@@ -60,6 +61,15 @@ Core never uses a module's code, and modules don't use each other's; `ModuleBoun
 
 ## Things that are easy to break
 
+- **Companies are kept apart twice: in the app and in PostgreSQL.** Read README "Keeping companies apart" before adding a table, a page or background work.
+    - The app connects as a restricted database user; never give it more rights, and run migrations with `--database=owner`. `CompanyIsolationTest` checks the user and the row-level security of every table with `company_id`.
+    - Company pages live under `/{company}` with the `company` middleware (`EnterCompany`), which opens the company before route binding and permission checks. Non-members get 404, the same as for an unknown company.
+    - `$user->role` is the role in the current company (a membership). It must never be cached across companies (`withoutObjectCaching()` in `User::role()`).
+    - New pages with a record parameter go into `CrossCompanyAccessTest`; new top-level paths outside companies go into `CompanySlug::RESERVED`.
+    - Platform admins never see company data; platform pages run with no company open.
+    - Invitations never reveal whether an address has an account, and members lists never show an invited person's account details before they join.
+    - `ApiClient` deliberately has no company global scope (the token endpoint needs every client); query it with the company named.
+    - Tests use `Tests\Concerns\RefreshDatabase` (it migrates as the owner), and each database test starts inside its own company (`$this->company`, `enterCompany()`).
 - **Viewers must not get restricted data.** Only buyers and admins see contract details (`ContractPolicy::viewDetails`), including comments about contracts, and spend (`SupplierSpendPolicy::viewAny`). Enforce this on the server by leaving the data out of the response, not by hiding it in Vue.
 - **Some rules exist twice, in PHP for a page and in SQL for a list filter, and must change together.** Tests fail if they disagree:
     - Risk: `app/Modules/Srm/Compliance/SupplierRisk.php` and `Supplier::withRiskLevel()`
