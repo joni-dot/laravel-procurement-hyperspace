@@ -10,6 +10,8 @@ export type User = {
 
 export type Auth = {
     user: User;
+    /** Runs the service: may open the platform pages (companies). */
+    isPlatformAdmin: boolean;
     can: {
         manageUsers: boolean;
         manageCategories: boolean;

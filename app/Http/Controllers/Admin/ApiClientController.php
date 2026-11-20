@@ -4,22 +4,28 @@ namespace App\Http\Controllers\Admin;
 
 use App\Actions\ApiClients\CreateApiClient;
 use App\Actions\ApiClients\UpdateApiClient;
+use App\Companies\CurrentCompany;
 use App\Enums\ApiScope;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ApiClientRequest;
 use App\Models\ApiClient;
+use App\Models\Company;
 use App\Models\User;
 use App\Providers\ApiServiceProvider;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use LogicException;
 
 class ApiClientController extends Controller
 {
+    public function __construct(private readonly CurrentCompany $currentCompany) {}
+
     public function index(): Response
     {
         return Inertia::render('admin/api-clients/Index', [
             'apiClients' => ApiClient::query()
+                ->ofCompany($this->company())
                 ->with('responsibleUser:id,name')
                 ->orderBy('revoked')
                 ->orderBy('name')
@@ -43,7 +49,7 @@ class ApiClientController extends Controller
 
     public function store(ApiClientRequest $request, CreateApiClient $createApiClient): RedirectResponse
     {
-        $client = $createApiClient->handle($request->validated('name'), $request->scopes(), $request->integer('responsible_user_id'));
+        $client = $createApiClient->handle($this->company(), $request->validated('name'), $request->scopes(), $request->integer('responsible_user_id'));
 
         // Flash data reaches the page once and is not kept in the browser history, so the secret is shown only now.
         Inertia::flash('apiClientSecret', ['client_id' => $client->id, 'name' => $client->name, 'secret' => $client->plainSecret]);
@@ -58,5 +64,10 @@ class ApiClientController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('API client updated.')]);
 
         return back();
+    }
+
+    private function company(): Company
+    {
+        return $this->currentCompany->get() ?? throw new LogicException('API clients are managed inside a company.');
     }
 }

@@ -39,7 +39,7 @@ class CertificateTest extends TestCase
         $certificate = Certificate::sole();
 
         $this->assertSame('iso-9001.pdf', $certificate->file_name);
-        $this->assertStringStartsWith("certificates/{$this->supplier->id}/", (string) $certificate->file_path);
+        $this->assertStringStartsWith("companies/{$this->company->id}/certificates/{$this->supplier->id}/", (string) $certificate->file_path);
         Storage::disk('local')->assertExists((string) $certificate->file_path);
 
         $this->assertEqualsCanonicalizing(

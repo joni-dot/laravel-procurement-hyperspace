@@ -108,7 +108,7 @@ class SendCertificateRemindersTest extends TestCase
         $supplier = Supplier::factory()->create(['name' => '[Click here](https://evil.example) <b>Oy</b>']);
         $certificate = $this->certificateWithReminderDueToday($supplier);
 
-        $html = (string) (new CertificatesExpiring(collect([$certificate->load('supplier', 'type')])))
+        $html = (string) (new CertificatesExpiring($this->company->name, collect([$certificate->load('supplier', 'type')])))
             ->toMail(new AnonymousNotifiable)
             ->render();
 

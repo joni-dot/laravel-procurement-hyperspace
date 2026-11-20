@@ -11,6 +11,25 @@ export const users = {
     viewer: 'viewer@browser-test.example',
 } as const;
 
+// Platform admins must use two-factor sign-in; sign-in.setup.ts computes the code from this secret.
+export const platformAdmin = {
+    email: 'platform@browser-test.example',
+    twoFactorSecret: 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP',
+} as const;
+
+// A second company of the buyer, for the company switcher test.
+export const otherCompany = {
+    name: 'Browser Other Company',
+    url: '/browser-other',
+    supplierName: 'Other Company Supplier',
+} as const;
+
+// A company that has invited the viewer, for the invitations test.
+export const inviteCompany = {
+    name: 'Browser Invite Company',
+    url: '/browser-invite',
+} as const;
+
 export const seeded = {
     supplierUrl: `${company}/suppliers/1`,
     supplierName: 'Browser Test Supplier',

@@ -20,7 +20,8 @@ class StoreDocument
 
     public function handle(Supplier $supplier, ?Contract $contract, UploadedFile $file, User $uploadedBy): Document
     {
-        $filePath = $file->store("documents/{$supplier->id}", self::DISK);
+        // Each company's files have a folder of their own, so they can be exported or removed together.
+        $filePath = $file->store("companies/{$supplier->company_id}/documents/{$supplier->id}", self::DISK);
 
         if ($filePath === false) {
             throw new RuntimeException('The uploaded file could not be stored.');

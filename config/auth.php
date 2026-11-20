@@ -99,13 +99,20 @@ return [
             'expire' => 60,
             'throttle' => 60,
         ],
+    ],
 
-        'invitations' => [
-            'provider' => 'users',
-            'table' => 'invitation_tokens',
-            'expire' => 60 * 24 * 3,
-            'throttle' => 60,
-        ],
+    /*
+    |--------------------------------------------------------------------------
+    | Invitations
+    |--------------------------------------------------------------------------
+    |
+    | The number of minutes a link in an invitation to join a company works,
+    | counted from when the email was sent. Sending it again starts anew.
+    |
+    */
+
+    'invitations' => [
+        'expire' => 60 * 24 * 3,
     ],
 
     /*

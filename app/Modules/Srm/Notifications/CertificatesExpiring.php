@@ -11,7 +11,9 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Support\Collection;
 
 /**
- * One email per recipient listing every certificate that needs attention.
+ * One email per recipient and company listing every certificate that needs attention.
+ *
+ * The links are made when the email is queued, inside the company, so they lead into that company.
  */
 class CertificatesExpiring extends Notification implements ShouldQueue
 {
@@ -22,10 +24,12 @@ class CertificatesExpiring extends Notification implements ShouldQueue
      */
     private readonly array $items;
 
+    private readonly string $listUrl;
+
     /**
      * @param  Collection<int, Certificate>  $certificates
      */
-    public function __construct(Collection $certificates)
+    public function __construct(private readonly string $companyName, Collection $certificates)
     {
         $this->afterCommit();
 
@@ -39,6 +43,8 @@ class CertificatesExpiring extends Notification implements ShouldQueue
                 'url' => route('suppliers.show', $certificate->supplier_id),
             ])
             ->all());
+
+        $this->listUrl = route('suppliers.index');
     }
 
     /**
@@ -54,11 +60,11 @@ class CertificatesExpiring extends Notification implements ShouldQueue
         $count = count($this->items);
 
         return (new MailMessage)
-            ->subject(trans_choice(':count certificate is expiring soon|:count certificates are expiring soon', $count))
+            ->subject($this->companyName.': '.trans_choice(':count certificate is expiring soon|:count certificates are expiring soon', $count))
             ->markdown('mail.srm.certificates-expiring', [
                 'intro' => trans_choice('This certificate needs to be renewed soon:|These certificates need to be renewed soon:', $count),
                 'items' => $this->items,
-                'url' => route('suppliers.index'),
+                'url' => $this->listUrl,
             ]);
     }
 

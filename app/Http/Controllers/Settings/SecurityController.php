@@ -38,6 +38,9 @@ class SecurityController extends Controller
                     ->all()
                 : [],
             'passwordRules' => Password::defaults()->toPasswordRulesString(),
+            // Shown on the page itself: the reminder toast from the platform pages can be lost when the
+            // password has to be confirmed on the way here.
+            'platformNeedsTwoFactor' => $request->user()->is_platform_admin && ! $request->user()->hasEnabledTwoFactorAuthentication(),
         ];
 
         if (Features::canManageTwoFactorAuthentication()) {

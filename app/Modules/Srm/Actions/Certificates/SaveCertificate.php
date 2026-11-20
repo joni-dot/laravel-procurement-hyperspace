@@ -2,11 +2,13 @@
 
 namespace App\Modules\Srm\Actions\Certificates;
 
+use App\Companies\CurrentCompany;
 use App\Modules\Srm\Actions\Reminders\SyncReminders;
 use App\Modules\Srm\Models\Certificate;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use LogicException;
 use Throwable;
 
 class SaveCertificate
@@ -16,7 +18,10 @@ class SaveCertificate
      */
     public const string DISK = 'local';
 
-    public function __construct(private readonly SyncReminders $syncReminders) {}
+    public function __construct(
+        private readonly SyncReminders $syncReminders,
+        private readonly CurrentCompany $currentCompany,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $attributes
@@ -25,7 +30,7 @@ class SaveCertificate
     public function handle(Certificate $certificate, array $attributes, array $reminderDays, ?UploadedFile $file): Certificate
     {
         $replacedFilePath = $file ? $certificate->file_path : null;
-        $storedFilePath = $file?->store("certificates/{$certificate->supplier_id}", self::DISK);
+        $storedFilePath = $file?->store($this->folderFor($certificate), self::DISK);
 
         try {
             DB::transaction(function () use ($certificate, $attributes, $reminderDays, $file, $storedFilePath) {
@@ -54,5 +59,17 @@ class SaveCertificate
         }
 
         return $certificate;
+    }
+
+    /**
+     * Each company's files have a folder of their own, so they can be exported or removed together.
+     * A new certificate gets its company when saved, which is the company open now.
+     */
+    private function folderFor(Certificate $certificate): string
+    {
+        $companyId = $certificate->company_id ?? $this->currentCompany->id()
+            ?? throw new LogicException('A certificate can only be saved inside a company.');
+
+        return "companies/{$companyId}/certificates/{$certificate->supplier_id}";
     }
 }

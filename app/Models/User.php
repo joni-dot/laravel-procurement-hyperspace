@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Companies\CurrentCompany;
 use App\Enums\Role;
-use App\Enums\UserStatus;
 use App\Notifications\ResetPasswordLink;
 use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
@@ -120,6 +119,32 @@ class User extends Authenticatable implements PasskeyUser
     }
 
     /**
+     * Looks up many people's memberships in one company with one query, so checking each person's
+     * permissions there afterwards doesn't query again (for lists of recipients, for example).
+     *
+     * @param  iterable<self>  $users
+     */
+    public static function loadMembershipsIn(int $companyId, iterable $users): void
+    {
+        $users = collect($users)->filter(fn (self $user) => ! array_key_exists($companyId, $user->membershipsByCompany));
+
+        if ($users->isEmpty()) {
+            return;
+        }
+
+        $memberships = Membership::query()
+            ->where('company_id', $companyId)
+            ->whereIn('user_id', $users->pluck('id')->unique())
+            ->active()
+            ->get()
+            ->keyBy('user_id');
+
+        $users->each(function (self $user) use ($companyId, $memberships): void {
+            $user->membershipsByCompany[$companyId] = $memberships->get($user->id);
+        });
+    }
+
+    /**
      * The company to open when the person arrives without naming one: the last one they used, if
      * they can still open it, otherwise the first by name.
      */
@@ -150,15 +175,6 @@ class User extends Authenticatable implements PasskeyUser
     public function isDeactivated(): bool
     {
         return $this->deactivated_at !== null;
-    }
-
-    public function status(): UserStatus
-    {
-        return match (true) {
-            $this->isDeactivated() => UserStatus::Deactivated,
-            $this->password === null => UserStatus::Invited,
-            default => UserStatus::Active,
-        };
     }
 
     /**

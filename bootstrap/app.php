@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\AddContentSecurityPolicy;
 use App\Http\Middleware\AddSecurityHeaders;
+use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\EnterCompany;
 use App\Http\Middleware\HandleAppearance;
@@ -48,9 +49,12 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
+        // alias() replaces earlier aliases, so every alias goes in this one call.
+        $middleware->alias(['company' => EnterCompany::class, 'platform' => EnsurePlatformAdmin::class]);
         // Records in the address are looked up inside the company, so the company is opened first.
-        $middleware->alias(['company' => EnterCompany::class]);
         $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: EnterCompany::class);
+        // Outsiders are turned away from the platform pages before any company is looked up.
+        $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: EnsurePlatformAdmin::class);
 
         $middleware->web(append: [
             // Signs out every other session once the password changes.

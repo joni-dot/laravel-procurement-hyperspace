@@ -5,12 +5,14 @@ namespace App\Http\Middleware;
 use App\Companies\CurrentCompany;
 use App\Models\ApiClient;
 use App\Models\Company;
+use App\Models\Membership;
 use App\Models\Setting;
 use App\Models\User;
 use App\Modules\Srm\Models\Category;
 use App\Modules\Srm\Models\CertificateType;
 use App\Modules\Srm\Models\ContractType;
 use App\Modules\Srm\Models\RatingCriterion;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -52,10 +54,13 @@ class HandleInertiaRequests extends Middleware
             'sourceCodeUrl' => config('app.source_code_url'),
             // Closures run when the page renders, after EnterCompany has opened the company.
             'company' => fn (): ?array => $this->navigationCompany($request)?->only(['name', 'slug']),
+            // For the company switcher: every company the person may open, and suspended ones marked.
+            'companies' => fn (): array => $this->memberCompanies($request),
             'auth' => fn (): array => $this->insideNavigationCompany($request, fn (): array => [
                 'user' => $request->user()?->only(['id', 'name', 'email', 'role']),
+                'isPlatformAdmin' => (bool) $request->user()?->is_platform_admin,
                 'can' => [
-                    'manageUsers' => (bool) $request->user()?->can('viewAny', User::class),
+                    'manageUsers' => (bool) $request->user()?->can('viewAny', Membership::class),
                     'manageCategories' => (bool) $request->user()?->can('manage', Category::class),
                     'manageCertificateTypes' => (bool) $request->user()?->can('manage', CertificateType::class),
                     'manageContractTypes' => (bool) $request->user()?->can('manage', ContractType::class),
@@ -64,6 +69,10 @@ class HandleInertiaRequests extends Middleware
                     'manageApiClients' => (bool) $request->user()?->can('manage', ApiClient::class),
                 ],
             ]),
+            // Invitations the person can still accept, for the company switcher's badge.
+            'invitationCount' => fn (): int => $request->user() === null
+                ? 0
+                : Membership::query()->where('user_id', $request->user()->id)->openInvitation()->count(),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }
@@ -77,6 +86,31 @@ class HandleInertiaRequests extends Middleware
         $user = $request->user();
 
         return $this->currentCompany->get() ?? ($user instanceof User ? $user->homeCompany() : null);
+    }
+
+    /**
+     * One query, only names and addresses: nothing from inside the companies.
+     *
+     * @return list<array{name: string, slug: string, suspended: bool}>
+     */
+    private function memberCompanies(Request $request): array
+    {
+        $user = $request->user();
+
+        if (! $user instanceof User) {
+            return [];
+        }
+
+        return array_values(Company::query()
+            ->whereHas('memberships', fn (Builder $memberships) => $memberships->where('user_id', $user->id)->active())
+            ->orderBy('name')
+            ->get(['name', 'slug', 'suspended_at'])
+            ->map(fn (Company $company): array => [
+                'name' => $company->name,
+                'slug' => $company->slug,
+                'suspended' => $company->isSuspended(),
+            ])
+            ->all());
     }
 
     /**

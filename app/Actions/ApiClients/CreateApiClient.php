@@ -3,6 +3,7 @@
 namespace App\Actions\ApiClients;
 
 use App\Models\ApiClient;
+use App\Models\Company;
 use Illuminate\Support\Str;
 
 class CreateApiClient
@@ -14,9 +15,10 @@ class CreateApiClient
      *
      * @param  list<string>  $scopes
      */
-    public function handle(string $name, array $scopes, int $responsibleUserId): ApiClient
+    public function handle(Company $company, string $name, array $scopes, int $responsibleUserId): ApiClient
     {
         return ApiClient::create([
+            'company_id' => $company->id,
             'name' => $name,
             'secret' => Str::random(self::SECRET_LENGTH),
             'scopes' => $scopes,

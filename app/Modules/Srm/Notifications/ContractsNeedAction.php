@@ -11,7 +11,9 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Support\Collection;
 
 /**
- * One email per recipient listing every contract that needs a decision. Prices are left out on purpose.
+ * One email per recipient and company listing every contract that needs a decision. Prices are left out on purpose.
+ *
+ * The links are made when the email is queued, inside the company, so they lead into that company.
  */
 class ContractsNeedAction extends Notification implements ShouldQueue
 {
@@ -22,10 +24,12 @@ class ContractsNeedAction extends Notification implements ShouldQueue
      */
     private readonly array $items;
 
+    private readonly string $listUrl;
+
     /**
      * @param  Collection<int, Contract>  $contracts
      */
-    public function __construct(Collection $contracts)
+    public function __construct(private readonly string $companyName, Collection $contracts)
     {
         $this->afterCommit();
 
@@ -40,6 +44,8 @@ class ContractsNeedAction extends Notification implements ShouldQueue
                 'url' => route('suppliers.contracts.show', [$contract->supplier_id, $contract->id]),
             ])
             ->all());
+
+        $this->listUrl = route('suppliers.index');
     }
 
     /**
@@ -55,11 +61,11 @@ class ContractsNeedAction extends Notification implements ShouldQueue
         $count = count($this->items);
 
         return (new MailMessage)
-            ->subject(trans_choice(':count contract needs your attention|:count contracts need your attention', $count))
+            ->subject($this->companyName.': '.trans_choice(':count contract needs your attention|:count contracts need your attention', $count))
             ->markdown('mail.srm.contracts-need-action', [
                 'intro' => trans_choice('This contract needs a decision soon:|These contracts need a decision soon:', $count),
                 'items' => $this->items,
-                'url' => route('suppliers.index'),
+                'url' => $this->listUrl,
             ]);
     }
 

@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Link, usePage } from '@inertiajs/vue3';
+import { usePage } from '@inertiajs/vue3';
 import {
     BadgeCheck,
+    Building,
     Building2,
     Code,
     KeyRound,
@@ -19,9 +20,10 @@ import CertificateTypeController from '@/actions/App/Modules/Srm/Http/Controller
 import ContractTypeController from '@/actions/App/Modules/Srm/Http/Controllers/Admin/ContractTypeController';
 import RatingCriterionController from '@/actions/App/Modules/Srm/Http/Controllers/Admin/RatingCriterionController';
 import SettingsController from '@/actions/App/Modules/Srm/Http/Controllers/Admin/SettingsController';
-import UserController from '@/actions/App/Http/Controllers/Admin/UserController';
+import MembershipController from '@/actions/App/Http/Controllers/Admin/MembershipController';
+import PlatformCompanyController from '@/actions/App/Http/Controllers/Platform/CompanyController';
 import SupplierController from '@/actions/App/Modules/Srm/Http/Controllers/Suppliers/SupplierController';
-import AppLogo from '@/components/AppLogo.vue';
+import CompanySwitcher from '@/components/CompanySwitcher.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
 import {
@@ -33,7 +35,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard, home } from '@/routes';
+import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
 const page = usePage();
@@ -95,7 +97,11 @@ const adminNavItems = computed<NavItem[]>(() => {
         },
         {
             isVisible: can.manageUsers,
-            item: { title: 'Users', href: UserController.index(), icon: Users },
+            item: {
+                title: 'Users',
+                href: MembershipController.index(),
+                icon: Users,
+            },
         },
         {
             isVisible: can.manageApiClients,
@@ -117,32 +123,42 @@ const adminNavItems = computed<NavItem[]>(() => {
 
     return items.filter(({ isVisible }) => isVisible).map(({ item }) => item);
 });
+
+// The service's own administration, outside every company; only platform admins see it.
+const platformNavItems = computed<NavItem[]>(() =>
+    page.props.auth.isPlatformAdmin
+        ? [
+              {
+                  title: 'Companies',
+                  href: PlatformCompanyController.index(),
+                  icon: Building,
+              },
+          ]
+        : [],
+);
 </script>
 
 <template>
     <Sidebar collapsible="icon" variant="inset">
         <SidebarHeader>
-            <SidebarMenu>
-                <SidebarMenuItem>
-                    <SidebarMenuButton size="lg" as-child>
-                        <Link :href="home()">
-                            <AppLogo />
-                        </Link>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-            </SidebarMenu>
+            <CompanySwitcher />
         </SidebarHeader>
 
         <SidebarContent>
             <NavMain
                 v-if="mainNavItems.length > 0"
-                label="Platform"
+                label="Company"
                 :items="mainNavItems"
             />
             <NavMain
                 v-if="adminNavItems.length > 0"
                 label="Administration"
                 :items="adminNavItems"
+            />
+            <NavMain
+                v-if="platformNavItems.length > 0"
+                label="Platform"
+                :items="platformNavItems"
             />
         </SidebarContent>
 

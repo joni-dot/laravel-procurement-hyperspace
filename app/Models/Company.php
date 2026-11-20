@@ -32,7 +32,7 @@ class Company extends Model
         // An address that ever belonged to another company is never reused, so old links can't
         // lead into the wrong company.
         static::saving(function (self $company): void {
-            if ($company->isDirty('slug') && self::slugBelongsToAnotherCompany($company)) {
+            if ($company->isDirty('slug') && self::slugBelongsToAnotherCompany($company->slug, $company)) {
                 throw new LogicException("The address {$company->slug} belongs or belonged to another company.");
             }
         });
@@ -48,11 +48,15 @@ class Company extends Model
         });
     }
 
-    private static function slugBelongsToAnotherCompany(self $company): bool
+    /**
+     * Whether the address is, or was, used by a company other than the given one (any company when
+     * none is given). A company may go back to one of its own old addresses.
+     */
+    public static function slugBelongsToAnotherCompany(string $slug, ?self $company = null): bool
     {
         return CompanySlug::query()
-            ->whereKey($company->slug)
-            ->when($company->exists, fn ($query) => $query->where('company_id', '!=', $company->id))
+            ->whereKey($slug)
+            ->when($company?->exists, fn ($query) => $query->where('company_id', '!=', $company?->id))
             ->exists();
     }
 

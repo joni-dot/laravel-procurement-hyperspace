@@ -108,7 +108,7 @@ class ContractJobsTest extends TestCase
     {
         $contract = $this->contractWithReminderDueToday(['title' => '[Click](https://evil.example) <b>deal</b>', 'value' => 987654]);
 
-        $html = (string) (new ContractsNeedAction(collect([$contract->refresh()->load('supplier')])))
+        $html = (string) (new ContractsNeedAction($this->company->name, collect([$contract->refresh()->load('supplier')])))
             ->toMail(new AnonymousNotifiable)
             ->render();
 

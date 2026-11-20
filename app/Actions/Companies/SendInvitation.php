@@ -20,12 +20,13 @@ class SendInvitation
             'invitation_token' => hash('sha256', $token),
             'invitation_sent_at' => now(),
         ])->save();
+        $membership->plainInvitationToken = $token;
 
         $membership->user->notify(new UserInvitation(
             token: $token,
             companyName: $membership->company->name,
             hasAccount: $membership->user->password !== null,
-            expiresInDays: intdiv((int) config('auth.passwords.invitations.expire'), 60 * 24),
+            expiresInDays: intdiv(Membership::invitationLifetimeInMinutes(), 60 * 24),
         ));
     }
 }

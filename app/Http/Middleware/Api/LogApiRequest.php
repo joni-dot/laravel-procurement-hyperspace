@@ -27,6 +27,7 @@ class LogApiRequest
 
         Log::channel('api')->info('API request', [
             'client_id' => $request->attributes->get(ApiClient::class)?->id,
+            'company_id' => $request->attributes->get(ApiClient::class)?->company_id,
             'method' => $request->method(),
             'path' => $request->path(),
             'query' => Arr::except($request->query(), self::HIDDEN_QUERY_KEYS),

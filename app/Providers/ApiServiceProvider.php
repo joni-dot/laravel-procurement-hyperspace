@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Companies\ApiClientRepository;
 use App\Enums\ApiScope;
 use App\Models\ApiClient;
 use Carbon\CarbonInterval;
@@ -9,6 +10,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Passport\ClientRepository;
 use Laravel\Passport\Passport;
 
 /**
@@ -25,6 +27,8 @@ class ApiServiceProvider extends ServiceProvider
     {
         // Passport's own routes include login-based flows this app does not offer; routes/api.php adds only the token endpoint.
         Passport::ignoreRoutes();
+
+        $this->app->singleton(ClientRepository::class, ApiClientRepository::class);
     }
 
     public function boot(): void

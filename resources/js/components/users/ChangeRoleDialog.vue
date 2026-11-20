@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Form } from '@inertiajs/vue3';
-import UserController from '@/actions/App/Http/Controllers/Admin/UserController';
+import MembershipController from '@/actions/App/Http/Controllers/Admin/MembershipController';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,14 +12,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import RoleSelect from '@/components/users/RoleSelect.vue';
-import type { ManagedUser, RoleOption } from '@/types';
+import type { Member, RoleOption } from '@/types';
 
 defineProps<{
-    user: ManagedUser;
+    member: Member;
     roles: RoleOption[];
 }>();
 
@@ -30,35 +29,25 @@ const isOpen = defineModel<boolean>('open', { required: true });
     <Dialog v-model:open="isOpen">
         <DialogContent>
             <Form
-                v-bind="UserController.update.form({ user: user.id })"
+                v-bind="
+                    MembershipController.update.form({ membership: member.id })
+                "
                 :options="{ preserveScroll: true }"
                 @success="isOpen = false"
                 class="space-y-6"
                 v-slot="{ errors, processing }"
             >
                 <DialogHeader>
-                    <DialogTitle>Edit user</DialogTitle>
-                    <DialogDescription>{{ user.email }}</DialogDescription>
+                    <DialogTitle>Change role of {{ member.name }}</DialogTitle>
+                    <DialogDescription>{{ member.email }}</DialogDescription>
                 </DialogHeader>
 
                 <div class="grid gap-2">
-                    <Label for="edit-name">Name</Label>
-                    <Input
-                        id="edit-name"
-                        name="name"
-                        :default-value="user.name"
-                        required
-                        autocomplete="off"
-                    />
-                    <InputError :message="errors.name" />
-                </div>
-
-                <div class="grid gap-2">
-                    <Label for="edit-role">Role</Label>
+                    <Label for="change-role">Role</Label>
                     <RoleSelect
-                        id="edit-role"
+                        id="change-role"
                         :roles="roles"
-                        :default-value="user.role"
+                        :default-value="member.role"
                     />
                     <InputError :message="errors.role" />
                 </div>

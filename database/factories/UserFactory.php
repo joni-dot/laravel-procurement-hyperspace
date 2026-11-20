@@ -119,11 +119,17 @@ class UserFactory extends Factory
             return;
         }
 
-        $instances->each(fn (User $user) => Membership::query()->create([
+        $instances->each(fn (User $user) => Membership::query()->forceCreate([
             'company_id' => $companyId,
             'user_id' => $user->id,
             'role' => $this->companyRole,
             'joined_at' => $this->joinsCompany ? now() : null,
+            ...($this->joinsCompany ? [] : [
+                'invited_name' => $user->name,
+                'invited_email' => $user->email,
+                'invitation_token' => hash('sha256', Str::random(64)),
+                'invitation_sent_at' => now(),
+            ]),
         ]));
     }
 

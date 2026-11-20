@@ -35,8 +35,12 @@ class InviteMember
             $membership->fill([
                 'role' => $role,
                 'invited_name' => $name,
+                'invited_email' => $email,
                 'invited_by_user_id' => $invitedBy?->id,
-            ])->save();
+            ]);
+            // Inviting again after the invitation was withdrawn makes it a live invitation again.
+            $membership->deactivated_at = null;
+            $membership->save();
 
             $this->sendInvitation->handle($membership);
 
