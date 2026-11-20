@@ -16,6 +16,8 @@ class UserInvitation extends Notification implements ShouldBeEncrypted, ShouldQu
 
     public function __construct(
         private readonly string $token,
+        private readonly string $companyName,
+        private readonly bool $hasAccount,
         private readonly int $expiresInDays,
     ) {}
 
@@ -29,15 +31,15 @@ class UserInvitation extends Notification implements ShouldBeEncrypted, ShouldQu
 
     public function toMail(User $notifiable): MailMessage
     {
-        $appName = config('app.name');
+        $replace = ['app' => config('app.name'), 'company' => $this->companyName];
 
+        // The link comes from APP_URL (route() in a queued job), never from a request's host name.
         return (new MailMessage)
-            ->subject(__('You are invited to :app', ['app' => $appName]))
-            ->line(__('An account has been created for you in :app. Set your password to get started.', ['app' => $appName]))
-            ->action(__('Set password'), route('invitation.show', [
-                'token' => $this->token,
-                'email' => $notifiable->email,
-            ]))
+            ->subject(__('You are invited to :company in :app', $replace))
+            ->line($this->hasAccount
+                ? __('You have been invited to join :company in :app. Sign in with your account to accept.', $replace)
+                : __('You have been invited to join :company in :app. Set your password to get started.', $replace))
+            ->action($this->hasAccount ? __('Accept invitation') : __('Set password'), route('invitation.show', ['token' => $this->token]))
             ->line(__('This link expires in :days days.', ['days' => $this->expiresInDays]));
     }
 }

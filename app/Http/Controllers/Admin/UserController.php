@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Actions\Users\SendInvitation;
+use App\Actions\Companies\InviteMember;
 use App\Companies\CurrentCompany;
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
@@ -52,18 +52,18 @@ class UserController extends Controller
         ]);
     }
 
-    public function store(StoreUserRequest $request, SendInvitation $sendInvitation): RedirectResponse
+    public function store(StoreUserRequest $request, InviteMember $inviteMember): RedirectResponse
     {
-        $user = User::query()->create($request->safe()->only(['name', 'email']));
-        $user->memberships()->create([
-            'company_id' => $this->currentCompany->id(),
-            'role' => $request->enum('role', Role::class),
-            'joined_at' => now(),
-        ]);
+        $email = $request->validated('email');
+        $inviteMember->handle(
+            $this->currentCompany->get() ?? abort(404),
+            $request->validated('name'),
+            $email,
+            $request->enum('role', Role::class) ?? Role::Viewer,
+            $request->user(),
+        );
 
-        $sendInvitation->handle($user);
-
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Invitation sent to :email.', ['email' => $user->email])]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Invitation sent to :email.', ['email' => $email])]);
 
         return to_route('admin.users.index');
     }
