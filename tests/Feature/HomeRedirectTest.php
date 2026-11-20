@@ -27,6 +27,6 @@ class HomeRedirectTest extends TestCase
         $this->actingAs(User::factory()->create())
             ->followingRedirects()
             ->get(route('home'))
-            ->assertInertia(fn ($page) => $page->component('Dashboard'));
+            ->assertInertia(fn ($page) => $page->component('srm/Dashboard'));
     }
 }

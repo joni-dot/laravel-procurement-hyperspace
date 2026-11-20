@@ -11,3 +11,9 @@ parameters:
         - routes/
 
     level: 7
+
+    # Setting this replaces Larastan's default, so Core's folder is listed too. Modules keep their
+    # tables' migrations next to their code.
+    databaseMigrationsPath:
+        - database/migrations
+        - app/Modules/Srm/Database/Migrations

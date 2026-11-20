@@ -2,12 +2,12 @@
 
 namespace Database\Seeders;
 
-use App\Actions\Contracts\SaveContract;
-use App\Enums\ContractStatus;
-use App\Enums\ContractValuePeriod;
-use App\Enums\Currency;
-use App\Models\ContractType;
-use App\Models\Supplier;
+use App\Modules\Srm\Actions\Contracts\SaveContract;
+use App\Modules\Srm\Enums\ContractStatus;
+use App\Modules\Srm\Enums\ContractValuePeriod;
+use App\Modules\Srm\Enums\Currency;
+use App\Modules\Srm\Models\ContractType;
+use App\Modules\Srm\Models\Supplier;
 use Illuminate\Database\Seeder;
 use RuntimeException;
 

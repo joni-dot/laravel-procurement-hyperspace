@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
-use App\Actions\Ratings\SaveRating;
-use App\Enums\Currency;
-use App\Models\RatingCriterion;
-use App\Models\Supplier;
 use App\Models\User;
+use App\Modules\Srm\Actions\Ratings\SaveRating;
+use App\Modules\Srm\Enums\Currency;
+use App\Modules\Srm\Models\RatingCriterion;
+use App\Modules\Srm\Models\Supplier;
 use Illuminate\Database\Seeder;
 use RuntimeException;
 

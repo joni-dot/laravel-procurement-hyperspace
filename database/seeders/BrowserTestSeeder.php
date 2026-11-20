@@ -2,14 +2,14 @@
 
 namespace Database\Seeders;
 
-use App\Comments\CommentFeed;
-use App\Enums\Currency;
-use App\Models\CertificateType;
-use App\Models\Comment;
-use App\Models\Contract;
-use App\Models\ContractType;
-use App\Models\Supplier;
 use App\Models\User;
+use App\Modules\Srm\Comments\CommentFeed;
+use App\Modules\Srm\Enums\Currency;
+use App\Modules\Srm\Models\CertificateType;
+use App\Modules\Srm\Models\Comment;
+use App\Modules\Srm\Models\Contract;
+use App\Modules\Srm\Models\ContractType;
+use App\Modules\Srm\Models\Supplier;
 use Illuminate\Database\Seeder;
 use RuntimeException;
 
