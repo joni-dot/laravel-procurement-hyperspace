@@ -46,6 +46,31 @@ class SharedPropsTest extends TestCase
             );
     }
 
+    public function test_every_page_links_to_the_source_code_for_guests_and_users()
+    {
+        config(['app.source_code_url' => 'https://example.com/changed-copy']);
+
+        $this->get(route('login'))
+            ->assertInertia(fn ($page) => $page->where('sourceCodeUrl', 'https://example.com/changed-copy'));
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('dashboard'))
+            ->assertInertia(fn ($page) => $page->where('sourceCodeUrl', 'https://example.com/changed-copy'));
+    }
+
+    public function test_an_empty_source_code_setting_falls_back_to_this_repository()
+    {
+        $_ENV['SOURCE_CODE_URL'] = $_SERVER['SOURCE_CODE_URL'] = '';
+
+        try {
+            $config = require base_path('config/app.php');
+        } finally {
+            unset($_ENV['SOURCE_CODE_URL'], $_SERVER['SOURCE_CODE_URL']);
+        }
+
+        $this->assertSame('https://github.com/joni-dot/laravel-procurement-hyperspace', $config['source_code_url']);
+    }
+
     public function test_guests_have_no_user()
     {
         $this->get(route('login'))

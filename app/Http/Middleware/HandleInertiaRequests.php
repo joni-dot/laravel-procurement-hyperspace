@@ -45,6 +45,7 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            'sourceCodeUrl' => config('app.source_code_url'),
             'auth' => [
                 'user' => $request->user()?->only(['id', 'name', 'email', 'role']),
                 'can' => [

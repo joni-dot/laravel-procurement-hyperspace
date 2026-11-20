@@ -17,6 +17,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Source Code
+    |--------------------------------------------------------------------------
+    |
+    | The AGPL licence lets everyone who uses the app over a network get the
+    | source code of the exact version they use. Every page links here. If
+    | you run a changed copy, point this at your changed source code.
+    |
+    */
+
+    // `?:` and not env()'s default, so an empty SOURCE_CODE_URL= line can't blank the link.
+    'source_code_url' => env('SOURCE_CODE_URL') ?: 'https://github.com/joni-dot/laravel-procurement-hyperspace',
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

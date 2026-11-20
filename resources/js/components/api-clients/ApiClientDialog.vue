@@ -55,8 +55,8 @@ function hasScope(scope: string): boolean {
                         {{ apiClient ? 'Edit API client' : 'Add API client' }}
                     </DialogTitle>
                     <DialogDescription>
-                        A system that reads SRM data on its own, such as an ERP
-                        or reporting tool.
+                        A system that reads supplier data on its own, such as an
+                        ERP or reporting tool.
                     </DialogDescription>
                 </DialogHeader>
 

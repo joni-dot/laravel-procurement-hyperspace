@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Laravel\Passport\Client;
 
 /**
- * A system that reads SRM data through the API with the OAuth client credentials grant.
+ * A system that reads supplier data through the API with the OAuth client credentials grant.
  *
  * @property string $id
  * @property string $name

@@ -64,7 +64,7 @@ function scopeLabels(client: ApiClientRow): string {
         <div class="flex flex-wrap items-start justify-between gap-4">
             <Heading
                 title="API clients"
-                :description="`Systems that read SRM data on their own. Each one trades its secret for an access token that lasts ${accessTokenMinutes} minutes.`"
+                :description="`Systems that read supplier data on their own. Each one trades its secret for an access token that lasts ${accessTokenMinutes} minutes.`"
                 class="mb-0"
             />
             <Button @click="isAdding = true"><Plus /> Add API client</Button>

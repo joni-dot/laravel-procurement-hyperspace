@@ -10,6 +10,6 @@
 </table>
 
 <x-mail::button :url="$url">
-Open the SRM
+Open Procurement Hyperspace
 </x-mail::button>
 </x-mail::message>

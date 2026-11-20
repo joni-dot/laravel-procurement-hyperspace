@@ -13,7 +13,7 @@ class PrepareBrowserTestsCommandTest extends TestCase
     public function test_it_refuses_to_erase_any_other_database(): void
     {
         $user = User::factory()->create();
-        config(['database.connections.pgsql.database' => 'srm']);
+        config(['database.connections.pgsql.database' => 'hyperspace']);
 
         $this->artisan('app:prepare-browser-tests')->assertFailed();
 

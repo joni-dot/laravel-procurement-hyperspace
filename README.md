@@ -1,6 +1,20 @@
-# SRM – Supplier Relationship Management
+# Procurement Hyperspace
 
-A web app for procurement teams to manage supplier information. It works as a single-page app: pages change without full reloads.
+Open-source software for procurement teams, built from modules:
+
+- **Supplier relationship management (SRM):** suppliers, contacts, certificates, contracts, ratings, risk and spend. Available now.
+- **Project procurement register (PPR):** everything a project must buy, with milestones, lead times and risk. Joins as a module in a later step; until then it lives in [laravel-ppr](https://github.com/joni-dot/laravel-ppr).
+
+It works as a single-page app: pages change without full reloads.
+
+This repository continues the [laravel-srm](https://github.com/joni-dot/laravel-srm) and [laravel-ppr](https://github.com/joni-dot/laravel-ppr) apps, and both apps' git history is kept here. The goal is a cloud service that many companies can use, which people can also host themselves. Steps towards it:
+
+1. One repository, with the supplier features as a module _(in progress)_
+2. Companies: one account per person, invitations to several companies and a company switcher, each company's data kept apart
+3. The project procurement register joins as a module
+4. The modules work together: packages linked to suppliers, one dashboard and one set of notifications
+5. Getting started: a setup checklist, supplier import and a demo company
+6. Production: Docker image, hosting guide, backups and monitoring
 
 ## Tech stack
 
@@ -30,7 +44,7 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$PWD":/app -w /app composer:latest co
 ./vendor/bin/sail pnpm run dev       # live-reloading frontend
 ```
 
-Open http://localhost. Admins invite other people from the **Users** page.
+Open http://localhost:8090. Admins invite other people from the **Users** page.
 
 Want something to click around in? Fill your local database with about 2,000 made-up suppliers (this refuses to run in production):
 
@@ -41,7 +55,9 @@ Want something to click around in? Fill your local database with about 2,000 mad
 ./vendor/bin/sail artisan db:seed --class=DemoRatingSeeder
 ```
 
-Emails (invitations, password resets, certificate reminders) are sent in the background by the `queue` container and show up in Mailpit at http://localhost:8025.
+Emails (invitations, password resets, certificate reminders) are sent in the background by the `queue` container and show up in Mailpit at http://localhost:8027.
+
+The ports differ from the old SRM and PPR apps', so all three can run at the same time. Change them in `.env` if needed.
 
 The `scheduler` container runs timed jobs. Every morning at 06:00 (UTC) it emails certificate reminders: each person gets one email listing all their certificates that need renewing. To send due reminders right away while testing:
 
@@ -105,19 +121,19 @@ To run these jobs right away while testing:
 
 ## API for other systems
 
-Other systems, such as an ERP or a reporting tool, can read SRM data through an API. There are no public endpoints: every request needs a valid access token.
+Other systems, such as an ERP or a reporting tool, can read supplier data through an API. There are no public endpoints: every request needs a valid access token.
 
 - **Who gets access:** an admin adds the system on the **API clients** page, ticks what it may read and names a responsible person. The page asks for the admin's password again first.
 - **Signing in:** the system uses OAuth 2.0 client credentials. It sends its client ID and secret to `POST /api/oauth/token` and gets an access token that lasts 15 minutes. There are no refresh tokens; it simply asks again. No other OAuth flows are offered.
-- **The secret is shown once.** SRM keeps only a hash. If the secret is lost or may have leaked, create a new one: the old secret and its tokens stop working at once. Revoking a client is permanent; it stays in the list for the record.
+- **The secret is shown once.** The app keeps only a hash. If the secret is lost or may have leaked, create a new one: the old secret and its tokens stop working at once. Revoking a client is permanent; it stays in the list for the record.
 - **What it can read** (scope `suppliers:read`): `GET /api/v1/suppliers` and `GET /api/v1/suppliers/{id}` return company details, categories, latest rating and risk level. Notes, contacts, the responsible buyer, contracts and spend are never included.
 - **Paging and filters:** results come 100 at a time (`per_page`, up to 200). Pass the returned `next_cursor` as `cursor` for the next page. Filters: `status`, `updated_since` (changes to the supplier's own details) and `include_archived=true`.
 - **Servers only:** web pages on other sites cannot call the API from a browser (CORS is off), and a login session never counts as API access.
 - **Limits and records:** each client may make 120 requests a minute. An address that fails to get a token 10 times is blocked for 15 minutes. Every call is logged with the client, address and result in `storage/logs/api-*.log`, kept for 90 days.
 
 ```bash
-curl -u "$CLIENT_ID:$CLIENT_SECRET" -d grant_type=client_credentials https://srm.example.com/api/oauth/token
-curl -H "Authorization: Bearer $ACCESS_TOKEN" "https://srm.example.com/api/v1/suppliers?status=active"
+curl -u "$CLIENT_ID:$CLIENT_SECRET" -d grant_type=client_credentials https://hyperspace.example.com/api/oauth/token
+curl -H "Authorization: Bearer $ACCESS_TOKEN" "https://hyperspace.example.com/api/v1/suppliers?status=active"
 ```
 
 On a server, create the signing keys once with `artisan passport:keys`, or put them in `PASSPORT_PRIVATE_KEY` and `PASSPORT_PUBLIC_KEY`. Keep the same keys across deployments; new keys log every system out (they simply fetch a new token).
@@ -168,3 +184,24 @@ The Playwright version is set in three places that must match: `package.json`, `
 - **Security first.** Every change is reviewed for security and performance before it is merged.
 - **Readable code.** Code should explain itself through clear names and small functions. Comments are for _why_, not _what_.
 - **Tests.** New behaviour comes with tests.
+
+## Contributing and security
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Report security problems privately, as [SECURITY.md](SECURITY.md) explains, never in a public issue.
+
+## Licence
+
+Procurement Hyperspace is free software, licensed under the
+[GNU Affero General Public License v3.0 only](LICENSE) (AGPL-3.0-only).
+Copyright (C) 2026 joni-dot.
+
+In plain words: you may use, change and host this software, including
+for your own company, at no cost. If you share a copy (changed or not),
+you must share its source code under the same licence. If you let other
+people use a changed version over a network, for example as a hosted
+service, you must also offer those users the source code of the exact
+version they use. Every page has a **Source code** link for this; it points to this
+repository unless `SOURCE_CODE_URL` says otherwise, so set it when you
+run a changed copy. The software comes with no warranty. Parts come from other
+open-source projects under their own permissive licences; see
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
