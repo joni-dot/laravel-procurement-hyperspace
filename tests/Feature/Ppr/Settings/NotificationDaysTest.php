@@ -7,11 +7,11 @@ use Illuminate\Database\QueryException;
 use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
-class NotificationSettingsTest extends TestCase
+class NotificationDaysTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_the_page_shows_the_persons_own_period()
+    public function test_the_notification_settings_page_shows_the_persons_own_period_as_a_section()
     {
         $user = User::factory()->create();
         $user->forceFill(['notification_days' => 14])->save();
@@ -20,9 +20,9 @@ class NotificationSettingsTest extends TestCase
             ->get(route('notification-settings.edit'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->component('ppr/settings/Notifications')
-                ->where('notificationDays', 14)
-                ->where('maxNotificationDays', 90)
+                ->component('settings/Notifications')
+                ->where('sections', [['key' => 'ppr_notification_days', 'component' => 'ppr/NotificationDays']])
+                ->where('section_ppr_notification_days', ['notificationDays' => 14, 'maxNotificationDays' => 90])
             );
     }
 
@@ -37,7 +37,7 @@ class NotificationSettingsTest extends TestCase
         $someoneElse = User::factory()->create();
 
         $this->actingAs($user)
-            ->put(route('notification-settings.update'), ['notification_days' => 30])
+            ->put(route('notification-days.update'), ['notification_days' => 30])
             ->assertSessionHasNoErrors()
             ->assertRedirect(route('notification-settings.edit'));
 
@@ -51,7 +51,7 @@ class NotificationSettingsTest extends TestCase
 
         foreach ([0, 90] as $days) {
             $this->actingAs($user)
-                ->put(route('notification-settings.update'), ['notification_days' => $days])
+                ->put(route('notification-days.update'), ['notification_days' => $days])
                 ->assertSessionHasNoErrors();
 
             $this->assertSame($days, $user->fresh()->notification_days);
@@ -59,7 +59,7 @@ class NotificationSettingsTest extends TestCase
 
         foreach ([-1, 91, 2.5, 'week', null] as $invalid) {
             $this->actingAs($user)
-                ->put(route('notification-settings.update'), ['notification_days' => $invalid])
+                ->put(route('notification-days.update'), ['notification_days' => $invalid])
                 ->assertSessionHasErrors('notification_days');
         }
 
@@ -75,7 +75,6 @@ class NotificationSettingsTest extends TestCase
 
     public function test_guests_are_sent_to_sign_in()
     {
-        $this->get(route('notification-settings.edit'))->assertRedirect(route('login'));
-        $this->put(route('notification-settings.update'), ['notification_days' => 3])->assertRedirect(route('login'));
+        $this->put(route('notification-days.update'), ['notification_days' => 3])->assertRedirect(route('login'));
     }
 }

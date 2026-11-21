@@ -18,3 +18,4 @@ parameters:
         - database/migrations
         - app/Modules/Srm/Database/Migrations
         - app/Modules/Ppr/Database/Migrations
+        - app/Modules/Sourcing/Database/Migrations

@@ -19,6 +19,7 @@ use App\Modules\Srm\Models\RatingCriterion;
 use App\Modules\Srm\Models\Supplier;
 use App\Modules\Srm\Models\SupplierSpend;
 use App\Modules\Srm\Suppliers\SupplierDetails;
+use App\Pages\PageSections;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -115,6 +116,8 @@ class SupplierController extends Controller
                 'viewContracts' => $canViewContracts,
                 'viewSpend' => $canViewSpend,
             ],
+            // Other modules' sections, such as the project packages the supplier is on.
+            ...app(PageSections::class)->props('srm.supplier', $request->user(), ['supplier' => $supplier]),
         ]);
     }
 

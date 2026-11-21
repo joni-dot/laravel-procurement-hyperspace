@@ -6,6 +6,7 @@ use App\Companies\CurrentCompany;
 use App\Enums\Role;
 use App\Models\Company;
 use App\Models\Membership;
+use App\Models\Notification as BellNotification;
 use App\Models\Setting;
 use App\Models\User;
 use App\Modules\Srm\Enums\SettingKey;
@@ -51,9 +52,9 @@ class TimedJobsPerCompanyTest extends TestCase
 
         $this->artisan('app:send-contract-reminders')->assertSuccessful();
 
-        Notification::assertSentOnDemandTimes(ContractsNeedAction::class, 2);
-        $this->assertContractEmail('first@example.com', $this->first, [$firstContract]);
-        $this->assertContractEmail('second@example.com', $this->second, [$secondContract]);
+        Notification::assertNothingSent();
+        $this->assertSame([[(int) $firstContract->owner_user_id, $firstContract->id]], $this->bellIn($this->first, 'contract_id'));
+        $this->assertSame([[(int) $secondContract->owner_user_id, $secondContract->id]], $this->bellIn($this->second, 'contract_id'));
     }
 
     public function test_each_company_uses_its_own_reminder_email()
@@ -91,8 +92,10 @@ class TimedJobsPerCompanyTest extends TestCase
 
         $this->artisan('app:send-contract-reminders');
 
-        $this->assertContractEmail('person@example.com', $this->first, [$firstContract]);
+        $this->assertSame([[$person->id, $firstContract->id]], $this->bellIn($this->first, 'contract_id'));
+        Notification::assertSentOnDemandTimes(ContractsNeedAction::class, 1);
         $this->assertContractEmail('second-team@example.com', $this->second, [$secondContract]);
+        $this->assertSame([], $this->bellIn($this->second, 'contract_id'));
     }
 
     public function test_suspended_companies_get_no_reminders_until_reopened()
@@ -101,11 +104,11 @@ class TimedJobsPerCompanyTest extends TestCase
         $this->second->forceFill(['suspended_at' => now()])->save();
 
         $this->artisan('app:send-contract-reminders');
-        Notification::assertNothingSent();
+        $this->assertSame([], $this->bellIn($this->second, 'contract_id'));
 
         $this->second->forceFill(['suspended_at' => null])->save();
         $this->artisan('app:send-contract-reminders');
-        Notification::assertSentOnDemandTimes(ContractsNeedAction::class, 1);
+        $this->assertCount(1, $this->bellIn($this->second, 'contract_id'));
     }
 
     public function test_the_number_of_queries_per_company_does_not_grow_with_its_reminders()
@@ -131,9 +134,25 @@ class TimedJobsPerCompanyTest extends TestCase
 
         $this->artisan('app:send-certificate-reminders')->assertSuccessful();
 
+        Notification::assertNothingSent();
+        $this->assertSame([[$person->id, $firstCertificate->id]], $this->bellIn($this->first, 'certificate_id'));
+        $this->assertSame([[$person->id, $secondCertificate->id]], $this->bellIn($this->second, 'certificate_id'));
+    }
+
+    public function test_certificate_reminders_to_the_reminder_email_link_into_their_own_company()
+    {
+        $this->inCompany($this->first, fn () => Setting::put(SettingKey::ReminderEmail, 'first-team@example.com'));
+        $this->inCompany($this->second, fn () => Setting::put(SettingKey::ReminderEmail, 'second-team@example.com'));
+        $gone = User::factory()->buyer()->deactivated()->create();
+        Membership::factory()->create(['company_id' => $this->second->id, 'user_id' => $gone->id, 'role' => Role::Buyer]);
+        $firstCertificate = $this->certificateWithReminderDueToday($this->first, $gone);
+        $secondCertificate = $this->certificateWithReminderDueToday($this->second, $gone);
+
+        $this->artisan('app:send-certificate-reminders')->assertSuccessful();
+
         Notification::assertSentOnDemandTimes(CertificatesExpiring::class, 2);
-        $this->assertCertificateEmail('person@example.com', $this->first, $firstCertificate);
-        $this->assertCertificateEmail('person@example.com', $this->second, $secondCertificate);
+        $this->assertCertificateEmail('first-team@example.com', $this->first, $firstCertificate);
+        $this->assertCertificateEmail('second-team@example.com', $this->second, $secondCertificate);
     }
 
     public function test_someone_removed_from_a_company_no_longer_gets_its_certificate_reminders()
@@ -239,6 +258,19 @@ class TimedJobsPerCompanyTest extends TestCase
     {
         return str_starts_with((string) $mail->subject, $company->name.': ')
             && $mail->viewData['url'] === config('app.url')."/{$company->slug}/suppliers";
+    }
+
+    /**
+     * @return list<array{int, int}> person and record of each bell notification in the company
+     */
+    private function bellIn(Company $company, string $recordKey): array
+    {
+        return $this->inCompany($company, fn () => BellNotification::query()
+            ->get()
+            ->filter(fn (BellNotification $notification) => isset($notification->data[$recordKey]))
+            ->map(fn (BellNotification $notification) => [$notification->notifiable_id, $notification->data[$recordKey]])
+            ->values()
+            ->all());
     }
 
     private function countQueries(callable $callback): int

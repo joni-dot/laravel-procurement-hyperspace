@@ -2,10 +2,10 @@
 
 namespace Tests\Feature\Ppr\Notifications;
 
+use App\Models\Notification;
 use App\Models\User;
 use App\Modules\Ppr\Enums\PackageAssignment;
 use App\Modules\Ppr\Enums\ProjectRole;
-use App\Modules\Ppr\Models\Notification;
 use App\Modules\Ppr\Models\Package;
 use App\Modules\Ppr\Models\Project;
 use App\Modules\Ppr\Models\ProjectMember;
@@ -49,17 +49,14 @@ class NotificationPageTest extends TestCase
             ->get(route('notifications.index'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->component('ppr/notifications/Index')
+                ->component('notifications/Index')
                 ->where('notifications.total', 2)
                 ->where('notifications.data.0.id', $newer->id)
                 ->where('notifications.data.0.isRead', true)
                 ->where('notifications.data.1', [
                     'id' => $older->id,
-                    'kind' => 'package_assigned',
-                    'projectName' => 'Harbour crane',
-                    'packageNumber' => 'HC-0001',
-                    'packageTitle' => 'Hoist motor',
-                    'params' => ['role' => 'owner'],
+                    'message' => ['You are now the owner of HC-0001 Hoist motor.'],
+                    'source' => 'Harbour crane',
                     'isRead' => false,
                     'createdAt' => $older->created_at?->toIso8601String(),
                 ])
@@ -78,8 +75,8 @@ class NotificationPageTest extends TestCase
             ->get(route('notifications.index'))
             ->assertInertia(fn ($page) => $page
                 ->where('notifications.total', 1)
-                ->where('notifications.data.0.packageNumber', 'HC-0001')
-                ->where('ppr.unreadNotificationCount', 1)
+                ->where('notifications.data.0.message', ['You are now the responsible buyer of HC-0001 Hoist motor.'])
+                ->where('unreadNotificationCount', 1)
             );
     }
 
@@ -94,7 +91,7 @@ class NotificationPageTest extends TestCase
             ->get(route('notifications.index'))
             ->assertInertia(fn ($page) => $page
                 ->where('notifications.total', 1)
-                ->where('ppr.unreadNotificationCount', 1)
+                ->where('unreadNotificationCount', 1)
             );
     }
 
@@ -128,7 +125,7 @@ class NotificationPageTest extends TestCase
 
         $this->actingAs($this->buyer)
             ->get(route('dashboard'))
-            ->assertInertia(fn ($page) => $page->where('ppr.unreadNotificationCount', 2));
+            ->assertInertia(fn ($page) => $page->where('unreadNotificationCount', 2));
     }
 
     public function test_opening_a_notification_marks_it_as_read_and_goes_to_its_package()
@@ -155,7 +152,7 @@ class NotificationPageTest extends TestCase
 
         $this->actingAs($this->buyer)
             ->get(route('notifications.index'))
-            ->assertInertia(fn ($page) => $page->where('ppr.unreadNotificationCount', 0));
+            ->assertInertia(fn ($page) => $page->where('unreadNotificationCount', 0));
     }
 
     public function test_someone_elses_notification_is_not_found()

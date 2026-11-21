@@ -6,6 +6,7 @@ use App\Companies\CurrentCompany;
 use App\Models\User;
 use App\Modules\Ppr\Models\Project;
 use App\Modules\Ppr\Notifications\Channels\ProjectDatabaseChannel;
+use App\Notifications\NotificationMessage;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -13,7 +14,7 @@ use Illuminate\Notifications\Notification;
 /**
  * An in-app notification about a project. Most kinds are about one package and extend PackageNotification;
  * a kind about the project as a whole, such as RiskChangesSummary, extends this class. Every kind is stored
- * the same way, so the notifications page shows any kind without knowing its class:
+ * the same way, so ProjectNotificationKinds shows any kind without knowing its class:
  *
  * - notifications.type: the kind, such as "package_assigned" (kind()). Never a class name, so a class can be renamed.
  * - notifications.project_id: the project. People only see notifications of projects they can see.
@@ -21,8 +22,7 @@ use Illuminate\Notifications\Notification;
  *   PackageNotification adds about the package. A notification without "package_id" is about the whole
  *   project, and opening it goes to the project's package list instead of a package.
  *
- * To add a kind: a subclass with kind() and params(), and a line for the kind in
- * resources/js/components/notifications/notificationMessages.ts.
+ * To add a kind: a subclass with kind(), params() and message(), listed in ProjectNotificationKinds::KINDS.
  */
 abstract class ProjectNotification extends Notification implements ShouldQueue
 {
@@ -47,6 +47,13 @@ abstract class ProjectNotification extends Notification implements ShouldQueue
      * @return array<string, string|int|bool|list<string>|null>
      */
     abstract protected function params(): array;
+
+    /**
+     * The sentence a person reads, on the notifications page and in the summary email, from what was stored.
+     *
+     * @param  array{package_id?: int, package_number?: string, package_title?: string, params: array<string, mixed>}  $data
+     */
+    abstract public static function message(array $data, string $projectName): NotificationMessage;
 
     /**
      * @return list<class-string>

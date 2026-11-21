@@ -3,8 +3,6 @@
 use App\Models\Setting;
 use App\Modules\Ppr\Http\Controllers\Admin\SettingsController;
 use App\Modules\Ppr\Http\Controllers\DashboardController;
-use App\Modules\Ppr\Http\Controllers\MarkAllNotificationsReadController;
-use App\Modules\Ppr\Http\Controllers\NotificationController;
 use App\Modules\Ppr\Http\Controllers\Projects\MoveProjectMilestoneController;
 use App\Modules\Ppr\Http\Controllers\Projects\PackageController;
 use App\Modules\Ppr\Http\Controllers\Projects\PackageRiskFlagController;
@@ -144,25 +142,6 @@ Route::middleware('auth')
                 ->can('update', 'package')
                 ->name('packages.risk-flag.destroy');
         });
-    });
-
-// A notification is only ever found among the signed-in person's own (App\Modules\Ppr\Models\Notification::resolveRouteBinding).
-Route::middleware('auth')
-    ->prefix('notifications')
-    ->name('notifications.')
-    ->whereUuid('notification')
-    ->group(function () {
-        Route::get('/', [NotificationController::class, 'index'])->name('index');
-
-        Route::post('read-all', MarkAllNotificationsReadController::class)->name('read-all');
-
-        Route::get('{notification}', [NotificationController::class, 'show'])
-            ->can('view', 'notification')
-            ->name('show');
-
-        Route::patch('{notification}', [NotificationController::class, 'update'])
-            ->can('update', 'notification')
-            ->name('update');
     });
 
 Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {

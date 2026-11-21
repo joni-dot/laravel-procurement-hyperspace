@@ -2,11 +2,11 @@
 
 namespace Tests\Feature\Ppr\Risk;
 
+use App\Models\Notification;
 use App\Models\User;
 use App\Modules\Ppr\Actions\Risk\NotifyRiskChanges;
 use App\Modules\Ppr\Enums\ProjectRole;
 use App\Modules\Ppr\Jobs\CheckProjectRisks;
-use App\Modules\Ppr\Models\Notification;
 use App\Modules\Ppr\Models\Package;
 use App\Modules\Ppr\Models\PackageMilestone;
 use App\Modules\Ppr\Models\Project;
@@ -190,11 +190,8 @@ class RiskChangesSummaryNotificationTest extends TestCase
             ->get(route('notifications.index'))
             ->assertInertia(fn ($page) => $page
                 ->where('notifications.total', 1)
-                ->where('notifications.data.0.kind', 'risk_changes_summary')
-                ->where('notifications.data.0.projectName', $this->project->name)
-                ->where('notifications.data.0.packageNumber', null)
-                ->where('notifications.data.0.packageTitle', null)
-                ->where('notifications.data.0.params', ['changed' => 11, 'red' => 11, 'amber' => 0, 'none' => 0])
+                ->where('notifications.data.0.message', ["11 packages in {$this->project->name} changed risk level: 11 now red, 0 now amber, 0 no longer at risk."])
+                ->where('notifications.data.0.source', $this->project->name)
             );
         $this->actingAs($this->owner)
             ->get(route('notifications.show', $summary))

@@ -14,7 +14,7 @@ return new class extends Migration
     /** Parents first, so the tables they link to already allow company links. */
     private const array TABLES = [
         'projects', 'project_members', 'project_categories', 'project_milestones', 'packages',
-        'package_milestones', 'sent_reminders', 'notifications',
+        'package_milestones', 'sent_reminders',
     ];
 
     public function up(): void
@@ -58,7 +58,6 @@ return new class extends Migration
         CompanyIsolation::linkWithinCompany('package_milestones', 'project_milestone_id', 'project_milestones');
         CompanyIsolation::linkWithinCompany('sent_reminders', 'package_id', 'packages', 'RESTRICT');
         CompanyIsolation::linkWithinCompany('sent_reminders', 'project_milestone_id', 'project_milestones');
-        CompanyIsolation::linkWithinCompany('notifications', 'project_id', 'projects');
 
         CompanyIsolation::linkToMember('project_members', 'user_id');
         CompanyIsolation::linkToMember('packages', 'owner_id');
@@ -77,7 +76,6 @@ return new class extends Migration
             ['packages', 'parent_id', 'packages', 'RESTRICT'], ['packages', 'category_id', 'project_categories', 'RESTRICT'],
             ['package_milestones', 'package_id', 'packages', 'CASCADE'], ['package_milestones', 'project_milestone_id', 'project_milestones', 'CASCADE'],
             ['sent_reminders', 'package_id', 'packages', 'RESTRICT'], ['sent_reminders', 'project_milestone_id', 'project_milestones', 'CASCADE'],
-            ['notifications', 'project_id', 'projects', 'CASCADE'],
             ['project_members', 'user_id', 'users', 'RESTRICT'], ['packages', 'owner_id', 'users', 'RESTRICT'],
             ['packages', 'buyer_id', 'users', 'RESTRICT'], ['packages', 'risk_flagged_by_id', 'users', 'RESTRICT'],
             ['sent_reminders', 'user_id', 'users', 'RESTRICT'],

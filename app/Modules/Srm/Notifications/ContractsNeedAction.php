@@ -9,6 +9,7 @@ use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 /**
  * One email per recipient and company listing every contract that needs a decision. Prices are left out on purpose.
@@ -36,8 +37,8 @@ class ContractsNeedAction extends Notification implements ShouldQueue
         $this->items = array_values($contracts
             ->sortBy('action_by')
             ->map(fn (Contract $contract) => [
-                'supplier' => $contract->supplier->name,
-                'title' => $contract->title,
+                'supplier' => Str::squish($contract->supplier->name),
+                'title' => Str::squish($contract->title),
                 'action' => $contract->auto_renews ? __('Last day to cancel') : __('Ends'),
                 'action_by' => (string) $contract->action_by?->toDateString(),
                 'days_left' => (int) today()->diffInDays($contract->action_by),

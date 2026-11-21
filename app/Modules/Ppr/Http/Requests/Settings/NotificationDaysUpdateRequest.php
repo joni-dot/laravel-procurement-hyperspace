@@ -5,7 +5,7 @@ namespace App\Modules\Ppr\Http\Requests\Settings;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
-class NotificationSettingsUpdateRequest extends FormRequest
+class NotificationDaysUpdateRequest extends FormRequest
 {
     /**
      * The database refuses anything above this too.

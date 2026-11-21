@@ -24,6 +24,16 @@ class ModuleBoundariesTest extends TestCase
         'app/Http/Middleware/HandleInertiaRequests.php',
     ];
 
+    /**
+     * Modules that exist to connect others, and the modules they may use. Nothing may use them in turn.
+     *
+     * @var array<string, list<string>>
+     */
+    private const array CONNECTORS = [
+        // Project packages bought from suppliers.
+        'Sourcing' => ['Srm', 'Ppr'],
+    ];
+
     public function test_core_does_not_use_module_code(): void
     {
         $offenders = [];
@@ -50,7 +60,7 @@ class ModuleBoundariesTest extends TestCase
 
         foreach ($modules as $module) {
             foreach ($this->phpFiles("app/Modules/{$module}") as $file) {
-                foreach (array_diff($modules, [$module]) as $other) {
+                foreach (array_diff($modules, [$module], self::CONNECTORS[$module] ?? []) as $other) {
                     if (str_contains($this->read($file), "App\\Modules\\{$other}\\")) {
                         $offenders[] = "{$file} uses {$other}";
                     }
@@ -59,6 +69,7 @@ class ModuleBoundariesTest extends TestCase
         }
 
         $this->assertNotEmpty($modules);
+        $this->assertSame([], array_diff(array_keys(self::CONNECTORS), $modules), 'A connector module is missing.');
         $this->assertSame([], $offenders, 'A module uses another module\'s code.');
     }
 

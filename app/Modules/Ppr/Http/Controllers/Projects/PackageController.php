@@ -24,6 +24,7 @@ use App\Modules\Ppr\Models\ProjectCategory;
 use App\Modules\Ppr\Policies\PackagePolicy;
 use App\Modules\Ppr\Risk\ProjectRisks;
 use App\Modules\Ppr\Scheduling\ProjectSchedules;
+use App\Pages\PageSections;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Query\JoinClause;
 use Illuminate\Http\RedirectResponse;
@@ -83,44 +84,60 @@ class PackageController extends Controller
     public function show(Request $request, Project $project, Package $package): Response
     {
         $user = $request->user();
+        // Read once, so the timeline's today and the risk shown next to it are the same day.
+        $today = now('UTC')->toDateString();
+        // Asked by two props, read at most once, and not at all when a section reloads alone.
+        $belowAFinishedPackage = null;
+        $isBelowAFinishedPackage = function () use ($package, &$belowAFinishedPackage): bool {
+            return $belowAFinishedPackage ??= $package->isBelowAFinishedPackage();
+        };
+
+        // Every prop is a closure, so a section that reloads alone (a supplier search) works out nothing else.
+        return Inertia::render('ppr/projects/packages/Show', [
+            'project' => fn () => ProjectHeader::for($project, $user),
+            'package' => fn () => $this->details($package),
+            'ancestors' => fn () => $this->ancestors($project, $package),
+            'schedule' => fn () => PackageScheduleOverview::for($project, $package, $today, $isBelowAFinishedPackage()),
+            'risk' => fn () => PackageRiskOverview::for($project, $package, $today, $isBelowAFinishedPackage()),
+            'subPackages' => fn () => $this->subPackages($package),
+            'categories' => fn () => $this->categories($project),
+            'can' => fn () => [
+                'update' => $user->can('update', $package),
+                'create' => $user->can('create', [Package::class, $project]),
+            ],
+            // Other modules' sections, such as the suppliers asked for a quote.
+            ...app(PageSections::class)->props('ppr.package', $user, ['project' => $project, 'package' => $package]),
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function details(Package $package): array
+    {
         // As the company knows them: someone who has left keeps the name they had then.
         $package->load([
             'category:id,code,name',
             'owner' => fn (BelongsTo $owner) => $owner->withNameKnownToCurrentCompany(),
             'buyer' => fn (BelongsTo $buyer) => $buyer->withNameKnownToCurrentCompany(),
         ]);
-        // Read once, so the timeline's today and the risk shown next to it are the same day.
-        $today = now('UTC')->toDateString();
-        $belowAFinishedPackage = $package->isBelowAFinishedPackage();
 
-        return Inertia::render('ppr/projects/packages/Show', [
-            'project' => ProjectHeader::for($project, $user),
-            'package' => [
-                'id' => $package->id,
-                'parentId' => $package->parent_id,
-                'number' => $package->number,
-                'title' => $package->title,
-                'category' => $package->category?->only(['id', 'code', 'name']),
-                'status' => $package->status,
-                'statusLabel' => $package->status->label(),
-                'purchaseType' => $package->purchase_type?->label(),
-                'ownerName' => $package->owner?->name,
-                'buyerName' => $package->buyer?->name,
-                'quantity' => $package->quantity,
-                'unit' => $package->unit,
-                'description' => $package->description,
-                'notes' => $package->notes,
-            ],
-            'ancestors' => $this->ancestors($project, $package),
-            'schedule' => PackageScheduleOverview::for($project, $package, $today, $belowAFinishedPackage),
-            'risk' => PackageRiskOverview::for($project, $package, $today, $belowAFinishedPackage),
-            'subPackages' => $this->subPackages($package),
-            'categories' => $this->categories($project),
-            'can' => [
-                'update' => $user->can('update', $package),
-                'create' => $user->can('create', [Package::class, $project]),
-            ],
-        ]);
+        return [
+            'id' => $package->id,
+            'parentId' => $package->parent_id,
+            'number' => $package->number,
+            'title' => $package->title,
+            'category' => $package->category?->only(['id', 'code', 'name']),
+            'status' => $package->status,
+            'statusLabel' => $package->status->label(),
+            'purchaseType' => $package->purchase_type?->label(),
+            'ownerName' => $package->owner?->name,
+            'buyerName' => $package->buyer?->name,
+            'quantity' => $package->quantity,
+            'unit' => $package->unit,
+            'description' => $package->description,
+            'notes' => $package->notes,
+        ];
     }
 
     public function edit(Request $request, Project $project, Package $package): Response

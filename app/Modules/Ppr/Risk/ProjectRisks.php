@@ -36,11 +36,12 @@ final class ProjectRisks
      * The project's packages in tree order, with what the rules need: id, parent_id, status, owner_id,
      * buyer_id, owner_deactivated_at, buyer_deactivated_at and risk_flag_reason. The owners and buyers are
      * joined as "owners" and "buyers", with their memberships in the company as "owner_memberships" and
-     * "buyer_memberships": a person is deactivated when their account or their membership is.
+     * "buyer_memberships": a person is deactivated when their account or their membership is. Other modules'
+     * reasons come as one more column each (OutsideRiskReasons), so this stays one query.
      */
     public static function packageRows(Project $project): Builder
     {
-        return DB::table('packages')
+        $rows = DB::table('packages')
             ->leftJoin('users as owners', 'owners.id', '=', 'packages.owner_id')
             ->leftJoin('users as buyers', 'buyers.id', '=', 'packages.buyer_id')
             ->leftJoin('memberships as owner_memberships', fn (JoinClause $join) => $join
@@ -57,6 +58,8 @@ final class ProjectRisks
                 DB::raw('coalesce(owners.deactivated_at, owner_memberships.deactivated_at) as owner_deactivated_at'),
                 DB::raw('coalesce(buyers.deactivated_at, buyer_memberships.deactivated_at) as buyer_deactivated_at'),
             ]);
+
+        return app(OutsideRiskReasons::class)->addColumns($rows);
     }
 
     /**
@@ -67,6 +70,7 @@ final class ProjectRisks
     public static function fromRows(Project $project, iterable $rows, ProjectSchedules $schedules): array
     {
         $thresholds = RiskThresholds::of($project);
+        $outsideReasons = app(OutsideRiskReasons::class);
         $risks = [];
 
         foreach ($rows as $row) {
@@ -77,6 +81,7 @@ final class ProjectRisks
                 isFlagged: $row->risk_flag_reason !== null,
                 owner: AssignedPerson::of($row->owner_id, $row->owner_deactivated_at),
                 buyer: AssignedPerson::of($row->buyer_id, $row->buyer_deactivated_at),
+                outsideReasons: $outsideReasons->of($row),
             ), $thresholds, $schedules->today);
         }
 

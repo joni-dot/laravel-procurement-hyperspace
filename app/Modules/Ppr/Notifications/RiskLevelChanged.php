@@ -6,6 +6,7 @@ use App\Modules\Ppr\Models\Package;
 use App\Modules\Ppr\Risk\PackageRisk;
 use App\Modules\Ppr\Risk\RiskLevel;
 use App\Modules\Ppr\Risk\RiskReason;
+use App\Notifications\NotificationMessage;
 
 /**
  * "Risk is now Red (was Amber): Late; No buyer." The reasons and their details are kept as they were
@@ -58,5 +59,31 @@ class RiskLevelChanged extends PackageNotification
             'overdue_milestone' => $this->overdueMilestoneName,
             'overdue_date' => $this->overdueDate,
         ];
+    }
+
+    public static function message(array $data, string $projectName): NotificationMessage
+    {
+        $params = $data['params'];
+        $from = RiskReasonWords::level(RiskLevel::from((string) $params['from']));
+        $to = RiskLevel::from((string) $params['to']);
+
+        if ($to === RiskLevel::None) {
+            return NotificationMessage::make(__(':package is no longer at risk (it was :from).'), [
+                'package' => self::packageName($data),
+                'from' => $from,
+            ]);
+        }
+
+        $reasons = array_map(
+            fn (string $reason) => RiskReasonWords::reason(RiskReason::from($reason), $params['float_days'] ?? null, $params['overdue_milestone'] ?? null, $params['overdue_date'] ?? null),
+            (array) $params['reasons'],
+        );
+
+        return NotificationMessage::make(__(':package: risk is now :to (was :from): :reasons.'), [
+            'package' => self::packageName($data),
+            'from' => $from,
+            'to' => RiskReasonWords::level($to),
+            'reasons' => NotificationMessage::join('; ', $reasons),
+        ]);
     }
 }

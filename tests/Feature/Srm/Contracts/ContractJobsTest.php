@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Srm\Contracts;
 
+use App\Models\Notification as BellNotification;
 use App\Models\Setting;
 use App\Models\User;
 use App\Modules\Srm\Enums\ContractStatus;
@@ -27,32 +28,59 @@ class ContractJobsTest extends TestCase
         Notification::fake();
     }
 
-    public function test_reminders_go_to_the_contract_owner_in_one_email()
+    public function test_reminders_arrive_in_the_contract_owners_bell_one_per_contract_instead_of_an_email()
     {
         $owner = User::factory()->buyer()->create(['email' => 'owner@example.com']);
-        $this->contractWithReminderDueToday(['owner_user_id' => $owner->id]);
-        $this->contractWithReminderDueToday(['owner_user_id' => $owner->id]);
+        $first = $this->contractWithReminderDueToday(['owner_user_id' => $owner->id, 'title' => 'Cleaning']);
+        $second = $this->contractWithReminderDueToday(['owner_user_id' => $owner->id, 'title' => 'Catering']);
+        $second->reminders()->create(['days_before' => 30, 'remind_on' => today()->subDays(16)]);
 
         $this->artisan('app:send-contract-reminders')->assertSuccessful();
 
-        $this->assertSentOnceTo('owner@example.com', 2);
+        Notification::assertNothingSent();
+        $this->assertSame([[$owner->id, $first->id], [$owner->id, $second->id]], $this->bellNotifications());
         $this->assertSame(0, ContractReminder::whereNull('sent_at')->count());
+
+        $this->artisan('app:send-contract-reminders');
+        $this->assertCount(2, $this->bellNotifications());
+    }
+
+    public function test_the_bell_notification_tells_the_supplier_the_title_and_the_key_date_but_no_price()
+    {
+        $owner = User::factory()->buyer()->create();
+        $supplier = Supplier::factory()->create(['name' => 'Acme Oy']);
+        $contract = $this->contractWithReminderDueToday(['owner_user_id' => $owner->id, 'title' => 'Cleaning', 'value' => 987654], $supplier);
+
+        $this->artisan('app:send-contract-reminders');
+
+        $stored = BellNotification::query()->sole();
+        $this->assertSame('contract_needs_action', $stored->type);
+        $this->assertEquals([
+            'supplier_id' => $supplier->id,
+            'supplier_name' => 'Acme Oy',
+            'contract_id' => $contract->id,
+            'contract_title' => 'Cleaning',
+            'auto_renews' => false,
+            'action_by' => today()->addDays(14)->toDateString(),
+        ], $stored->data);
+        $this->assertStringNotContainsString('987654', json_encode($stored->data, JSON_THROW_ON_ERROR));
     }
 
     public function test_without_an_owner_reminders_go_to_the_responsible_buyer_then_the_reminder_email()
     {
         $buyer = User::factory()->buyer()->create(['email' => 'buyer@example.com']);
-        $this->contractWithReminderDueToday([], Supplier::factory()->create(['responsible_user_id' => $buyer->id]));
+        $contract = $this->contractWithReminderDueToday([], Supplier::factory()->create(['responsible_user_id' => $buyer->id]));
 
         $this->artisan('app:send-contract-reminders');
-        $this->assertSentOnceTo('buyer@example.com', 1);
+        Notification::assertNothingSent();
+        $this->assertSame([[$buyer->id, $contract->id]], $this->bellNotifications());
 
-        Notification::fake();
         Setting::put(SettingKey::ReminderEmail, 'procurement@example.com');
         $this->contractWithReminderDueToday();
 
         $this->artisan('app:send-contract-reminders');
         $this->assertSentOnceTo('procurement@example.com', 1);
+        $this->assertCount(1, $this->bellNotifications());
     }
 
     public function test_people_who_may_not_see_contracts_never_get_the_email()
@@ -66,6 +94,7 @@ class ContractJobsTest extends TestCase
         $this->artisan('app:send-contract-reminders');
 
         $this->assertSentOnceTo('procurement@example.com', 2);
+        $this->assertSame([], $this->bellNotifications());
     }
 
     public function test_reminders_without_a_recipient_are_kept_and_logged()
@@ -115,6 +144,18 @@ class ContractJobsTest extends TestCase
         $this->assertStringContainsString('[Click](https://evil.example) &lt;b&gt;deal&lt;/b&gt;', $html);
         $this->assertStringNotContainsString('href="https://evil.example"', $html);
         $this->assertStringNotContainsString('987654', $html);
+    }
+
+    public function test_a_title_with_blank_lines_cannot_add_a_link_to_the_email()
+    {
+        $contract = $this->contractWithReminderDueToday(['title' => "Deal\n\n[Sign in again](https://evil.example/login)"]);
+
+        $html = (string) (new ContractsNeedAction($this->company->name, collect([$contract->refresh()->load('supplier')])))
+            ->toMail(new AnonymousNotifiable)
+            ->render();
+
+        $this->assertStringNotContainsString('href="https://evil.example', $html);
+        $this->assertStringContainsString('Deal [Sign in again](https://evil.example/login)', $html);
     }
 
     public function test_an_uncancelled_auto_renewing_contract_rolls_forward_and_gets_new_reminders()
@@ -168,6 +209,20 @@ class ContractJobsTest extends TestCase
         $contract->reminders()->create(['days_before' => 14, 'remind_on' => today()]);
 
         return $contract;
+    }
+
+    /**
+     * @return list<array{int, int}> person and contract of each bell notification
+     */
+    private function bellNotifications(): array
+    {
+        return BellNotification::query()
+            ->where('type', 'contract_needs_action')
+            ->get()
+            ->map(fn (BellNotification $notification) => [$notification->notifiable_id, $notification->data['contract_id']])
+            ->sortBy(fn (array $row) => $row[1])
+            ->values()
+            ->all();
     }
 
     private function assertSentOnceTo(string $email, int $contractCount): void

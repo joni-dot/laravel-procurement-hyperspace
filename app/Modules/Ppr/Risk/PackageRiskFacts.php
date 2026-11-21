@@ -19,5 +19,8 @@ final readonly class PackageRiskFacts
         public bool $isFlagged,
         public AssignedPerson $owner,
         public AssignedPerson $buyer,
+        // Amber reasons other modules found, such as the chosen supplier being high risk (OutsideRiskReasons).
+        /** @var list<RiskReason> */
+        public array $outsideReasons = [],
     ) {}
 }
