@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use App\Companies\CompanyHomePages;
 use App\Companies\CurrentCompany;
 use App\Companies\RunJobsInTheirCompany;
 use Illuminate\Queue\Events\JobExceptionOccurred;
@@ -22,8 +21,6 @@ class CompanyServiceProvider extends ServiceProvider
         // Scoped: a fresh, empty one for every request and every queued job.
         $this->app->scoped(CurrentCompany::class);
         $this->app->singleton(RunJobsInTheirCompany::class);
-        // Modules offer their overview pages while they boot, so the list lives as long as the app.
-        $this->app->singleton(CompanyHomePages::class);
     }
 
     public function boot(): void

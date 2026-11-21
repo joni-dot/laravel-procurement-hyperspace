@@ -6,6 +6,7 @@ use App\Companies\NavigationCompany;
 use App\Models\ApiClient;
 use App\Models\Company;
 use App\Models\Membership;
+use App\Models\Notification;
 use App\Models\Setting;
 use App\Models\User;
 use App\Modules\Srm\Models\Category;
@@ -75,8 +76,34 @@ class HandleInertiaRequests extends Middleware
             'invitationCount' => fn (): int => $request->user() === null
                 ? 0
                 : Membership::query()->where('user_id', $request->user()->id)->openInvitation()->count(),
+            // For the bell on every page. A closure, so partial reloads that don't ask for it skip the query.
+            'unreadNotificationCount' => fn (): int => $this->unreadNotificationCount($request),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
+    }
+
+    /**
+     * The person's unread notifications they may still see, counted in the navigation company, so account
+     * pages show the count too. One query.
+     */
+    private function unreadNotificationCount(Request $request): int
+    {
+        $user = $request->user();
+
+        // Platform pages never read company data, not even a person's own notifications.
+        if (! $user instanceof User || $request->routeIs('platform.*')) {
+            return 0;
+        }
+
+        // Outside every company (a platform admin, someone not yet in one) there is nothing to count.
+        if ($this->navigationCompany->for($user) === null) {
+            return 0;
+        }
+
+        return $this->navigationCompany->runFor($user, fn (): int => Notification::query()
+            ->visibleTo($user)
+            ->whereNull('read_at')
+            ->count());
     }
 
     /**

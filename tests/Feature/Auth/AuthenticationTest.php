@@ -29,7 +29,7 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        // Home opens the person's company (HomeRedirectTest).
+        // Home opens the person's company (HomeTest).
         $response->assertRedirect(route('home', absolute: false));
     }
 

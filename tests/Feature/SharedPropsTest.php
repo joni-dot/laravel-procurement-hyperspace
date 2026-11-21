@@ -2,7 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Companies\CurrentCompany;
+use App\Models\Notification;
 use App\Models\User;
+use Illuminate\Support\Str;
 use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
@@ -75,5 +78,47 @@ class SharedPropsTest extends TestCase
     {
         $this->get(route('login'))
             ->assertInertia(fn ($page) => $page->where('auth.user', null));
+    }
+
+    public function test_the_bell_counts_the_persons_unread_notifications_they_may_still_see()
+    {
+        $user = User::factory()->create();
+        $someoneElse = User::factory()->create();
+        $this->storeNotification($user, 'certificate_expiring');
+        $this->storeNotification($user, 'certificate_expiring')->markAsRead();
+        // Contract details are for buyers and admins; this person is a viewer.
+        $this->storeNotification($user, 'contract_needs_action');
+        $this->storeNotification($user, 'kind_no_module_knows');
+        $this->storeNotification($someoneElse, 'certificate_expiring');
+
+        $this->actingAs($user)
+            ->get(route('notifications.index'))
+            ->assertInertia(fn ($page) => $page->where('unreadNotificationCount', 1));
+
+        // Account pages count the company the menu points into.
+        app(CurrentCompany::class)->clear();
+        $this->actingAs($user)
+            ->get(route('profile.edit'))
+            ->assertInertia(fn ($page) => $page->where('unreadNotificationCount', 1));
+    }
+
+    public function test_guests_have_no_unread_notifications()
+    {
+        $this->get(route('login'))
+            ->assertInertia(fn ($page) => $page->where('unreadNotificationCount', 0));
+    }
+
+    private function storeNotification(User $user, string $type): Notification
+    {
+        $notification = new Notification;
+        $notification->forceFill([
+            'id' => (string) Str::uuid(),
+            'type' => $type,
+            'notifiable_type' => $user->getMorphClass(),
+            'notifiable_id' => $user->id,
+            'data' => ['supplier_id' => 1, 'supplier_name' => 'Acme Oy', 'certificate_id' => 1, 'certificate_type' => 'ISO 9001', 'expires_on' => '2027-01-01'],
+        ])->save();
+
+        return $notification;
     }
 }

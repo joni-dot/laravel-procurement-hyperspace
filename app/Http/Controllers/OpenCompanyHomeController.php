@@ -2,23 +2,23 @@
 
 namespace App\Http\Controllers;
 
-use App\Companies\CompanyHomePages;
-use App\Companies\CurrentCompany;
 use App\Models\User;
-use Illuminate\Http\RedirectResponse;
+use App\Pages\PageSections;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 /**
- * A company's own address, /{company}: opens the overview that suits the person there, chosen by
- * the modules (CompanyHomePages).
+ * A company's own address, /{company}: the Home page, where people land. Its sections come from the
+ * modules (PageSections), each shown only to the people it is useful for; Core knows none of them.
  */
 class OpenCompanyHomeController extends Controller
 {
-    public function __invoke(Request $request, CurrentCompany $currentCompany, CompanyHomePages $homePages): RedirectResponse
+    public function __invoke(Request $request, PageSections $sections): Response
     {
         /** @var User $user */
         $user = $request->user();
 
-        return to_route($homePages->routeFor($user), ['company' => $currentCompany->get()?->slug]);
+        return Inertia::render('Home', $sections->props('home', $user));
     }
 }

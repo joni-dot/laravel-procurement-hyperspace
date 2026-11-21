@@ -44,4 +44,5 @@ Route::prefix('{company}')
         Route::get('/', OpenCompanyHomeController::class)->middleware('auth')->name('company.home');
 
         require __DIR__.'/admin.php';
+        require __DIR__.'/notifications.php';
     });
