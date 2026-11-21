@@ -7,6 +7,7 @@ import {
     Code,
     FileText,
     FolderKanban,
+    House,
     KeyRound,
     LayoutDashboard,
     LayoutGrid,
@@ -42,6 +43,7 @@ import {
 } from '@/components/ui/sidebar';
 import { trans } from '@/lib/i18n';
 import { dashboard as supplierDashboard } from '@/routes';
+import { home as companyHome } from '@/routes/company';
 import { dashboard as projectDashboard } from '@/routes/projects';
 import type { NavItem } from '@/types';
 
@@ -49,6 +51,19 @@ const page = usePage();
 
 // Links point into the open company (or the person's home company on account pages), so they are
 // worked out again whenever the company changes. Without any company there is nothing to link to.
+const homeNavItems = computed<NavItem[]>(() =>
+    page.props.company
+        ? [
+              {
+                  title: trans('Home'),
+                  href: companyHome(),
+                  icon: House,
+                  exact: true,
+              },
+          ]
+        : [],
+);
+
 const projectNavItems = computed<NavItem[]>(() =>
     page.props.company
         ? [
@@ -181,6 +196,7 @@ const platformNavItems = computed<NavItem[]>(() =>
         </SidebarHeader>
 
         <SidebarContent>
+            <NavMain v-if="homeNavItems.length > 0" :items="homeNavItems" />
             <NavMain
                 v-if="projectNavItems.length > 0"
                 :label="$t('Projects')"

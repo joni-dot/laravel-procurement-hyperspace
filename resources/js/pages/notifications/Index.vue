@@ -2,16 +2,15 @@
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { CheckCheck } from '@lucide/vue';
 import { computed } from 'vue';
-import MarkAllNotificationsReadController from '@/actions/App/Modules/Ppr/Http/Controllers/MarkAllNotificationsReadController';
-import NotificationController from '@/actions/App/Modules/Ppr/Http/Controllers/NotificationController';
+import MarkAllNotificationsReadController from '@/actions/App/Http/Controllers/Notifications/MarkAllNotificationsReadController';
+import NotificationController from '@/actions/App/Http/Controllers/Notifications/NotificationController';
 import Heading from '@/components/Heading.vue';
-import { notificationMessage } from '@/components/ppr/notifications/notificationMessages';
 import Pagination from '@/components/Pagination.vue';
 import { Button } from '@/components/ui/button';
 import { formatDateTime } from '@/lib/format';
 import { trans } from '@/lib/i18n';
-import type { Paginated } from '@/types';
-import type { InAppNotification } from '@/types/ppr';
+import { notificationText } from '@/lib/notificationMessage';
+import type { InAppNotification, Paginated } from '@/types';
 
 defineOptions({
     layout: () => ({
@@ -30,7 +29,7 @@ defineProps<{
 
 const page = usePage();
 
-const hasUnread = computed(() => page.props.ppr.unreadNotificationCount > 0);
+const hasUnread = computed(() => page.props.unreadNotificationCount > 0);
 
 function markAsRead(notification: InAppNotification): void {
     router.patch(
@@ -57,7 +56,9 @@ function markAllAsRead(): void {
             <Heading
                 :title="$t('Notifications')"
                 :description="
-                    $t('About the packages you look after, newest first')
+                    $t(
+                        'About your packages, suppliers and contracts in this company, newest first',
+                    )
                 "
                 class="mb-0"
             />
@@ -96,6 +97,7 @@ function markAllAsRead(): void {
                     aria-hidden="true"
                 />
                 <div class="min-w-0 flex-1">
+                    <!-- Never prefetched: opening a notification marks it as read. -->
                     <Link
                         :href="
                             NotificationController.show({
@@ -110,10 +112,10 @@ function markAllAsRead(): void {
                         <span v-if="!notification.isRead" class="sr-only">{{
                             $t('Unread:')
                         }}</span>
-                        {{ notificationMessage(notification) }}
+                        {{ notificationText(notification.message) }}
                     </Link>
                     <p class="mt-0.5 text-xs text-muted-foreground">
-                        {{ notification.projectName }} ·
+                        {{ notification.source }} ·
                         <time :datetime="notification.createdAt">{{
                             formatDateTime(notification.createdAt)
                         }}</time>

@@ -42,6 +42,8 @@ export function riskReasonInWords(
             return trans('No responsible buyer');
         case 'buyer_deactivated':
             return trans('The responsible buyer is deactivated');
+        case 'supplier_at_risk':
+            return trans('The chosen supplier is high risk or archived');
     }
 }
 

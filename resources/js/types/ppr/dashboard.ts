@@ -48,3 +48,17 @@ export type DashboardAttention = {
     actions: DashboardAction[];
     actionsTotal: number;
 };
+
+/** The home page's "My next actions" section (app/Modules/Ppr/Dashboard/HomeSections.php). */
+export type HomeNextActions = {
+    // The first ones only; actionsTotal counts them all.
+    actions: DashboardAction[];
+    actionsTotal: number;
+    notificationDays: number;
+};
+
+/** The home page's "My projects" section: each project with its numbers. */
+export type HomeProjects = {
+    projects: (DashboardProject & { tiles: DashboardTiles })[];
+    canSeeAllProjects: boolean;
+};

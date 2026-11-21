@@ -1,49 +1,34 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
-import NotificationSettingsController from '@/actions/App/Modules/Ppr/Http/Controllers/Settings/NotificationSettingsController';
+import { Form } from '@inertiajs/vue3';
+import UpdateNotificationDaysController from '@/actions/App/Modules/Ppr/Http/Controllers/Settings/UpdateNotificationDaysController';
 import FormField from '@/components/FormField.vue';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
-import { trans } from '@/lib/i18n';
-import { edit } from '@/routes/notification-settings';
 
-defineOptions({
-    layout: () => ({
-        breadcrumbs: [
-            {
-                title: trans('Notification settings'),
-                href: edit(),
-            },
-        ],
-    }),
-});
-
+/**
+ * The projects' part of Settings → Notifications: how many days ahead the person is reminded of their packages' dates.
+ */
 defineProps<{
-    notificationDays: number;
-    maxNotificationDays: number;
+    data: { notificationDays: number; maxNotificationDays: number };
 }>();
 </script>
 
 <template>
-    <Head :title="$t('Notification settings')" />
-
-    <h1 class="sr-only">{{ $t('Notification settings') }}</h1>
-
     <div class="flex flex-col space-y-6">
         <Heading
             variant="small"
-            :title="$t('Notifications')"
+            :title="$t('Project dates')"
             :description="
                 $t(
-                    'You are notified in the app when you become a package\'s owner or responsible buyer, and about the dates of the packages you own or buy.',
+                    'You are notified when you become a package\'s owner or responsible buyer, and about the dates of the packages you own or buy.',
                 )
             "
         />
 
         <Form
-            v-bind="NotificationSettingsController.update.form()"
+            v-bind="UpdateNotificationDaysController.form()"
             :options="{ preserveScroll: true }"
             class="space-y-6"
             v-slot="{ errors, processing }"
@@ -63,16 +48,16 @@ defineProps<{
                     type="number"
                     name="notification_days"
                     class="max-w-32"
-                    :default-value="notificationDays"
+                    :default-value="data.notificationDays"
                     min="0"
-                    :max="maxNotificationDays"
+                    :max="data.maxNotificationDays"
                     required
                 />
             </FormField>
 
             <Button type="submit" :disabled="processing">
                 <Spinner v-if="processing" />
-                {{ $t('Save') }}
+                {{ $t('Save reminder period') }}
             </Button>
         </Form>
     </div>

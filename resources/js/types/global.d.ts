@@ -27,8 +27,8 @@ declare module '@inertiajs/core' {
             auth: Auth;
             /** Invitations to join a company that the person can still accept. */
             invitationCount: number;
-            /** The projects module's data for every page, counted in the navigation company. */
-            ppr: { unreadNotificationCount: number };
+            /** For the bell: unread notifications the person may see, counted in the navigation company. */
+            unreadNotificationCount: number;
             sidebarOpen: boolean;
             [key: string]: unknown;
         };

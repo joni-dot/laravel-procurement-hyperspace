@@ -2,13 +2,13 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import { Bell } from '@lucide/vue';
 import { computed } from 'vue';
-import NotificationController from '@/actions/App/Modules/Ppr/Http/Controllers/NotificationController';
+import NotificationController from '@/actions/App/Http/Controllers/Notifications/NotificationController';
 import { Button } from '@/components/ui/button';
 import { trans } from '@/lib/i18n';
 
 const page = usePage();
 
-const unread = computed(() => page.props.ppr.unreadNotificationCount);
+const unread = computed(() => page.props.unreadNotificationCount);
 
 const label = computed(() =>
     unread.value > 0
