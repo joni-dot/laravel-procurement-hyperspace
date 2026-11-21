@@ -21,7 +21,7 @@ export async function asManager(
     await page.getByLabel('Email address').fill(manager);
     await page.getByLabel('Password', { exact: true }).fill(password);
     await page.getByTestId('login-button').click();
-    await expect(page).toHaveURL(new RegExp(`${company}/projects/dashboard$`));
+    await expect(page).toHaveURL(new RegExp(`${company}$`));
 
     await work(page);
     await context.close();

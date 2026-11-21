@@ -6,6 +6,7 @@ use App\Companies\CurrentCompany;
 use App\Enums\Role;
 use App\Models\Company;
 use App\Models\Membership;
+use App\Models\Notification;
 use App\Models\User;
 use App\Modules\Srm\Comments\CommentFeed;
 use App\Modules\Srm\Enums\Currency;
@@ -14,6 +15,7 @@ use App\Modules\Srm\Models\Comment;
 use App\Modules\Srm\Models\Contract;
 use App\Modules\Srm\Models\ContractType;
 use App\Modules\Srm\Models\Supplier;
+use App\Modules\Srm\Notifications\CertificateExpiringNotifications;
 use Illuminate\Database\Seeder;
 use RuntimeException;
 
@@ -69,6 +71,7 @@ class BrowserTestSeeder extends Seeder
         $this->addPlatformAdmin();
         $this->inviteToAnotherCompany($viewer);
         $this->addOtherCompanyOf($buyer, $company);
+        $this->addSupplierNotification($admin, $supplier);
     }
 
     /**
@@ -116,5 +119,25 @@ class BrowserTestSeeder extends Seeder
             'two_factor_recovery_codes' => encrypt(json_encode(['browser-test-recovery-code'])),
             'two_factor_confirmed_at' => now(),
         ]);
+    }
+
+    /**
+     * For the notifications test: a certificate reminder in the admin's bell about the first supplier, as
+     * app:send-certificate-reminders stores it (supplierNotification in test-data.ts). Only the stored
+     * notification is added, so the supplier's own certificates and risk stay as the other tests expect.
+     */
+    private function addSupplierNotification(User $admin, Supplier $supplier): void
+    {
+        Notification::storeMany([[
+            'user' => $admin,
+            'type' => CertificateExpiringNotifications::TYPE,
+            'data' => [
+                'supplier_id' => $supplier->id,
+                'supplier_name' => $supplier->name,
+                'certificate_id' => 0,
+                'certificate_type' => 'Fire safety',
+                'expires_on' => today()->addDays(20)->toDateString(),
+            ],
+        ]]);
     }
 }

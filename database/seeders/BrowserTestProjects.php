@@ -11,6 +11,9 @@ use App\Modules\Ppr\Models\Package;
 use App\Modules\Ppr\Models\PackageMilestone;
 use App\Modules\Ppr\Models\Project;
 use App\Modules\Ppr\Models\ProjectCategory;
+use App\Modules\Sourcing\Models\PackageSupplier;
+use App\Modules\Srm\Enums\SupplierStatus;
+use App\Modules\Srm\Models\Supplier;
 use Illuminate\Support\Collection;
 
 /**
@@ -75,6 +78,7 @@ final class BrowserTestProjects
         // Last, so the package ids above don't move.
         $this->addFinishedParentProject($manager, $member);
         $this->addSummaryPackages($notificationProject, $notifiedMechanical, $member);
+        $this->addSourcingProject($manager, $member);
     }
 
     /**
@@ -251,5 +255,40 @@ final class BrowserTestProjects
         }
 
         return $package;
+    }
+
+    /**
+     * For the supplier tests (sourcing): a package the manager adds suppliers to in the test, and one whose chosen
+     * supplier is blocked, so it is amber for that reason alone. A project the member doesn't belong to chose the same
+     * blocked supplier, which the member must not see on the supplier's page. The member is a viewer here. Open them by name.
+     */
+    private function addSourcingProject(User $manager, User $member): void
+    {
+        $project = Project::factory()
+            ->withDefaultMilestones()
+            ->withMember($manager, ProjectRole::ProjectManager)
+            ->withMember($member, ProjectRole::Viewer)
+            ->create(['name' => 'Sourcing Project', 'code' => 'SRC', 'number_includes_category' => false]);
+        $milestoneIds = $project->milestones()->pluck('id', 'name');
+        $plenty = ['Required on site' => ['planned_date' => '2099-06-01', 'forecast_date' => '2099-01-01']];
+
+        // Prospects, so the required certificate they lack doesn't make them high risk.
+        foreach (['Sourcing Offer Supplier', 'Sourcing Spare Supplier'] as $name) {
+            Supplier::factory()->create(['name' => $name, 'status' => SupplierStatus::Prospect]);
+        }
+        $asked = Supplier::factory()->create(['name' => 'Sourcing Asked Supplier', 'status' => SupplierStatus::Prospect]);
+        $blocked = Supplier::factory()->create(['name' => 'Sourcing Blocked Supplier', 'status' => SupplierStatus::Blocked]);
+
+        $this->addRiskPackage($project, 'Sourced boiler', null, $manager, $milestoneIds, $plenty);
+        $pump = $this->addRiskPackage($project, 'Blocked supplier pump', null, $manager, $milestoneIds, $plenty);
+        PackageSupplier::factory()->for($pump)->for($blocked)->chosen()->create(['note' => 'Ordered before the block']);
+        PackageSupplier::factory()->for($pump)->for($asked)->create();
+
+        $hidden = Project::factory()
+            ->withDefaultMilestones()
+            ->withMember($manager, ProjectRole::ProjectManager)
+            ->create(['name' => 'Hidden Sourcing Project', 'code' => 'HSRC', 'number_includes_category' => false]);
+        $hiddenPackage = $this->addRiskPackage($hidden, 'Hidden sourced crane', null, $manager, $hidden->milestones()->pluck('id', 'name'), []);
+        PackageSupplier::factory()->for($hiddenPackage)->for($blocked)->chosen()->create();
     }
 }

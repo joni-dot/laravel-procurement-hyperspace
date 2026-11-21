@@ -28,7 +28,7 @@ test('a buyer switches to another company and back without reloading the page', 
     await switcher(page).click();
     await page.getByRole('menuitem', { name: otherCompany.name }).click();
 
-    await expect(page).toHaveURL(new RegExp(`${otherCompany.url}/dashboard$`));
+    await expect(page).toHaveURL(new RegExp(`${otherCompany.url}$`));
     await expect(switcher(page)).toContainText(otherCompany.name);
     await openSuppliersFromTheMenu(page);
     await expect(page).toHaveURL(new RegExp(`${otherCompany.url}/suppliers`));
@@ -47,7 +47,7 @@ test('a buyer switches to another company and back without reloading the page', 
     ).toBeFocused();
     await page.keyboard.press('Enter');
 
-    await expect(page).toHaveURL(new RegExp(`${company}/dashboard$`));
+    await expect(page).toHaveURL(new RegExp(`${company}$`));
     await openSuppliersFromTheMenu(page);
     await expect(page.getByText(seeded.supplierName)).toBeVisible();
     await expect(page.getByText(otherCompany.supplierName)).toHaveCount(0);

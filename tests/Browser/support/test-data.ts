@@ -161,3 +161,27 @@ export const notifiedPackage = {
 // Eleven more packages of the notification project, "Summary pump 01" to "Summary pump 11", which the member owns
 // and buys. Each has 151 days to spare; an amber warning above that turns them all amber at once.
 export const summaryPackages = { count: 11, daysToSpare: 151 } as const;
+
+// The suppliers on packages (Sourcing). The member is a viewer in the sourcing project and doesn't belong to the
+// hidden one. Open the projects and packages by name.
+export const sourcing = {
+    project: 'Sourcing Project',
+    hiddenProject: 'Hidden Sourcing Project',
+    // Nothing on it at the start; the manager adds suppliers to it in the test.
+    openPackage: 'Sourced boiler',
+    // Its chosen supplier is blocked, so it is amber for that alone. Another supplier is asked for a quote.
+    blockedPackage: 'Blocked supplier pump',
+    hiddenPackage: 'Hidden sourced crane',
+    offerSupplier: 'Sourcing Offer Supplier',
+    spareSupplier: 'Sourcing Spare Supplier',
+    askedSupplier: 'Sourcing Asked Supplier',
+    blockedSupplier: 'Sourcing Blocked Supplier',
+    blockedNote: 'Ordered before the block',
+} as const;
+
+// A certificate reminder in the admin's bell about seeded.supplierName (BrowserTestSeeder::addSupplierNotification).
+export const supplierNotification = {
+    supplierName: 'Browser Test Supplier',
+    certificateType: 'Fire safety',
+    expiresInDays: 20,
+} as const;

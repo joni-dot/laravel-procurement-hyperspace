@@ -27,7 +27,7 @@ async function makeMemberTheBuyer(browser: Browser, baseURL?: string) {
     await page.getByLabel('Email address').fill(manager);
     await page.getByLabel('Password', { exact: true }).fill(password);
     await page.getByTestId('login-button').click();
-    await expect(page).toHaveURL(new RegExp(`${company}/projects/dashboard$`));
+    await expect(page).toHaveURL(new RegExp(`${company}$`));
 
     await page.goto(`${company}/projects/${id}/packages`);
     await page.getByRole('link', { name: notifiedPackage.title }).click();
@@ -97,7 +97,7 @@ test('a person chooses how many days ahead they are reminded', async ({
     await expect(days).toHaveValue('7');
 
     await days.fill('14');
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.getByRole('button', { name: 'Save reminder period' }).click();
     await expect(page.getByText('Notification settings saved.')).toBeVisible();
 
     await page.reload();

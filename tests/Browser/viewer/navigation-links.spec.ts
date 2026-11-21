@@ -194,7 +194,7 @@ test('saving a form forgets the pages loaded on hover, so they never show data f
     await prefetched;
 
     // Saved unchanged, so the seeded data stays as it is.
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.getByRole('button', { name: 'Save reminder period' }).click();
     await expect(page.getByText('Notification settings saved.')).toBeVisible();
 
     await profile.click();
