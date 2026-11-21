@@ -84,13 +84,13 @@ class CompanySwitcherTest extends TestCase
         $user = User::factory()->create();
         $zulu = $this->joinedCompany($user, 'Zulu Company');
 
-        $this->actingAs($user)->get(route('home'))->assertRedirect("/{$this->company->slug}/dashboard");
+        $this->actingAs($user)->get(route('home'))->assertRedirect("/{$this->company->slug}");
 
         $this->get("/{$zulu->slug}/suppliers")->assertOk();
-        $this->get(route('home'))->assertRedirect("/{$zulu->slug}/dashboard");
+        $this->get(route('home'))->assertRedirect("/{$zulu->slug}");
 
         $this->get("/{$this->company->slug}/suppliers")->assertOk();
-        $this->get(route('home'))->assertRedirect("/{$this->company->slug}/dashboard");
+        $this->get(route('home'))->assertRedirect("/{$this->company->slug}");
     }
 
     public function test_signing_in_opens_the_company_used_last()
@@ -103,7 +103,7 @@ class CompanySwitcherTest extends TestCase
         $this->post(route('login.store'), ['email' => $user->email, 'password' => 'password'])
             ->assertRedirect('/');
 
-        $this->get('/')->assertRedirect("/{$zulu->slug}/dashboard");
+        $this->get('/')->assertRedirect("/{$zulu->slug}");
     }
 
     public function test_a_last_company_that_was_suspended_or_left_is_skipped()
@@ -114,11 +114,11 @@ class CompanySwitcherTest extends TestCase
         $user->forceFill(['last_company_id' => $zulu->id])->save();
 
         $zulu->forceFill(['suspended_at' => now()])->save();
-        $this->actingAs($user)->get(route('home'))->assertRedirect("/{$this->company->slug}/dashboard");
+        $this->actingAs($user)->get(route('home'))->assertRedirect("/{$this->company->slug}");
 
         $zulu->forceFill(['suspended_at' => null])->save();
         $user->memberships()->where('company_id', $zulu->id)->update(['deactivated_at' => now()]);
-        $this->get(route('home'))->assertRedirect("/{$this->company->slug}/dashboard");
+        $this->get(route('home'))->assertRedirect("/{$this->company->slug}");
     }
 
     private function joinedCompany(User $user, string $name, Role $role = Role::Viewer): Company

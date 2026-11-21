@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\AcceptInvitationController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\JoinCompanyController;
 use App\Http\Controllers\OpenCompanyController;
+use App\Http\Controllers\OpenCompanyHomeController;
 use App\Models\Company;
 use Illuminate\Support\Facades\Route;
 
@@ -37,6 +38,10 @@ require __DIR__.'/settings.php';
 require __DIR__.'/platform.php';
 // Everything inside a company lives under its address: /{company}/...
 Route::prefix('{company}')
-    ->where(['company' => Company::SLUG_PATTERN])
+    ->where(['company' => Company::routePattern()])
     ->middleware('company')
-    ->group(__DIR__.'/admin.php');
+    ->group(function () {
+        Route::get('/', OpenCompanyHomeController::class)->middleware('auth')->name('company.home');
+
+        require __DIR__.'/admin.php';
+    });

@@ -138,12 +138,54 @@ class Membership extends Model
      * company see their account's own (current) name; before they join it sees what the inviter
      * typed, and after they leave the name they had when they were deactivated. The account
      * belongs to the person, and later changes to it are none of a former company's business.
+     * Pages that name people on the company's records use the same rule in SQL: nameOnRecordsSql().
      */
     public function nameForCompany(): string
     {
         return $this->isActive()
             ? $this->user->name
             : ($this->known_name ?? $this->known_email ?? '');
+    }
+
+    /**
+     * nameForCompany() for a person on the company's records (an owner, an author, a project
+     * member), as SQL, so lists can read it in the query they already make. $memberships is the
+     * person's membership in the company the rows belong to, joined on company_id as well as
+     * user_id (memberships have no row-level security), and $users is their users row. Records
+     * only name people who joined, so a missing known_name means the person was deactivated
+     * before the company kept one, or has no membership here at all: their account's name is
+     * all the company has.
+     *
+     * @param  literal-string  $memberships
+     * @param  literal-string  $users
+     * @return literal-string
+     */
+    public static function nameOnRecordsSql(string $memberships = 'memberships', string $users = 'users'): string
+    {
+        return self::liveWhileActiveSql($memberships, "{$users}.name", "coalesce({$memberships}.known_name, {$users}.name)");
+    }
+
+    /**
+     * The address the company knows the person by, the same way as nameOnRecordsSql().
+     *
+     * @param  literal-string  $memberships
+     * @param  literal-string  $users
+     * @return literal-string
+     */
+    public static function emailOnRecordsSql(string $memberships = 'memberships', string $users = 'users'): string
+    {
+        return self::liveWhileActiveSql($memberships, "{$users}.email", "coalesce({$memberships}.known_email, {$users}.email)");
+    }
+
+    /**
+     * @param  literal-string  $memberships
+     * @param  literal-string  $live
+     * @param  literal-string  $remembered
+     * @return literal-string
+     */
+    private static function liveWhileActiveSql(string $memberships, string $live, string $remembered): string
+    {
+        return "case when {$memberships}.joined_at is not null and {$memberships}.deactivated_at is null then {$live} else {$remembered} end";
     }
 
     /**

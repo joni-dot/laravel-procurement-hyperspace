@@ -107,8 +107,8 @@ class SupplierListTest extends TestCase
         $this->get(route('suppliers.index'))->assertOk();
 
         // 6 for the list, plus 4 to open the company: find it, check the membership, set the
-        // database's company and remember it as the last one used. Plus 2 for the menu: the
-        // person's companies and their open invitations.
-        $this->assertLessThanOrEqual(6 + 4 + 2, count(DB::getQueryLog()));
+        // database's company and remember it as the last one used. Plus 3 for the menu: the
+        // person's companies, their open invitations and their unread project notifications.
+        $this->assertLessThanOrEqual(6 + 4 + 3, count(DB::getQueryLog()));
     }
 }

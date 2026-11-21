@@ -70,7 +70,7 @@ class AcceptInvitationTest extends TestCase
         $link = $this->invite('new@example.com', 'Nina New');
 
         $this->post(route('invitation.store'), $this->setPasswordInput($link, name: 'Nina Chosen'))
-            ->assertRedirect(route('dashboard', ['company' => $this->company->slug]));
+            ->assertRedirect(route('company.home', ['company' => $this->company->slug]));
 
         $user = User::firstWhere('email', 'new@example.com');
         $this->assertAuthenticatedAs($user);
@@ -197,7 +197,7 @@ class AcceptInvitationTest extends TestCase
         $invitationId = $this->actingAs($person)->get($link)->inertiaProps('invitation.id');
 
         $this->post(route('invitations.accept', ['invitation' => $invitationId]))
-            ->assertRedirect(route('dashboard', ['company' => $this->company->slug]));
+            ->assertRedirect(route('company.home', ['company' => $this->company->slug]));
 
         $this->assertTrue($person->memberships()->sole()->isActive());
         $this->assertInvalid($link);

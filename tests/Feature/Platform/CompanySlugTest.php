@@ -4,6 +4,7 @@ namespace Tests\Feature\Platform;
 
 use App\Models\Company;
 use App\Rules\CompanySlug;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -40,5 +41,17 @@ class CompanySlugTest extends TestCase
             ->all();
 
         $this->assertSame([], $unreserved, 'Add these public files or folders to CompanySlug::RESERVED.');
+    }
+
+    public function test_no_company_route_takes_a_reserved_word_as_the_company()
+    {
+        $projects = Route::getRoutes()->getByName('projects.index');
+
+        foreach (['settings', 'platform', 'admin', 'invitations'] as $word) {
+            $this->assertFalse($projects->matches(Request::create("/{$word}/projects")), "/{$word}/projects must not open a company called {$word}.");
+        }
+
+        $this->assertTrue($projects->matches(Request::create('/settings-team/projects')));
+        $this->assertSame('notification-settings.edit', Route::getRoutes()->match(Request::create('/settings/notifications'))->getName());
     }
 }

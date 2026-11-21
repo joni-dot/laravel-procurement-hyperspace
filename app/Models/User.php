@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Query\JoinClause;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -81,6 +82,37 @@ class User extends Authenticatable implements PasskeyUser
             ->where('company_id', app(CurrentCompany::class)->id() ?? 0)
             ->whereIn('role', [Role::Admin, Role::Buyer])
             ->active());
+    }
+
+    /**
+     * People who can work in the current company now: their account is active and so is their
+     * membership there.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function activeInCurrentCompany(Builder $query): void
+    {
+        $query->whereNull('deactivated_at')->whereHas('memberships', fn (Builder $memberships) => $memberships
+            ->where('company_id', app(CurrentCompany::class)->id() ?? 0)
+            ->active());
+    }
+
+    /**
+     * Only the id and the name the current company knows the person by (Membership::nameOnRecordsSql()),
+     * for showing people on the company's records, for example in an eager load. Read-only: the name
+     * may not be the account's own, so never save a model loaded this way.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function withNameKnownToCurrentCompany(Builder $query): void
+    {
+        $query->leftJoin('memberships as known_membership', fn (JoinClause $join) => $join
+            ->on('known_membership.user_id', '=', 'users.id')
+            ->where('known_membership.company_id', '=', app(CurrentCompany::class)->id() ?? 0))
+            ->select('users.id')
+            ->selectRaw(Membership::nameOnRecordsSql('known_membership').' as name');
     }
 
     /**
@@ -170,6 +202,14 @@ class User extends Authenticatable implements PasskeyUser
     public function isAdmin(): bool
     {
         return $this->role === Role::Admin;
+    }
+
+    /**
+     * Whether the person can work in the company: an active account with an active membership there.
+     */
+    public function isActiveIn(?int $companyId): bool
+    {
+        return ! $this->isDeactivated() && $this->activeMembershipIn($companyId) !== null;
     }
 
     public function isDeactivated(): bool

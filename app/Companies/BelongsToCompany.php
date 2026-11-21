@@ -11,7 +11,7 @@ use LogicException;
 /**
  * For models whose rows belong to one company. Queries only see the current company's rows and new
  * rows join it. The database enforces the same (CompanyIsolation); this keeps the app's queries
- * honest on their own and lets PostgreSQL use the company indexes.
+ * honest on their own and lets PostgreSQL use indexes that start with company_id, where a table has them.
  *
  * @property int $company_id
  *

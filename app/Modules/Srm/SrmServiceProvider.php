@@ -2,6 +2,7 @@
 
 namespace App\Modules\Srm;
 
+use App\Companies\CompanyHomePages;
 use App\Companies\CurrentCompany;
 use App\Models\Company;
 use App\Modules\Srm\Actions\AddStartingLists;
@@ -22,6 +23,7 @@ class SrmServiceProvider extends ServiceProvider
     {
         $this->loadMigrationsFrom(__DIR__.'/Database/Migrations');
         $this->startNewCompanies();
+        $this->offerHomePage();
         $this->registerRoutes();
         $this->registerCommands();
     }
@@ -36,6 +38,12 @@ class SrmServiceProvider extends ServiceProvider
         });
     }
 
+    /** The supplier dashboard suits everyone, so it is the last choice. */
+    private function offerHomePage(): void
+    {
+        $this->app->make(CompanyHomePages::class)->offer(100, fn (): string => 'dashboard');
+    }
+
     private function registerRoutes(): void
     {
         if ($this->app->routesAreCached()) {
@@ -44,7 +52,7 @@ class SrmServiceProvider extends ServiceProvider
 
         Route::middleware(['web', 'company'])
             ->prefix('{company}')
-            ->where(['company' => Company::SLUG_PATTERN])
+            ->where(['company' => Company::routePattern()])
             ->group(__DIR__.'/routes/web.php');
         Route::middleware('api')->prefix('api')->group(__DIR__.'/routes/api.php');
     }
