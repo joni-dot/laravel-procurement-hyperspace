@@ -45,22 +45,22 @@ const action = props.certificateType
                     <DialogTitle>
                         {{
                             certificateType
-                                ? 'Edit certificate type'
-                                : 'Add certificate type'
+                                ? $t('Edit certificate type')
+                                : $t('Add certificate type')
                         }}
                     </DialogTitle>
                 </DialogHeader>
 
                 <FormField
                     id="certificate-type-name"
-                    label="Name"
+                    :label="$t('Name')"
                     :error="errors.name"
                 >
                     <Input
                         id="certificate-type-name"
                         name="name"
                         :default-value="certificateType?.name"
-                        placeholder="ISO 9001"
+                        :placeholder="$t('ISO 9001')"
                         required
                         maxlength="100"
                         autocomplete="off"
@@ -76,23 +76,26 @@ const action = props.certificateType
                                 certificateType?.is_required ?? false
                             "
                         />
-                        Required for all active suppliers
+                        {{ $t('Required for all active suppliers') }}
                     </Label>
                     <p class="text-sm text-muted-foreground">
-                        Active suppliers without a valid certificate of this
-                        type are flagged.
+                        {{
+                            $t(
+                                'Active suppliers without a valid certificate of this type are flagged.',
+                            )
+                        }}
                     </p>
                 </div>
 
                 <DialogFooter class="gap-2">
                     <DialogClose as-child>
-                        <Button type="button" variant="secondary"
-                            >Cancel</Button
-                        >
+                        <Button type="button" variant="secondary">
+                            {{ $t('Cancel') }}
+                        </Button>
                     </DialogClose>
                     <Button type="submit" :disabled="processing">
                         <Spinner v-if="processing" />
-                        Save
+                        {{ $t('Save') }}
                     </Button>
                 </DialogFooter>
             </Form>

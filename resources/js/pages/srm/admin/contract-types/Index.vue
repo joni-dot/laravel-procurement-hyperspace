@@ -7,6 +7,7 @@ import ConfirmActionDialog from '@/components/ConfirmActionDialog.vue';
 import ContractTypeDialog from '@/components/srm/contracts/ContractTypeDialog.vue';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
+import { trans } from '@/lib/i18n';
 
 type ContractTypeRow = {
     id: number;
@@ -15,11 +16,14 @@ type ContractTypeRow = {
 };
 
 defineOptions({
-    layout: {
+    layout: () => ({
         breadcrumbs: [
-            { title: 'Contract types', href: ContractTypeController.index() },
+            {
+                title: trans('Contract types'),
+                href: ContractTypeController.index(),
+            },
         ],
-    },
+    }),
 });
 
 defineProps<{
@@ -32,29 +36,31 @@ const typeBeingDeleted = ref<ContractTypeRow | null>(null);
 
 function contractCount(type: ContractTypeRow): string {
     return type.contracts_count === 1
-        ? '1 contract'
-        : `${type.contracts_count} contracts`;
+        ? trans('1 contract')
+        : trans(':count contracts', { count: type.contracts_count });
 }
 </script>
 
 <template>
-    <Head title="Contract types" />
+    <Head :title="$t('Contract types')" />
 
     <div class="flex max-w-3xl flex-1 flex-col gap-6 p-4">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <Heading
-                title="Contract types"
-                description="The kinds of contracts buyers can record"
+                :title="$t('Contract types')"
+                :description="$t('The kinds of contracts buyers can record')"
                 class="mb-0"
             />
-            <Button @click="isAdding = true"><Plus /> Add type</Button>
+            <Button @click="isAdding = true">
+                <Plus /> {{ $t('Add type') }}
+            </Button>
         </div>
 
         <p
             v-if="contractTypes.length === 0"
             class="text-sm text-muted-foreground"
         >
-            No contract types yet.
+            {{ $t('No contract types yet.') }}
         </p>
 
         <ul v-else class="divide-y rounded-xl border">
@@ -73,7 +79,7 @@ function contractCount(type: ContractTypeRow): string {
                     <Button
                         variant="ghost"
                         size="icon-sm"
-                        :aria-label="`Rename ${type.name}`"
+                        :aria-label="$t('Rename :name', { name: type.name })"
                         @click="typeBeingRenamed = type"
                     >
                         <Pencil />
@@ -82,7 +88,7 @@ function contractCount(type: ContractTypeRow): string {
                         v-if="type.contracts_count === 0"
                         variant="ghost"
                         size="icon-sm"
-                        :aria-label="`Delete ${type.name}`"
+                        :aria-label="$t('Delete :name', { name: type.name })"
                         @click="typeBeingDeleted = type"
                     >
                         <Trash2 />
@@ -112,9 +118,11 @@ function contractCount(type: ContractTypeRow): string {
                 contractType: typeBeingDeleted.id,
             })
         "
-        :title="`Delete ${typeBeingDeleted.name}?`"
-        description="No contracts use this type, so nothing else is affected."
-        confirm-label="Delete"
+        :title="$t('Delete :name?', { name: typeBeingDeleted.name })"
+        :description="
+            $t('No contracts use this type, so nothing else is affected.')
+        "
+        :confirm-label="$t('Delete')"
         :open="true"
         @update:open="typeBeingDeleted = null"
     />

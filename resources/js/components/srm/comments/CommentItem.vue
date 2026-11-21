@@ -38,7 +38,9 @@ function startEditing(): void {
                     <time :datetime="comment.created_at">{{
                         formatDateTime(comment.created_at)
                     }}</time>
-                    <template v-if="comment.edited_at"> · edited</template>
+                    <template v-if="comment.edited_at">
+                        · {{ $t('edited') }}</template
+                    >
                 </span>
             </p>
 
@@ -47,7 +49,7 @@ function startEditing(): void {
                     v-if="comment.can.update"
                     variant="ghost"
                     size="icon-sm"
-                    aria-label="Edit comment"
+                    :aria-label="$t('Edit comment')"
                     @click="startEditing"
                 >
                     <Pencil />
@@ -56,7 +58,7 @@ function startEditing(): void {
                     v-if="comment.can.delete"
                     variant="ghost"
                     size="icon-sm"
-                    aria-label="Delete comment"
+                    :aria-label="$t('Delete comment')"
                     @click="$emit('delete')"
                 >
                     <Trash2 />
@@ -81,7 +83,7 @@ function startEditing(): void {
                 v-model="draft"
                 name="body"
                 class="bg-background"
-                aria-label="Comment"
+                :aria-label="$t('Comment')"
                 rows="3"
                 maxlength="5000"
                 required
@@ -90,7 +92,7 @@ function startEditing(): void {
             <div class="flex gap-2">
                 <Button type="submit" size="sm" :disabled="processing">
                     <Spinner v-if="processing" />
-                    Save
+                    {{ $t('Save') }}
                 </Button>
                 <Button
                     type="button"
@@ -98,7 +100,7 @@ function startEditing(): void {
                     variant="secondary"
                     @click="isEditing = false"
                 >
-                    Cancel
+                    {{ $t('Cancel') }}
                 </Button>
             </div>
         </Form>

@@ -22,16 +22,17 @@ import ChangeRoleDialog from '@/components/users/ChangeRoleDialog.vue';
 import InviteUserDialog from '@/components/users/InviteUserDialog.vue';
 import MembershipStatusBadge from '@/components/users/MembershipStatusBadge.vue';
 import type { Member, Paginated, RoleOption } from '@/types';
+import { trans } from '@/lib/i18n';
 
 defineOptions({
-    layout: {
+    layout: () => ({
         breadcrumbs: [
             {
-                title: 'Users',
+                title: trans('Users'),
                 href: MembershipController.index(),
             },
         ],
-    },
+    }),
 });
 
 const props = defineProps<{
@@ -86,13 +87,17 @@ function resendInvitation(member: Member): void {
 </script>
 
 <template>
-    <Head title="Users" />
+    <Head :title="$t('Users')" />
 
     <div class="flex flex-1 flex-col gap-6 p-4">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <Heading
-                title="Users"
-                description="Invite people to this company and decide what they can do here"
+                :title="$t('Users')"
+                :description="
+                    $t(
+                        'Invite people to this company and decide what they can do here',
+                    )
+                "
                 class="mb-0"
             />
             <InviteUserDialog :roles="roles" />
@@ -105,8 +110,8 @@ function resendInvitation(member: Member): void {
             <Input
                 v-model="search"
                 type="search"
-                placeholder="Search by name or email"
-                aria-label="Search users"
+                :placeholder="$t('Search by name or email')"
+                :aria-label="$t('Search users')"
                 class="pl-9"
             />
         </div>
@@ -115,14 +120,20 @@ function resendInvitation(member: Member): void {
             <table class="w-full text-sm">
                 <thead class="bg-muted/50 text-left text-muted-foreground">
                     <tr>
-                        <th scope="col" class="px-4 py-3 font-medium">Name</th>
-                        <th scope="col" class="px-4 py-3 font-medium">Email</th>
-                        <th scope="col" class="px-4 py-3 font-medium">Role</th>
                         <th scope="col" class="px-4 py-3 font-medium">
-                            Status
+                            {{ $t('Name') }}
+                        </th>
+                        <th scope="col" class="px-4 py-3 font-medium">
+                            {{ $t('Email') }}
+                        </th>
+                        <th scope="col" class="px-4 py-3 font-medium">
+                            {{ $t('Role') }}
+                        </th>
+                        <th scope="col" class="px-4 py-3 font-medium">
+                            {{ $t('Status') }}
                         </th>
                         <th scope="col" class="px-4 py-3">
-                            <span class="sr-only">Actions</span>
+                            <span class="sr-only">{{ $t('Actions') }}</span>
                         </th>
                     </tr>
                 </thead>
@@ -133,7 +144,7 @@ function resendInvitation(member: Member): void {
                             <span
                                 v-if="member.isYou"
                                 class="font-normal text-muted-foreground"
-                                >(you)</span
+                                >{{ $t('(you)') }}</span
                             >
                         </td>
                         <td class="px-4 py-3">{{ member.email }}</td>
@@ -147,7 +158,11 @@ function resendInvitation(member: Member): void {
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        :aria-label="`Actions for ${member.name}`"
+                                        :aria-label="
+                                            $t('Actions for :name', {
+                                                name: member.name,
+                                            })
+                                        "
                                     >
                                         <MoreHorizontal />
                                     </Button>
@@ -157,19 +172,19 @@ function resendInvitation(member: Member): void {
                                         v-if="member.can.update"
                                         @select="memberChangingRole = member"
                                     >
-                                        Change role
+                                        {{ $t('Change role') }}
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                         v-if="member.can.resendInvitation"
                                         @select="resendInvitation(member)"
                                     >
-                                        Resend invitation
+                                        {{ $t('Resend invitation') }}
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                         v-if="member.can.reactivate"
                                         @select="reactivate(member)"
                                     >
-                                        Reactivate
+                                        {{ $t('Reactivate') }}
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                         v-if="member.can.deactivate"
@@ -178,7 +193,7 @@ function resendInvitation(member: Member): void {
                                             memberBeingDeactivated = member
                                         "
                                     >
-                                        Deactivate
+                                        {{ $t('Deactivate') }}
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
@@ -189,7 +204,7 @@ function resendInvitation(member: Member): void {
                             colspan="5"
                             class="px-4 py-10 text-center text-muted-foreground"
                         >
-                            No users found.
+                            {{ $t('No users found.') }}
                         </td>
                     </tr>
                 </tbody>
@@ -214,9 +229,13 @@ function resendInvitation(member: Member): void {
                 membership: memberBeingDeactivated.id,
             })
         "
-        :title="`Deactivate ${memberBeingDeactivated.name}?`"
-        description="They can't open this company until an admin reactivates them, and an invitation link stops working. Their account, their other companies and everything they did here stay."
-        confirm-label="Deactivate"
+        :title="$t('Deactivate :name?', { name: memberBeingDeactivated.name })"
+        :description="
+            $t(
+                'They can\'t open this company until an admin reactivates them, and an invitation link stops working. Their account, their other companies and everything they did here stay.',
+            )
+        "
+        :confirm-label="$t('Deactivate')"
         :open="true"
         @update:open="memberBeingDeactivated = null"
     />

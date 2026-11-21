@@ -14,6 +14,7 @@ import DetailItem from '@/components/srm/suppliers/DetailItem.vue';
 import { Button } from '@/components/ui/button';
 import { formatDate, formatMoney } from '@/lib/format';
 import type { CommentFeed, ContractDetails } from '@/types/srm';
+import { trans } from '@/lib/i18n';
 
 const props = defineProps<{
     supplier: { id: number; name: string };
@@ -26,7 +27,7 @@ const route = { supplier: props.supplier.id, contract: props.contract.id };
 
 setLayoutProps({
     breadcrumbs: [
-        { title: 'Suppliers', href: SupplierController.index() },
+        { title: trans('Suppliers'), href: SupplierController.index() },
         {
             title: props.supplier.name,
             href: SupplierController.show({ supplier: props.supplier.id }),
@@ -45,7 +46,10 @@ const value = computed(() => {
     const { value, currency_code, value_period } = props.contract;
 
     return value && currency_code
-        ? `${formatMoney(value, currency_code)} ${value_period ?? ''}`
+        ? trans(':amount :period', {
+              amount: formatMoney(value, currency_code),
+              period: value_period ?? '',
+          }).trim()
         : null;
 });
 
@@ -53,16 +57,20 @@ const renewal = computed(() => {
     const { auto_renews, renewal_term_months } = props.contract;
 
     return auto_renews
-        ? `Renews automatically for ${renewal_term_months} months at a time`
-        : 'Does not renew automatically';
+        ? trans('Renews automatically for :months months at a time', {
+              months: renewal_term_months ?? '',
+          })
+        : trans('Does not renew automatically');
 });
 
 const reminders = computed(() => {
     const days = props.contract.reminder_days;
 
     return days.length > 0
-        ? `${days.join(' and ')} days before`
-        : 'No reminders';
+        ? trans(':days days before', {
+              days: days.join(` ${trans('and')} `),
+          })
+        : trans('No reminders');
 });
 </script>
 
@@ -74,7 +82,12 @@ const reminders = computed(() => {
             <div class="space-y-2">
                 <Heading
                     :title="contract.title"
-                    :description="`${contract.type} with ${supplier.name}`"
+                    :description="
+                        $t(':type with :supplier', {
+                            type: contract.type,
+                            supplier: supplier.name,
+                        })
+                    "
                     class="mb-0"
                 />
                 <ContractHealthBadge :health="contract.health" />
@@ -83,11 +96,11 @@ const reminders = computed(() => {
             <div v-if="can.update" class="flex gap-2">
                 <Button variant="outline" as-child>
                     <Link :href="ContractController.edit(route)">
-                        <Pencil /> Edit
+                        <Pencil /> {{ $t('Edit') }}
                     </Link>
                 </Button>
                 <Button variant="outline" @click="isConfirmingDelete = true">
-                    <Trash2 /> Delete
+                    <Trash2 /> {{ $t('Delete') }}
                 </Button>
             </div>
         </div>
@@ -96,38 +109,40 @@ const reminders = computed(() => {
             class="grid gap-6 rounded-xl border p-6 sm:grid-cols-2 lg:grid-cols-3"
         >
             <DetailItem
-                label="Contract number"
+                :label="$t('Contract number')"
                 :value="contract.contract_number"
             />
-            <DetailItem label="Contract owner" :value="contract.owner" />
-            <DetailItem label="Value" :value="value" />
+            <DetailItem :label="$t('Contract owner')" :value="contract.owner" />
+            <DetailItem :label="$t('Value')" :value="value" />
             <DetailItem
-                label="Start date"
+                :label="$t('Start date')"
                 :value="optionalDate(contract.starts_on)"
             />
             <DetailItem
-                label="End date"
+                :label="$t('End date')"
                 :value="optionalDate(contract.ends_on)"
             />
-            <DetailItem label="Renewal" :value="renewal" />
+            <DetailItem :label="$t('Renewal')" :value="renewal" />
             <DetailItem
                 v-if="contract.auto_renews"
-                label="Last day to cancel"
+                :label="$t('Last day to cancel')"
                 :value="optionalDate(contract.action_by)"
             />
             <DetailItem
                 v-if="contract.auto_renews"
-                label="Notice period"
+                :label="$t('Notice period')"
                 :value="
                     contract.notice_period_days === null
                         ? null
-                        : `${contract.notice_period_days} days`
+                        : $t(':days days', {
+                              days: contract.notice_period_days,
+                          })
                 "
             />
-            <DetailItem label="Email reminders" :value="reminders" />
+            <DetailItem :label="$t('Email reminders')" :value="reminders" />
             <DetailItem
                 v-if="contract.notes"
-                label="Notes"
+                :label="$t('Notes')"
                 class="sm:col-span-2 lg:col-span-3"
             >
                 <p class="whitespace-pre-line">{{ contract.notes }}</p>
@@ -135,7 +150,7 @@ const reminders = computed(() => {
         </dl>
 
         <DocumentList
-            title="Documents"
+            :title="$t('Documents')"
             :supplier-id="supplier.id"
             :documents="contract.documents"
             :upload-action="UploadContractDocumentController.form(route)"
@@ -153,8 +168,12 @@ const reminders = computed(() => {
     <ConfirmActionDialog
         v-model:open="isConfirmingDelete"
         :action="ContractController.destroy.form(route)"
-        :title="`Delete ${contract.title}?`"
-        description="The contract, its documents, comments and reminders are removed permanently. To keep the record, set its status to Terminated instead."
-        confirm-label="Delete"
+        :title="$t('Delete :name?', { name: contract.title })"
+        :description="
+            $t(
+                'The contract, its documents, comments and reminders are removed permanently. To keep the record, set its status to Terminated instead.',
+            )
+        "
+        :confirm-label="$t('Delete')"
     />
 </template>

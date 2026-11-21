@@ -23,7 +23,7 @@ enum Currency: string
 
     public function label(): string
     {
-        return "{$this->value} – ".Currencies::getName($this->value);
+        return "{$this->value} – ".Currencies::getName($this->value, app()->getLocale());
     }
 
     /**

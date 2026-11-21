@@ -9,15 +9,19 @@ defineProps<{
 </script>
 
 <template>
-    <Head title="Company suspended" />
+    <Head :title="$t('Company suspended')" />
 
     <div class="flex flex-col gap-4 p-4">
         <Heading
-            :title="`${companyName} is suspended`"
-            description="Its data is kept, but nobody can open the company until it is reopened. Contact the service if you think this is a mistake."
+            :title="$t(':company is suspended', { company: companyName })"
+            :description="
+                $t(
+                    'Its data is kept, but nobody can open the company until it is reopened. Contact the service if you think this is a mistake.',
+                )
+            "
         />
         <Link :href="home()" class="text-sm underline underline-offset-4">
-            Go to your other companies
+            {{ $t('Go to your other companies') }}
         </Link>
     </div>
 </template>

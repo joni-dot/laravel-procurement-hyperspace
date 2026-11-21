@@ -32,8 +32,8 @@ class ApiClientRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'scopes' => 'access',
-            'responsible_user_id' => 'responsible person',
+            'scopes' => __('access'),
+            'responsible_user_id' => __('responsible person'),
         ];
     }
 

@@ -13,6 +13,7 @@ import { NativeSelect } from '@/components/ui/native-select';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import type { ContractFormData, ContractFormOptions } from '@/types/srm';
+import { trans } from '@/lib/i18n';
 
 const DEFAULT_REMINDER_DAYS = [60, 14];
 
@@ -37,7 +38,9 @@ const reminderDays = ref<number[]>(
 );
 
 const reminderTarget = computed(() =>
-    autoRenews.value ? 'the last day to cancel' : 'the end date',
+    autoRenews.value
+        ? trans('Counted back from the last day to cancel.')
+        : trans('Counted back from the end date.'),
 );
 
 /**
@@ -59,11 +62,11 @@ function firstReminderError(
         v-slot="{ errors, processing }"
     >
         <section class="space-y-4">
-            <h2 class="text-base font-medium">Basic information</h2>
+            <h2 class="text-base font-medium">{{ $t('Basic information') }}</h2>
             <div class="grid gap-4 sm:grid-cols-2">
                 <FormField
                     id="title"
-                    label="Title"
+                    :label="$t('Title')"
                     :error="errors.title"
                     class="sm:col-span-2"
                 >
@@ -77,7 +80,7 @@ function firstReminderError(
                 </FormField>
                 <FormField
                     id="contract_number"
-                    label="Contract number"
+                    :label="$t('Contract number')"
                     :error="errors.contract_number"
                 >
                     <Input
@@ -88,7 +91,7 @@ function firstReminderError(
                 </FormField>
                 <FormField
                     id="contract_type_id"
-                    label="Type"
+                    :label="$t('Type')"
                     :error="errors.contract_type_id"
                 >
                     <NativeSelect
@@ -97,7 +100,9 @@ function firstReminderError(
                         name="contract_type_id"
                         required
                     >
-                        <option value="" disabled>Choose a type</option>
+                        <option value="" disabled>
+                            {{ $t('Choose a type') }}
+                        </option>
                         <option
                             v-for="type in options.contractTypes"
                             :key="type.id"
@@ -107,7 +112,11 @@ function firstReminderError(
                         </option>
                     </NativeSelect>
                 </FormField>
-                <FormField id="status" label="Status" :error="errors.status">
+                <FormField
+                    id="status"
+                    :label="$t('Status')"
+                    :error="errors.status"
+                >
                     <NativeSelect id="status" v-model="status" name="status">
                         <option
                             v-for="option in options.statuses"
@@ -120,8 +129,12 @@ function firstReminderError(
                 </FormField>
                 <FormField
                     id="owner_user_id"
-                    label="Contract owner"
-                    hint="Gets the reminders. If empty, they go to the responsible buyer."
+                    :label="$t('Contract owner')"
+                    :hint="
+                        $t(
+                            'Gets the reminders. If empty, they go to the responsible buyer.',
+                        )
+                    "
                     :error="errors.owner_user_id"
                 >
                     <NativeSelect
@@ -129,7 +142,7 @@ function firstReminderError(
                         v-model="ownerUserId"
                         name="owner_user_id"
                     >
-                        <option value="">Nobody yet</option>
+                        <option value="">{{ $t('Nobody yet') }}</option>
                         <option
                             v-for="owner in options.owners"
                             :key="owner.id"
@@ -143,11 +156,11 @@ function firstReminderError(
         </section>
 
         <section class="space-y-4">
-            <h2 class="text-base font-medium">Dates and renewal</h2>
+            <h2 class="text-base font-medium">{{ $t('Dates and renewal') }}</h2>
             <div class="grid gap-4 sm:grid-cols-2">
                 <FormField
                     id="starts_on"
-                    label="Start date"
+                    :label="$t('Start date')"
                     :error="errors.starts_on"
                 >
                     <Input
@@ -159,8 +172,8 @@ function firstReminderError(
                 </FormField>
                 <FormField
                     id="ends_on"
-                    label="End date"
-                    hint="Leave empty if it runs until further notice"
+                    :label="$t('End date')"
+                    :hint="$t('Leave empty if it runs until further notice')"
                     :error="errors.ends_on"
                 >
                     <Input
@@ -174,13 +187,13 @@ function firstReminderError(
 
             <Label class="flex items-center gap-2 font-normal">
                 <Checkbox v-model="autoRenews" name="auto_renews" value="1" />
-                Renews automatically unless cancelled
+                {{ $t('Renews automatically unless cancelled') }}
             </Label>
 
             <div v-if="autoRenews" class="grid gap-4 sm:grid-cols-2">
                 <FormField
                     id="renewal_term_months"
-                    label="Renews for (months)"
+                    :label="$t('Renews for (months)')"
                     :error="errors.renewal_term_months"
                 >
                     <Input
@@ -195,8 +208,10 @@ function firstReminderError(
                 </FormField>
                 <FormField
                     id="notice_period_days"
-                    label="Notice period (days)"
-                    hint="How long before the end date it must be cancelled"
+                    :label="$t('Notice period (days)')"
+                    :hint="
+                        $t('How long before the end date it must be cancelled')
+                    "
                     :error="errors.notice_period_days"
                 >
                     <Input
@@ -211,17 +226,19 @@ function firstReminderError(
             </div>
 
             <fieldset class="space-y-2">
-                <legend class="text-sm font-medium">Email reminders</legend>
+                <legend class="text-sm font-medium">
+                    {{ $t('Email reminders') }}
+                </legend>
                 <p v-if="!endsOn" class="text-sm text-muted-foreground">
-                    Set an end date to get reminders.
+                    {{ $t('Set an end date to get reminders.') }}
                 </p>
                 <template v-else>
                     <p class="text-sm text-muted-foreground">
-                        Counted back from {{ reminderTarget }}.
+                        {{ reminderTarget }}
                     </p>
                     <ReminderDaysInput
                         v-model="reminderDays"
-                        unit-label="days before"
+                        :unit-label="$t('days before')"
                     />
                 </template>
                 <InputError :message="firstReminderError(errors)" />
@@ -229,9 +246,13 @@ function firstReminderError(
         </section>
 
         <section class="space-y-4">
-            <h2 class="text-base font-medium">Value</h2>
+            <h2 class="text-base font-medium">{{ $t('Value') }}</h2>
             <div class="grid gap-4 sm:grid-cols-3">
-                <FormField id="value" label="Amount" :error="errors.value">
+                <FormField
+                    id="value"
+                    :label="$t('Amount')"
+                    :error="errors.value"
+                >
                     <Input
                         id="value"
                         type="number"
@@ -243,7 +264,7 @@ function firstReminderError(
                 </FormField>
                 <FormField
                     id="currency_code"
-                    label="Currency"
+                    :label="$t('Currency')"
                     :error="errors.currency_code"
                 >
                     <NativeSelect
@@ -251,7 +272,7 @@ function firstReminderError(
                         v-model="currencyCode"
                         name="currency_code"
                     >
-                        <option value="">Not set</option>
+                        <option value="">{{ $t('Not set') }}</option>
                         <option
                             v-for="option in options.currencies"
                             :key="option.value"
@@ -263,7 +284,7 @@ function firstReminderError(
                 </FormField>
                 <FormField
                     id="value_period"
-                    label="Period"
+                    :label="$t('Period')"
                     :error="errors.value_period"
                 >
                     <NativeSelect
@@ -271,7 +292,7 @@ function firstReminderError(
                         v-model="valuePeriod"
                         name="value_period"
                     >
-                        <option value="">Not set</option>
+                        <option value="">{{ $t('Not set') }}</option>
                         <option
                             v-for="option in options.valuePeriods"
                             :key="option.value"
@@ -284,7 +305,7 @@ function firstReminderError(
             </div>
         </section>
 
-        <FormField id="notes" label="Notes" :error="errors.notes">
+        <FormField id="notes" :label="$t('Notes')" :error="errors.notes">
             <Textarea
                 id="notes"
                 v-model="notes"
@@ -300,7 +321,7 @@ function firstReminderError(
                 {{ submitLabel }}
             </Button>
             <Button variant="ghost" as-child>
-                <Link :href="cancelHref">Cancel</Link>
+                <Link :href="cancelHref">{{ $t('Cancel') }}</Link>
             </Button>
         </div>
     </Form>

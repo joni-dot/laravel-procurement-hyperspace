@@ -7,6 +7,7 @@ import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { formatDate, formatMoney } from '@/lib/format';
 import type { ContractSummary } from '@/types/srm';
+import { trans } from '@/lib/i18n';
 
 defineProps<{
     supplierId: number;
@@ -16,12 +17,14 @@ defineProps<{
 
 function deadline(contract: ContractSummary): string {
     if (!contract.action_by) {
-        return 'No end date';
+        return trans('No end date');
     }
 
-    const label = contract.auto_renews ? 'Cancel by' : 'Ends';
+    const date = formatDate(contract.action_by);
 
-    return `${label} ${formatDate(contract.action_by)}`;
+    return contract.auto_renews
+        ? trans('Cancel by :date', { date })
+        : trans('Ends :date', { date });
 }
 
 function value(contract: ContractSummary): string {
@@ -29,25 +32,28 @@ function value(contract: ContractSummary): string {
         return '—';
     }
 
-    return `${formatMoney(contract.value, contract.currency_code)} ${contract.value_period ?? ''}`;
+    return trans(':amount :period', {
+        amount: formatMoney(contract.value, contract.currency_code),
+        period: contract.value_period ?? '',
+    }).trim();
 }
 </script>
 
 <template>
     <section class="space-y-4">
         <div class="flex items-center justify-between gap-4">
-            <Heading variant="small" title="Contracts" />
+            <Heading variant="small" :title="$t('Contracts')" />
             <Button v-if="canEdit" variant="outline" size="sm" as-child>
                 <Link
                     :href="ContractController.create({ supplier: supplierId })"
                 >
-                    <Plus /> Add contract
+                    <Plus /> {{ $t('Add contract') }}
                 </Link>
             </Button>
         </div>
 
         <p v-if="contracts.length === 0" class="text-sm text-muted-foreground">
-            No contracts yet.
+            {{ $t('No contracts yet.') }}
         </p>
 
         <div v-else class="overflow-x-auto rounded-xl border">
@@ -55,12 +61,16 @@ function value(contract: ContractSummary): string {
                 <thead class="bg-muted/50 text-left text-muted-foreground">
                     <tr>
                         <th scope="col" class="px-4 py-3 font-medium">
-                            Contract
+                            {{ $t('Contract') }}
                         </th>
-                        <th scope="col" class="px-4 py-3 font-medium">Date</th>
-                        <th scope="col" class="px-4 py-3 font-medium">Value</th>
                         <th scope="col" class="px-4 py-3 font-medium">
-                            Status
+                            {{ $t('Date') }}
+                        </th>
+                        <th scope="col" class="px-4 py-3 font-medium">
+                            {{ $t('Value') }}
+                        </th>
+                        <th scope="col" class="px-4 py-3 font-medium">
+                            {{ $t('Status') }}
                         </th>
                     </tr>
                 </thead>

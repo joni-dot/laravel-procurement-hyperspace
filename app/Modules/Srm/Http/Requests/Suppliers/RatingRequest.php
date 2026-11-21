@@ -36,8 +36,8 @@ class RatingRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'rated_on' => 'rating date',
-            'scores.*' => 'score',
+            'rated_on' => __('rating date'),
+            'scores.*' => __('score'),
         ];
     }
 

@@ -13,13 +13,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatDateTime } from '@/lib/format';
 import type { ApiClientRow, ApiScopeOption, NewApiClientSecret } from '@/types';
+import { trans } from '@/lib/i18n';
 
 defineOptions({
-    layout: {
+    layout: () => ({
         breadcrumbs: [
-            { title: 'API clients', href: ApiClientController.index() },
+            { title: trans('API clients'), href: ApiClientController.index() },
         ],
-    },
+    }),
 });
 
 const props = defineProps<{
@@ -58,20 +59,27 @@ function scopeLabels(client: ApiClientRow): string {
 </script>
 
 <template>
-    <Head title="API clients" />
+    <Head :title="$t('API clients')" />
 
     <div class="flex max-w-4xl flex-1 flex-col gap-6 p-4">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <Heading
-                title="API clients"
-                :description="`Systems that read supplier data on their own. Each one trades its secret for an access token that lasts ${accessTokenMinutes} minutes.`"
+                :title="$t('API clients')"
+                :description="
+                    $t(
+                        'Systems that read supplier data on their own. Each one trades its secret for an access token that lasts :minutes minutes.',
+                        { minutes: accessTokenMinutes },
+                    )
+                "
                 class="mb-0"
             />
-            <Button @click="isAdding = true"><Plus /> Add API client</Button>
+            <Button @click="isAdding = true">
+                <Plus /> {{ $t('Add API client') }}
+            </Button>
         </div>
 
         <p v-if="apiClients.length === 0" class="text-sm text-muted-foreground">
-            No API clients yet.
+            {{ $t('No API clients yet.') }}
         </p>
 
         <ul v-else class="divide-y rounded-xl border">
@@ -85,33 +93,44 @@ function scopeLabels(client: ApiClientRow): string {
                     <p class="flex items-center gap-2 font-medium">
                         {{ client.name }}
                         <Badge v-if="client.revoked" variant="secondary">
-                            Revoked
+                            {{ $t('Revoked') }}
                         </Badge>
                     </p>
                     <p>
-                        {{ scopeLabels(client) || 'No access' }}
+                        {{ scopeLabels(client) || $t('No access') }}
                         <span v-if="client.responsible_user_name">
-                            · Responsible: {{ client.responsible_user_name }}
+                            ·
+                            {{
+                                $t('Responsible: :name', {
+                                    name: client.responsible_user_name,
+                                })
+                            }}
                         </span>
                     </p>
                     <p class="text-muted-foreground">
-                        Created {{ formatDateTime(client.created_at) }} · Last
-                        used
+                        {{
+                            $t('Created :date', {
+                                date: formatDateTime(client.created_at),
+                            })
+                        }}
+                        ·
                         {{
                             client.last_used_at
-                                ? formatDateTime(client.last_used_at)
-                                : 'never'
+                                ? $t('Last used :date', {
+                                      date: formatDateTime(client.last_used_at),
+                                  })
+                                : $t('Last used never')
                         }}
                     </p>
                     <p class="truncate font-mono text-xs text-muted-foreground">
-                        Client ID {{ client.id }}
+                        {{ $t('Client ID :id', { id: client.id }) }}
                     </p>
                 </div>
                 <div v-if="!client.revoked" class="flex shrink-0">
                     <Button
                         variant="ghost"
                         size="icon-sm"
-                        :aria-label="`Edit ${client.name}`"
+                        :aria-label="$t('Edit :name', { name: client.name })"
                         @click="clientBeingEdited = client"
                     >
                         <Pencil />
@@ -119,7 +138,9 @@ function scopeLabels(client: ApiClientRow): string {
                     <Button
                         variant="ghost"
                         size="icon-sm"
-                        :aria-label="`New secret for ${client.name}`"
+                        :aria-label="
+                            $t('New secret for :name', { name: client.name })
+                        "
                         @click="clientGettingNewSecret = client"
                     >
                         <KeyRound />
@@ -127,7 +148,7 @@ function scopeLabels(client: ApiClientRow): string {
                     <Button
                         variant="ghost"
                         size="icon-sm"
-                        :aria-label="`Revoke ${client.name}`"
+                        :aria-label="$t('Revoke :name', { name: client.name })"
                         @click="clientBeingRevoked = client"
                     >
                         <Ban />
@@ -161,9 +182,15 @@ function scopeLabels(client: ApiClientRow): string {
                 apiClient: clientGettingNewSecret.id,
             })
         "
-        :title="`New secret for ${clientGettingNewSecret.name}?`"
-        description="The old secret and its access tokens stop working at once. The system needs the new secret before it can connect again."
-        confirm-label="Create new secret"
+        :title="
+            $t('New secret for :name?', { name: clientGettingNewSecret.name })
+        "
+        :description="
+            $t(
+                'The old secret and its access tokens stop working at once. The system needs the new secret before it can connect again.',
+            )
+        "
+        :confirm-label="$t('Create new secret')"
         :open="true"
         @update:open="clientGettingNewSecret = null"
     />
@@ -173,9 +200,13 @@ function scopeLabels(client: ApiClientRow): string {
         :action="
             RevokeApiClientController.form({ apiClient: clientBeingRevoked.id })
         "
-        :title="`Revoke ${clientBeingRevoked.name}?`"
-        description="The system loses API access at once, and this cannot be undone. The client stays in the list for the record."
-        confirm-label="Revoke"
+        :title="$t('Revoke :name?', { name: clientBeingRevoked.name })"
+        :description="
+            $t(
+                'The system loses API access at once, and this cannot be undone. The client stays in the list for the record.',
+            )
+        "
+        :confirm-label="$t('Revoke')"
         :open="true"
         @update:open="clientBeingRevoked = null"
     />

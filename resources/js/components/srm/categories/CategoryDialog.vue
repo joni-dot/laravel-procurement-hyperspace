@@ -38,11 +38,19 @@ const action = props.category
             >
                 <DialogHeader>
                     <DialogTitle>
-                        {{ category ? 'Rename category' : 'Add category' }}
+                        {{
+                            category
+                                ? $t('Rename category')
+                                : $t('Add category')
+                        }}
                     </DialogTitle>
                 </DialogHeader>
 
-                <FormField id="category-name" label="Name" :error="errors.name">
+                <FormField
+                    id="category-name"
+                    :label="$t('Name')"
+                    :error="errors.name"
+                >
                     <Input
                         id="category-name"
                         name="name"
@@ -55,13 +63,13 @@ const action = props.category
 
                 <DialogFooter class="gap-2">
                     <DialogClose as-child>
-                        <Button type="button" variant="secondary"
-                            >Cancel</Button
-                        >
+                        <Button type="button" variant="secondary">
+                            {{ $t('Cancel') }}
+                        </Button>
                     </DialogClose>
                     <Button type="submit" :disabled="processing">
                         <Spinner v-if="processing" />
-                        Save
+                        {{ $t('Save') }}
                     </Button>
                 </DialogFooter>
             </Form>

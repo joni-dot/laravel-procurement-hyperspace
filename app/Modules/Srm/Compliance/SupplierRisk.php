@@ -36,7 +36,7 @@ class SupplierRisk
                 ...$this->ratingSignals($supplier),
                 ...array_map(fn (string $type) => [
                     'level' => RiskLevel::High,
-                    'message' => "Missing a valid required certificate: {$type}",
+                    'message' => __('Missing a valid required certificate: :certificate', ['certificate' => $type]),
                 ], $missing),
                 ...$this->certificateSignals($certificatesBySupplier->get($supplier->id, collect()), $missing),
             ];
@@ -74,7 +74,7 @@ class SupplierRisk
     private function statusSignals(Supplier $supplier): array
     {
         return $supplier->status === SupplierStatus::Blocked
-            ? [['level' => RiskLevel::High, 'message' => 'The supplier is blocked']]
+            ? [['level' => RiskLevel::High, 'message' => __('The supplier is blocked')]]
             : [];
     }
 
@@ -88,7 +88,7 @@ class SupplierRisk
         }
 
         $score = (float) $supplier->latest_rating_score;
-        $message = 'The latest rating is '.number_format($score, 2).' out of 5';
+        $message = __('The latest rating is :score out of 5', ['score' => number_format($score, 2)]);
 
         return match (true) {
             $score < RiskLevel::HIGH_RISK_RATING_BELOW => [['level' => RiskLevel::High, 'message' => $message]],
@@ -121,7 +121,9 @@ class SupplierRisk
 
             $signals[] = [
                 'level' => RiskLevel::Medium,
-                'message' => $hasValidCertificate ? "Certificate expiring soon: {$typeName}" : "Certificate expired: {$typeName}",
+                'message' => $hasValidCertificate
+                    ? __('Certificate expiring soon: :certificate', ['certificate' => $typeName])
+                    : __('Certificate expired: :certificate', ['certificate' => $typeName]),
             ];
         }
 

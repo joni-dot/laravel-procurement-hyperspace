@@ -63,20 +63,28 @@ const action = props.company
             >
                 <DialogHeader>
                     <DialogTitle>
-                        {{ company ? `Edit ${company.name}` : 'Add company' }}
+                        {{
+                            company
+                                ? $t('Edit :name', { name: company.name })
+                                : $t('Add company')
+                        }}
                     </DialogTitle>
                     <DialogDescription>
                         {{
                             company
-                                ? 'Old links keep working when the address changes: they forward to the new address. An old address is never given to another company.'
-                                : 'The company gets its own address, and the person you name here is invited to be its first admin.'
+                                ? $t(
+                                      'Old links keep working when the address changes: they forward to the new address. An old address is never given to another company.',
+                                  )
+                                : $t(
+                                      'The company gets its own address, and the person you name here is invited to be its first admin.',
+                                  )
                         }}
                     </DialogDescription>
                 </DialogHeader>
 
                 <FormField
                     id="company-name"
-                    label="Company name"
+                    :label="$t('Company name')"
                     :error="errors.name"
                 >
                     <Input
@@ -91,8 +99,13 @@ const action = props.company
 
                 <FormField
                     id="company-slug"
-                    label="Address"
-                    :hint="`Lowercase letters, digits and dashes. The company opens at /${slug || 'address'}`"
+                    :label="$t('Address')"
+                    :hint="
+                        $t(
+                            'Lowercase letters, digits and dashes. The company opens at /:address',
+                            { address: slug || $t('address') },
+                        )
+                    "
                     :error="errors.slug"
                 >
                     <Input
@@ -110,7 +123,7 @@ const action = props.company
                 <template v-if="!company">
                     <FormField
                         id="company-admin-name"
-                        label="Admin's name"
+                        :label="$t('Admin\'s name')"
                         :error="errors.admin_name"
                     >
                         <Input
@@ -124,8 +137,12 @@ const action = props.company
 
                     <FormField
                         id="company-admin-email"
-                        label="Admin's email"
-                        hint="They get an email invitation to become the company's admin."
+                        :label="$t('Admin\'s email')"
+                        :hint="
+                            $t(
+                                'They get an email invitation to become the company\'s admin.',
+                            )
+                        "
                         :error="errors.admin_email"
                     >
                         <Input
@@ -141,13 +158,13 @@ const action = props.company
 
                 <DialogFooter class="gap-2">
                     <DialogClose as-child>
-                        <Button type="button" variant="secondary"
-                            >Cancel</Button
-                        >
+                        <Button type="button" variant="secondary">
+                            {{ $t('Cancel') }}
+                        </Button>
                     </DialogClose>
                     <Button type="submit" :disabled="processing">
                         <Spinner v-if="processing" />
-                        Save
+                        {{ $t('Save') }}
                     </Button>
                 </DialogFooter>
             </Form>

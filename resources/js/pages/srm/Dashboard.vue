@@ -23,16 +23,17 @@ import type {
     TopSpend,
     UpcomingDeadline,
 } from '@/types/srm';
+import { trans } from '@/lib/i18n';
 
 defineOptions({
-    layout: {
+    layout: () => ({
         breadcrumbs: [
             {
-                title: 'Dashboard',
+                title: trans('Supplier dashboard'),
                 href: dashboard(),
             },
         ],
-    },
+    }),
 });
 
 const props = defineProps<{
@@ -55,31 +56,35 @@ type AttentionTile = {
 const attentionTiles = computed<AttentionTile[]>(() => {
     const tiles: AttentionTile[] = [
         {
-            label: 'Missing certificates',
-            description:
+            label: trans('Missing certificates'),
+            description: trans(
                 'Active suppliers without a valid required certificate',
+            ),
             icon: FileWarning,
             count: props.attention.missing_certificates,
             query: { missing_certificates: 1 },
         },
         {
-            label: 'Certificates expiring',
-            description:
+            label: trans('Certificates expiring'),
+            description: trans(
                 'Active suppliers with one expired or ending within 30 days',
+            ),
             icon: Award,
             count: props.attention.certificates_expiring,
             query: { status: 'active', certificates_expiring: 1 },
         },
         {
-            label: 'High risk',
-            description: 'Active suppliers rated high risk',
+            label: trans('High risk'),
+            description: trans('Active suppliers rated high risk'),
             icon: ShieldAlert,
             count: props.attention.high_risk,
             query: { status: 'active', risk: 'high' },
         },
         {
-            label: 'Rating overdue',
-            description: 'Active suppliers not rated in the past 12 months',
+            label: trans('Rating overdue'),
+            description: trans(
+                'Active suppliers not rated in the past 12 months',
+            ),
             icon: Star,
             count: props.attention.rating_overdue,
             query: { rating_overdue: 1 },
@@ -88,9 +93,10 @@ const attentionTiles = computed<AttentionTile[]>(() => {
 
     if (props.attention.contracts_action_soon !== null) {
         tiles.unshift({
-            label: 'Contracts to act on',
-            description:
+            label: trans('Contracts to act on'),
+            description: trans(
                 'Suppliers with a contract ending or due for cancellation within 30 days',
+            ),
             icon: CalendarClock,
             count: props.attention.contracts_action_soon,
             query: { contracts_action_soon: 1 },
@@ -100,10 +106,10 @@ const attentionTiles = computed<AttentionTile[]>(() => {
     return tiles;
 });
 
-const deadlineLabels: Record<UpcomingDeadline['kind'], string> = {
-    contract_cancel_by: 'Cancel by',
-    contract_ends: 'Contract ends',
-    certificate_expires: 'Certificate expires',
+const deadlineLabels: Record<UpcomingDeadline['kind'], () => string> = {
+    contract_cancel_by: () => trans('Cancel by'),
+    contract_ends: () => trans('Contract ends'),
+    certificate_expires: () => trans('Certificate expires'),
 };
 
 function deadlineLink(deadline: UpcomingDeadline) {
@@ -117,13 +123,15 @@ function deadlineLink(deadline: UpcomingDeadline) {
 </script>
 
 <template>
-    <Head title="Dashboard" />
+    <Head :title="$t('Supplier dashboard')" />
 
     <div class="flex flex-1 flex-col gap-8 p-4">
         <section class="space-y-4">
             <Heading
-                title="Needs attention"
-                description="Each number opens the list of suppliers behind it"
+                :title="$t('Needs attention')"
+                :description="
+                    $t('Each number opens the list of suppliers behind it')
+                "
                 class="mb-4"
             />
             <div
@@ -161,8 +169,10 @@ function deadlineLink(deadline: UpcomingDeadline) {
             <section class="space-y-4 lg:col-span-2">
                 <Heading
                     variant="small"
-                    title="Next 30 days"
-                    description="The 10 soonest contract and certificate dates"
+                    :title="$t('Next 30 days')"
+                    :description="
+                        $t('The 10 soonest contract and certificate dates')
+                    "
                 />
                 <div class="overflow-x-auto rounded-xl border">
                     <table class="w-full text-sm">
@@ -171,13 +181,13 @@ function deadlineLink(deadline: UpcomingDeadline) {
                         >
                             <tr>
                                 <th scope="col" class="px-4 py-3 font-medium">
-                                    Date
+                                    {{ $t('Date') }}
                                 </th>
                                 <th scope="col" class="px-4 py-3 font-medium">
-                                    What
+                                    {{ $t('What') }}
                                 </th>
                                 <th scope="col" class="px-4 py-3 font-medium">
-                                    Supplier
+                                    {{ $t('Supplier') }}
                                 </th>
                             </tr>
                         </thead>
@@ -200,7 +210,7 @@ function deadlineLink(deadline: UpcomingDeadline) {
                                         {{ deadline.title }}
                                     </Link>
                                     <p class="text-xs text-muted-foreground">
-                                        {{ deadlineLabels[deadline.kind] }}
+                                        {{ deadlineLabels[deadline.kind]() }}
                                     </p>
                                 </td>
                                 <td class="px-4 py-3">
@@ -221,7 +231,11 @@ function deadlineLink(deadline: UpcomingDeadline) {
                                     colspan="3"
                                     class="px-4 py-10 text-center text-muted-foreground"
                                 >
-                                    Nothing is due in the next 30 days.
+                                    {{
+                                        $t(
+                                            'Nothing is due in the next 30 days.',
+                                        )
+                                    }}
                                 </td>
                             </tr>
                         </tbody>
@@ -231,7 +245,7 @@ function deadlineLink(deadline: UpcomingDeadline) {
 
             <div class="space-y-8">
                 <section class="space-y-4">
-                    <Heading variant="small" title="Risk overview" />
+                    <Heading variant="small" :title="$t('Risk overview')" />
                     <ul class="divide-y rounded-xl border text-sm">
                         <li v-for="risk in riskLevels" :key="risk.level">
                             <Link
@@ -253,7 +267,7 @@ function deadlineLink(deadline: UpcomingDeadline) {
                 </section>
 
                 <section class="space-y-4">
-                    <Heading variant="small" title="Supplier overview" />
+                    <Heading variant="small" :title="$t('Supplier overview')" />
                     <ul class="divide-y rounded-xl border text-sm">
                         <li v-for="item in statuses" :key="item.status">
                             <Link
@@ -279,14 +293,22 @@ function deadlineLink(deadline: UpcomingDeadline) {
         <section v-if="topSpend !== null" class="space-y-4">
             <Heading
                 variant="small"
-                :title="`Biggest suppliers by spend in ${spendYear}`"
-                description="Top 5 per currency, because different currencies cannot be compared"
+                :title="
+                    $t('Biggest suppliers by spend in :year', {
+                        year: spendYear,
+                    })
+                "
+                :description="
+                    $t(
+                        'Top 5 per currency, because different currencies cannot be compared',
+                    )
+                "
             />
             <p
                 v-if="topSpend.length === 0"
                 class="text-sm text-muted-foreground"
             >
-                No spend recorded for {{ spendYear }}.
+                {{ $t('No spend recorded for :year.', { year: spendYear }) }}
             </p>
             <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <table

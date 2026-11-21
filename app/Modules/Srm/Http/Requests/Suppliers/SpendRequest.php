@@ -27,7 +27,7 @@ class SpendRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'currency_code' => 'currency',
+            'currency_code' => __('currency'),
         ];
     }
 }

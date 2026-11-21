@@ -7,17 +7,18 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { trans } from '@/lib/i18n';
 import { edit } from '@/routes/profile';
 
 defineOptions({
-    layout: {
+    layout: () => ({
         breadcrumbs: [
             {
-                title: 'Profile settings',
+                title: trans('Profile settings'),
                 href: edit(),
             },
         ],
-    },
+    }),
 });
 
 const page = usePage();
@@ -31,15 +32,15 @@ const changesEmail = computed(
 </script>
 
 <template>
-    <Head title="Profile settings" />
+    <Head :title="$t('Profile settings')" />
 
-    <h1 class="sr-only">Profile settings</h1>
+    <h1 class="sr-only">{{ $t('Profile settings') }}</h1>
 
     <div class="flex flex-col space-y-6">
         <Heading
             variant="small"
-            title="Profile"
-            description="Update your name and email address"
+            :title="$t('Profile')"
+            :description="$t('Update your name and email address')"
         />
 
         <Form
@@ -48,7 +49,7 @@ const changesEmail = computed(
             v-slot="{ errors, processing }"
         >
             <div class="grid gap-2">
-                <Label for="name">Name</Label>
+                <Label for="name">{{ $t('Name') }}</Label>
                 <Input
                     id="name"
                     class="mt-1 block w-full"
@@ -56,13 +57,13 @@ const changesEmail = computed(
                     :default-value="user.name"
                     required
                     autocomplete="name"
-                    placeholder="Full name"
+                    :placeholder="$t('Full name')"
                 />
                 <InputError class="mt-2" :message="errors.name" />
             </div>
 
             <div class="grid gap-2">
-                <Label for="email">Email address</Label>
+                <Label for="email">{{ $t('Email address') }}</Label>
                 <Input
                     id="email"
                     type="email"
@@ -71,13 +72,15 @@ const changesEmail = computed(
                     v-model="email"
                     required
                     autocomplete="username"
-                    placeholder="Email address"
+                    :placeholder="$t('Email address')"
                 />
                 <InputError class="mt-2" :message="errors.email" />
             </div>
 
             <div v-if="changesEmail" class="grid gap-2">
-                <Label for="current_password">Current password</Label>
+                <Label for="current_password">{{
+                    $t('Current password')
+                }}</Label>
                 <Input
                     id="current_password"
                     type="password"
@@ -91,14 +94,16 @@ const changesEmail = computed(
                     id="current-password-hint"
                     class="text-sm text-muted-foreground"
                 >
-                    Changing your email address needs your password.
+                    {{ $t('Changing your email address needs your password.') }}
                 </p>
                 <InputError class="mt-2" :message="errors.current_password" />
             </div>
 
             <div class="flex items-center gap-4">
-                <Button :disabled="processing" data-test="update-profile-button"
-                    >Save</Button
+                <Button
+                    :disabled="processing"
+                    data-test="update-profile-button"
+                    >{{ $t('Save') }}</Button
                 >
             </div>
         </Form>

@@ -12,14 +12,14 @@ enum ApiScope: string
     public function label(): string
     {
         return match ($this) {
-            self::SuppliersRead => 'Read suppliers',
+            self::SuppliersRead => __('Read suppliers'),
         };
     }
 
     public function description(): string
     {
         return match ($this) {
-            self::SuppliersRead => 'Supplier details, categories, latest rating and risk level. Not contacts, notes, contracts or spend.',
+            self::SuppliersRead => __('Supplier details, categories, latest rating and risk level. Not contacts, notes, contracts or spend.'),
         };
     }
 

@@ -31,13 +31,17 @@ const isOpen = defineModel<boolean>('open', { required: true });
                 v-slot="{ errors, processing, progress }"
             >
                 <DialogHeader>
-                    <DialogTitle>Upload document</DialogTitle>
+                    <DialogTitle>{{ $t('Upload document') }}</DialogTitle>
                 </DialogHeader>
 
                 <FormField
                     id="document-file"
-                    label="File"
-                    hint="PDF, JPG, PNG, Word (.docx) or Excel (.xlsx), up to 20 MB"
+                    :label="$t('File')"
+                    :hint="
+                        $t(
+                            'PDF, JPG, PNG, Word (.docx) or Excel (.xlsx), up to 20 MB',
+                        )
+                    "
                     :error="errors.file"
                 >
                     <input
@@ -61,13 +65,13 @@ const isOpen = defineModel<boolean>('open', { required: true });
 
                 <DialogFooter class="gap-2">
                     <DialogClose as-child>
-                        <Button type="button" variant="secondary"
-                            >Cancel</Button
-                        >
+                        <Button type="button" variant="secondary">
+                            {{ $t('Cancel') }}
+                        </Button>
                     </DialogClose>
                     <Button type="submit" :disabled="processing">
                         <Spinner v-if="processing" />
-                        Upload
+                        {{ $t('Upload') }}
                     </Button>
                 </DialogFooter>
             </Form>

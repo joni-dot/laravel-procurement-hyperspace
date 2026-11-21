@@ -41,15 +41,15 @@ const action = props.contractType
                     <DialogTitle>
                         {{
                             contractType
-                                ? 'Rename contract type'
-                                : 'Add contract type'
+                                ? $t('Rename contract type')
+                                : $t('Add contract type')
                         }}
                     </DialogTitle>
                 </DialogHeader>
 
                 <FormField
                     id="contract-type-name"
-                    label="Name"
+                    :label="$t('Name')"
                     :error="errors.name"
                 >
                     <Input
@@ -64,13 +64,13 @@ const action = props.contractType
 
                 <DialogFooter class="gap-2">
                     <DialogClose as-child>
-                        <Button type="button" variant="secondary"
-                            >Cancel</Button
-                        >
+                        <Button type="button" variant="secondary">
+                            {{ $t('Cancel') }}
+                        </Button>
                     </DialogClose>
                     <Button type="submit" :disabled="processing">
                         <Spinner v-if="processing" />
-                        Save
+                        {{ $t('Save') }}
                     </Button>
                 </DialogFooter>
             </Form>

@@ -3,13 +3,13 @@
 {{ $intro }}
 
 <table width="100%" cellpadding="6" style="border-collapse: collapse; margin-bottom: 24px;">
-<tr style="text-align: left;"><th>Contract</th><th>Supplier</th><th>Date</th></tr>
+<tr style="text-align: left;"><th>{{ __('Contract') }}</th><th>{{ __('Supplier') }}</th><th>{{ __('Date') }}</th></tr>
 @foreach ($items as $item)
-<tr style="border-top: 1px solid #e8e5ef;"><td><a href="{{ $item['url'] }}">{{ $item['title'] }}</a></td><td>{{ $item['supplier'] }}</td><td>{{ $item['action'] }}: {{ $item['action_by'] }} ({{ trans_choice('in :count day|in :count days', $item['days_left']) }})</td></tr>
+<tr style="border-top: 1px solid #e8e5ef;"><td><a href="{{ $item['url'] }}">{{ $item['title'] }}</a></td><td>{{ $item['supplier'] }}</td><td>{{ __(':action: :date', ['action' => $item['action'], 'date' => $item['action_by']]) }} ({{ trans_choice('in :count day|in :count days', $item['days_left']) }})</td></tr>
 @endforeach
 </table>
 
 <x-mail::button :url="$url">
-Open Procurement Hyperspace
+{{ __('Open :app', ['app' => config('app.name')]) }}
 </x-mail::button>
 </x-mail::message>

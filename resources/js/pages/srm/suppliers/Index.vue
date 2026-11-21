@@ -21,11 +21,14 @@ import type {
     SupplierListItem,
     SupplierStatus,
 } from '@/types/srm';
+import { trans } from '@/lib/i18n';
 
 defineOptions({
-    layout: {
-        breadcrumbs: [{ title: 'Suppliers', href: SupplierController.index() }],
-    },
+    layout: () => ({
+        breadcrumbs: [
+            { title: trans('Suppliers'), href: SupplierController.index() },
+        ],
+    }),
 });
 
 const props = defineProps<{
@@ -99,18 +102,26 @@ watch(
 </script>
 
 <template>
-    <Head title="Suppliers" />
+    <Head :title="$t('Suppliers')" />
 
     <div class="flex flex-1 flex-col gap-6 p-4">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <Heading
-                :title="filters.archived ? 'Archived suppliers' : 'Suppliers'"
-                description="Find suppliers by name, supplier number, business ID or VAT number"
+                :title="
+                    filters.archived
+                        ? $t('Archived suppliers')
+                        : $t('Suppliers')
+                "
+                :description="
+                    $t(
+                        'Find suppliers by name, supplier number, business ID or VAT number',
+                    )
+                "
                 class="mb-0"
             />
             <Button v-if="can.create" as-child>
                 <Link :href="SupplierController.create()">
-                    <Plus /> New supplier
+                    <Plus /> {{ $t('New supplier') }}
                 </Link>
             </Button>
         </div>
@@ -123,17 +134,17 @@ watch(
                 <Input
                     v-model="filters.search"
                     type="search"
-                    placeholder="Search suppliers"
-                    aria-label="Search suppliers"
+                    :placeholder="$t('Search suppliers')"
+                    :aria-label="$t('Search suppliers')"
                     class="pl-9"
                 />
             </div>
             <NativeSelect
                 v-model="filters.status"
-                aria-label="Filter by status"
+                :aria-label="$t('Filter by status')"
                 class="w-44"
             >
-                <option value="">All statuses</option>
+                <option value="">{{ $t('All statuses') }}</option>
                 <option
                     v-for="status in statuses"
                     :key="status.value"
@@ -144,24 +155,24 @@ watch(
             </NativeSelect>
             <NativeSelect
                 v-model="filters.risk"
-                aria-label="Filter by risk"
+                :aria-label="$t('Filter by risk')"
                 class="w-40"
             >
-                <option value="">All risk levels</option>
+                <option value="">{{ $t('All risk levels') }}</option>
                 <option
                     v-for="level in riskLevels"
                     :key="level.value"
                     :value="level.value"
                 >
-                    {{ level.label }} risk
+                    {{ $t(':level risk', { level: level.label }) }}
                 </option>
             </NativeSelect>
             <NativeSelect
                 v-model="filters.category"
-                aria-label="Filter by category"
+                :aria-label="$t('Filter by category')"
                 class="w-52"
             >
-                <option value="">All categories</option>
+                <option value="">{{ $t('All categories') }}</option>
                 <option
                     v-for="category in categories"
                     :key="category.id"
@@ -172,26 +183,26 @@ watch(
             </NativeSelect>
             <Label class="flex items-center gap-2 font-normal">
                 <Checkbox v-model="filters.missingCertificates" />
-                Missing certificates
+                {{ $t('Missing certificates') }}
             </Label>
             <Label class="flex items-center gap-2 font-normal">
                 <Checkbox v-model="filters.certificatesExpiring" />
-                Certificates expiring
+                {{ $t('Certificates expiring') }}
             </Label>
             <Label class="flex items-center gap-2 font-normal">
                 <Checkbox v-model="filters.ratingOverdue" />
-                Rating overdue
+                {{ $t('Rating overdue') }}
             </Label>
             <Label
                 v-if="can.viewContracts"
                 class="flex items-center gap-2 font-normal"
             >
                 <Checkbox v-model="filters.contractsActionSoon" />
-                Contracts needing action
+                {{ $t('Contracts needing action') }}
             </Label>
             <Label class="flex items-center gap-2 font-normal">
                 <Checkbox v-model="filters.archived" />
-                Show archived
+                {{ $t('Show archived') }}
             </Label>
         </div>
 
@@ -199,22 +210,26 @@ watch(
             <table class="w-full text-sm">
                 <thead class="bg-muted/50 text-left text-muted-foreground">
                     <tr>
-                        <th scope="col" class="px-4 py-3 font-medium">Name</th>
                         <th scope="col" class="px-4 py-3 font-medium">
-                            Supplier no.
+                            {{ $t('Name') }}
                         </th>
                         <th scope="col" class="px-4 py-3 font-medium">
-                            Location
+                            {{ $t('Supplier no.') }}
                         </th>
                         <th scope="col" class="px-4 py-3 font-medium">
-                            Categories
+                            {{ $t('Location') }}
                         </th>
                         <th scope="col" class="px-4 py-3 font-medium">
-                            Rating
+                            {{ $t('Categories') }}
                         </th>
-                        <th scope="col" class="px-4 py-3 font-medium">Risk</th>
                         <th scope="col" class="px-4 py-3 font-medium">
-                            Status
+                            {{ $t('Rating') }}
+                        </th>
+                        <th scope="col" class="px-4 py-3 font-medium">
+                            {{ $t('Risk') }}
+                        </th>
+                        <th scope="col" class="px-4 py-3 font-medium">
+                            {{ $t('Status') }}
                         </th>
                     </tr>
                 </thead>
@@ -240,8 +255,14 @@ watch(
                                 class="mt-1 flex items-center gap-1 text-xs font-normal text-red-600 dark:text-red-400"
                             >
                                 <TriangleAlert class="size-3.5 shrink-0" />
-                                Missing:
-                                {{ supplier.missing_certificates.join(', ') }}
+                                {{
+                                    $t('Missing: :certificates', {
+                                        certificates:
+                                            supplier.missing_certificates.join(
+                                                ', ',
+                                            ),
+                                    })
+                                }}
                             </p>
                         </td>
                         <td class="px-4 py-3 text-muted-foreground">
@@ -272,7 +293,7 @@ watch(
                             colspan="7"
                             class="px-4 py-10 text-center text-muted-foreground"
                         >
-                            No suppliers found.
+                            {{ $t('No suppliers found.') }}
                         </td>
                     </tr>
                 </tbody>

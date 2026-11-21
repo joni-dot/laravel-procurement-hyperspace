@@ -31,19 +31,19 @@ final class CompanySlug implements ValidationRule
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
         if (! is_string($value) || preg_match('/^'.Company::SLUG_PATTERN.'$/D', $value) !== 1) {
-            $fail('The :attribute may have only lowercase letters, digits and dashes, must start and end with a letter or digit, and may be at most 40 characters long.');
+            $fail(__('The :attribute may have only lowercase letters, digits and dashes, must start and end with a letter or digit, and may be at most 40 characters long.'));
 
             return;
         }
 
         if (self::isReserved($value)) {
-            $fail('The :attribute ":input" is used by the service itself. Choose another one.');
+            $fail(__('The :attribute ":input" is used by the service itself. Choose another one.'));
 
             return;
         }
 
         if (Company::slugBelongsToAnotherCompany($value, $this->company)) {
-            $fail('The :attribute ":input" belongs, or used to belong, to another company. Choose another one.');
+            $fail(__('The :attribute ":input" belongs, or used to belong, to another company. Choose another one.'));
         }
     }
 

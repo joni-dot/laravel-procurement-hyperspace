@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { TriangleAlert } from '@lucide/vue';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import RiskOverrideController from '@/actions/App/Modules/Srm/Http/Controllers/Suppliers/RiskOverrideController';
 import ConfirmActionDialog from '@/components/ConfirmActionDialog.vue';
 import Heading from '@/components/Heading.vue';
@@ -8,9 +8,14 @@ import RiskLevelBadge from '@/components/srm/risk/RiskLevelBadge.vue';
 import RiskOverrideDialog from '@/components/srm/risk/RiskOverrideDialog.vue';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/format';
-import type { SelectOption, SupplierRiskAssessment } from '@/types/srm';
+import type {
+    RiskLevel,
+    SelectOption,
+    SupplierRiskAssessment,
+} from '@/types/srm';
+import { trans } from '@/lib/i18n';
 
-defineProps<{
+const props = defineProps<{
     supplierId: number;
     risk: SupplierRiskAssessment;
     riskLevels: SelectOption[];
@@ -19,6 +24,28 @@ defineProps<{
 
 const isChanging = ref(false);
 const isClearing = ref(false);
+
+const calculatedLevelNames: Record<RiskLevel, () => string> = {
+    low: () => trans('low'),
+    medium: () => trans('medium'),
+    high: () => trans('high'),
+};
+
+const overriddenBy = computed(() => {
+    const name = props.risk.overridden_by ?? trans('a former user');
+
+    return props.risk.overridden_at
+        ? trans('Set by :name on :date.', {
+              name,
+              date: formatDate(props.risk.overridden_at),
+          })
+        : trans('Set by :name.', { name });
+});
+
+// The sentence stays whole for translators; :level marks where the bold level goes.
+const calculatedLevelSentence = computed(() =>
+    trans('The calculated level is :level.').split(':level'),
+);
 </script>
 
 <template>
@@ -28,7 +55,11 @@ const isClearing = ref(false);
     >
         <div class="flex flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-3">
-                <Heading id="risk-heading" variant="small" title="Risk level" />
+                <Heading
+                    id="risk-heading"
+                    variant="small"
+                    :title="$t('Risk level')"
+                />
                 <RiskLevelBadge :level="risk.level" />
             </div>
             <div v-if="canEdit" class="flex gap-2">
@@ -38,28 +69,31 @@ const isClearing = ref(false);
                     size="sm"
                     @click="isClearing = true"
                 >
-                    Use calculated level
+                    {{ $t('Use calculated level') }}
                 </Button>
                 <Button variant="outline" size="sm" @click="isChanging = true">
-                    Change risk level
+                    {{ $t('Change risk level') }}
                 </Button>
             </div>
         </div>
 
         <div v-if="risk.is_overridden" class="space-y-1 text-sm">
             <p class="text-muted-foreground">
-                Set by {{ risk.overridden_by ?? 'a former user' }}
-                <template v-if="risk.overridden_at">
-                    on {{ formatDate(risk.overridden_at) }}</template
-                >. The calculated level is
-                <span class="font-medium">{{ risk.calculated_level }}</span
-                >.
+                {{ overriddenBy }}
+                {{ calculatedLevelSentence[0]
+                }}<span class="font-medium">{{
+                    calculatedLevelNames[risk.calculated_level]()
+                }}</span
+                >{{ calculatedLevelSentence[1] }}
             </p>
             <p class="whitespace-pre-line">{{ risk.reason }}</p>
         </div>
         <p v-else class="text-sm text-muted-foreground">
-            Calculated from the supplier's status, latest rating and
-            certificates.
+            {{
+                $t(
+                    "Calculated from the supplier's status, latest rating and certificates.",
+                )
+            }}
         </p>
 
         <ul v-if="risk.signals.length > 0" class="space-y-1 text-sm">
@@ -87,9 +121,9 @@ const isClearing = ref(false);
     <ConfirmActionDialog
         v-if="isClearing"
         :action="RiskOverrideController.destroy.form({ supplier: supplierId })"
-        title="Use the calculated level?"
-        description="The manually set level and its reason are removed."
-        confirm-label="Use calculated level"
+        :title="$t('Use the calculated level?')"
+        :description="$t('The manually set level and its reason are removed.')"
+        :confirm-label="$t('Use calculated level')"
         :open="true"
         @update:open="isClearing = false"
     />

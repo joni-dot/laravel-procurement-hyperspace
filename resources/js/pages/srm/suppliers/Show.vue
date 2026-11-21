@@ -27,6 +27,7 @@ import type {
     SelectOption,
     SupplierDetails,
 } from '@/types/srm';
+import { trans } from '@/lib/i18n';
 
 const props = defineProps<{
     supplier: SupplierDetails;
@@ -47,7 +48,7 @@ const props = defineProps<{
 
 setLayoutProps({
     breadcrumbs: [
-        { title: 'Suppliers', href: SupplierController.index() },
+        { title: trans('Suppliers'), href: SupplierController.index() },
         {
             title: props.supplier.name,
             href: SupplierController.show({ supplier: props.supplier.id }),
@@ -59,8 +60,15 @@ const isConfirmingArchive = ref(false);
 
 const contractCount = computed(() =>
     props.supplier.contracts_count === 1
-        ? '1 contract'
-        : `${props.supplier.contracts_count} contracts`,
+        ? trans('1 contract')
+        : trans(':count contracts', { count: props.supplier.contracts_count }),
+);
+
+// The sentence stays whole for translators; :certificates marks where the bold list goes.
+const missingCertificatesSentence = computed(() =>
+    trans('Missing a valid required certificate: :certificates').split(
+        ':certificates',
+    ),
 );
 
 const address = computed(() =>
@@ -104,8 +112,12 @@ function restore(): void {
             v-if="archivedOn"
             class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100"
         >
-            This supplier was archived on {{ archivedOn }}. Restore it to make
-            changes.
+            {{
+                $t(
+                    'This supplier was archived on :date. Restore it to make changes.',
+                    { date: archivedOn },
+                )
+            }}
         </div>
 
         <div
@@ -115,8 +127,9 @@ function restore(): void {
         >
             <TriangleAlert class="size-5 shrink-0" />
             <p>
-                Missing a valid required certificate:
-                <strong>{{ supplier.missing_certificates.join(', ') }}</strong>
+                {{ missingCertificatesSentence[0]
+                }}<strong>{{ supplier.missing_certificates.join(', ') }}</strong
+                >{{ missingCertificatesSentence[1] }}
             </p>
         </div>
 
@@ -126,7 +139,9 @@ function restore(): void {
                     :title="supplier.name"
                     :description="
                         supplier.supplier_number
-                            ? `Supplier number ${supplier.supplier_number}`
+                            ? $t('Supplier number :number', {
+                                  number: supplier.supplier_number,
+                              })
                             : undefined
                     "
                     class="mb-0"
@@ -150,7 +165,7 @@ function restore(): void {
                             SupplierController.edit({ supplier: supplier.id })
                         "
                     >
-                        <Pencil /> Edit
+                        <Pencil /> {{ $t('Edit') }}
                     </Link>
                 </Button>
                 <Button
@@ -158,10 +173,10 @@ function restore(): void {
                     variant="outline"
                     @click="isConfirmingArchive = true"
                 >
-                    <Archive /> Archive
+                    <Archive /> {{ $t('Archive') }}
                 </Button>
                 <Button v-if="can.restore" variant="outline" @click="restore">
-                    <ArchiveRestore /> Restore
+                    <ArchiveRestore /> {{ $t('Restore') }}
                 </Button>
             </div>
         </div>
@@ -170,13 +185,19 @@ function restore(): void {
             class="grid gap-6 rounded-xl border p-6 sm:grid-cols-2 lg:grid-cols-3"
         >
             <DetailItem
-                label="Responsible buyer"
+                :label="$t('Responsible buyer')"
                 :value="supplier.responsible_user"
             />
-            <DetailItem label="Business ID" :value="supplier.business_id" />
-            <DetailItem label="VAT number" :value="supplier.vat_number" />
-            <DetailItem label="Address" :value="address" />
-            <DetailItem label="Website">
+            <DetailItem
+                :label="$t('Business ID')"
+                :value="supplier.business_id"
+            />
+            <DetailItem
+                :label="$t('VAT number')"
+                :value="supplier.vat_number"
+            />
+            <DetailItem :label="$t('Address')" :value="address" />
+            <DetailItem :label="$t('Website')">
                 <a
                     v-if="supplier.website"
                     :href="supplier.website"
@@ -188,7 +209,7 @@ function restore(): void {
                 </a>
                 <template v-else>—</template>
             </DetailItem>
-            <DetailItem label="Email">
+            <DetailItem :label="$t('Email')">
                 <a
                     v-if="supplier.email"
                     :href="`mailto:${supplier.email}`"
@@ -198,7 +219,7 @@ function restore(): void {
                 </a>
                 <template v-else>—</template>
             </DetailItem>
-            <DetailItem label="Phone">
+            <DetailItem :label="$t('Phone')">
                 <a
                     v-if="supplier.phone"
                     :href="`tel:${supplier.phone}`"
@@ -208,12 +229,15 @@ function restore(): void {
                 </a>
                 <template v-else>—</template>
             </DetailItem>
-            <DetailItem label="Payment terms" :value="supplier.payment_terms" />
-            <DetailItem label="Currency" :value="supplier.currency" />
-            <DetailItem label="Delivery term" :value="deliveryTerm" />
+            <DetailItem
+                :label="$t('Payment terms')"
+                :value="supplier.payment_terms"
+            />
+            <DetailItem :label="$t('Currency')" :value="supplier.currency" />
+            <DetailItem :label="$t('Delivery term')" :value="deliveryTerm" />
             <DetailItem
                 v-if="supplier.notes"
-                label="Notes"
+                :label="$t('Notes')"
                 class="sm:col-span-2 lg:col-span-3"
             >
                 <p class="whitespace-pre-line">{{ supplier.notes }}</p>
@@ -257,14 +281,19 @@ function restore(): void {
             :can-edit="can.update"
         />
         <section v-else class="space-y-2">
-            <Heading variant="small" title="Contracts" />
+            <Heading variant="small" :title="$t('Contracts')" />
             <p class="text-sm text-muted-foreground">
-                {{ contractCount }}. Only buyers and admins can see the details.
+                {{
+                    $t(
+                        ':contracts. Only buyers and admins can see the details.',
+                        { contracts: contractCount },
+                    )
+                }}
             </p>
         </section>
 
         <DocumentList
-            title="Documents"
+            :title="$t('Documents')"
             :supplier-id="supplier.id"
             :documents="supplier.documents"
             :upload-action="
@@ -289,8 +318,12 @@ function restore(): void {
     <ConfirmActionDialog
         v-model:open="isConfirmingArchive"
         :action="ArchiveSupplierController.form({ supplier: supplier.id })"
-        :title="`Archive ${supplier.name}?`"
-        description="It will be hidden from the supplier list, but nothing is deleted. You can restore it at any time."
-        confirm-label="Archive"
+        :title="$t('Archive :name?', { name: supplier.name })"
+        :description="
+            $t(
+                'It will be hidden from the supplier list, but nothing is deleted. You can restore it at any time.',
+            )
+        "
+        :confirm-label="$t('Archive')"
     />
 </template>

@@ -73,7 +73,7 @@ class SupplierController extends Controller
             'name' => $supplier->name,
             'supplier_number' => $supplier->supplier_number,
             'status' => $supplier->status,
-            'country' => Countries::getName($supplier->country_code),
+            'country' => Countries::getName($supplier->country_code, app()->getLocale()),
             'city' => $supplier->city,
             'categories' => $supplier->categories->pluck('name'),
             'missing_certificates' => $risks[$supplier->id]['missing_certificates'],
@@ -177,7 +177,7 @@ class SupplierController extends Controller
                 ->activeBuyersAndAdmins()
                 ->orderBy('name')
                 ->get(['id', 'name']),
-            'countries' => collect(Countries::getNames())
+            'countries' => collect(Countries::getNames(app()->getLocale()))
                 ->map(fn (string $name, string $code) => ['value' => $code, 'label' => $name])
                 ->values(),
             'currencies' => Currency::options(),

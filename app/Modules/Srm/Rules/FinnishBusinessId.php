@@ -15,13 +15,13 @@ class FinnishBusinessId implements ValidationRule
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
         if (! is_string($value) || ! preg_match('/^(\d{7})-(\d)$/', $value, $parts)) {
-            $fail('The :attribute must look like 1234567-8.');
+            $fail(__('The :attribute must look like 1234567-8.'));
 
             return;
         }
 
         if ($this->checkDigit($parts[1]) !== (int) $parts[2]) {
-            $fail('The :attribute is not a valid Finnish business ID.');
+            $fail(__('The :attribute is not a valid Finnish business ID.'));
         }
     }
 

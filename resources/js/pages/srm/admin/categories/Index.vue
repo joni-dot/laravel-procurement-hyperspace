@@ -8,15 +8,16 @@ import ConfirmActionDialog from '@/components/ConfirmActionDialog.vue';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import type { Category } from '@/types/srm';
+import { trans } from '@/lib/i18n';
 
 type CategoryWithCount = Category & { suppliers_count: number };
 
 defineOptions({
-    layout: {
+    layout: () => ({
         breadcrumbs: [
-            { title: 'Categories', href: CategoryController.index() },
+            { title: trans('Categories'), href: CategoryController.index() },
         ],
-    },
+    }),
 });
 
 defineProps<{
@@ -29,26 +30,32 @@ const categoryBeingDeleted = ref<CategoryWithCount | null>(null);
 
 function supplierCount(category: CategoryWithCount): string {
     return category.suppliers_count === 1
-        ? '1 supplier'
-        : `${category.suppliers_count} suppliers`;
+        ? trans('1 supplier')
+        : trans(':count suppliers', { count: category.suppliers_count });
 }
 </script>
 
 <template>
-    <Head title="Categories" />
+    <Head :title="$t('Categories')" />
 
     <div class="flex max-w-3xl flex-1 flex-col gap-6 p-4">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <Heading
-                title="Categories"
-                description="The list buyers choose from when describing what a supplier provides"
+                :title="$t('Categories')"
+                :description="
+                    $t(
+                        'The list buyers choose from when describing what a supplier provides',
+                    )
+                "
                 class="mb-0"
             />
-            <Button @click="isAdding = true"><Plus /> Add category</Button>
+            <Button @click="isAdding = true">
+                <Plus /> {{ $t('Add category') }}
+            </Button>
         </div>
 
         <p v-if="categories.length === 0" class="text-sm text-muted-foreground">
-            No categories yet.
+            {{ $t('No categories yet.') }}
         </p>
 
         <ul v-else class="divide-y rounded-xl border">
@@ -67,7 +74,9 @@ function supplierCount(category: CategoryWithCount): string {
                     <Button
                         variant="ghost"
                         size="icon-sm"
-                        :aria-label="`Rename ${category.name}`"
+                        :aria-label="
+                            $t('Rename :name', { name: category.name })
+                        "
                         @click="categoryBeingRenamed = category"
                     >
                         <Pencil />
@@ -75,7 +84,9 @@ function supplierCount(category: CategoryWithCount): string {
                     <Button
                         variant="ghost"
                         size="icon-sm"
-                        :aria-label="`Delete ${category.name}`"
+                        :aria-label="
+                            $t('Delete :name', { name: category.name })
+                        "
                         @click="categoryBeingDeleted = category"
                     >
                         <Trash2 />
@@ -105,9 +116,14 @@ function supplierCount(category: CategoryWithCount): string {
                 category: categoryBeingDeleted.id,
             })
         "
-        :title="`Delete ${categoryBeingDeleted.name}?`"
-        :description="`It is removed from ${supplierCount(categoryBeingDeleted)}. The suppliers themselves are kept.`"
-        confirm-label="Delete"
+        :title="$t('Delete :name?', { name: categoryBeingDeleted.name })"
+        :description="
+            $t(
+                'It is removed from :suppliers. The suppliers themselves are kept.',
+                { suppliers: supplierCount(categoryBeingDeleted) },
+            )
+        "
+        :confirm-label="$t('Delete')"
         :open="true"
         @update:open="categoryBeingDeleted = null"
     />

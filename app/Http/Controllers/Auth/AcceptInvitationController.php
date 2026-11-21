@@ -94,7 +94,7 @@ class AcceptInvitationController extends Controller
         Auth::login($membership->user);
         $request->session()->regenerate();
 
-        return to_route('dashboard', ['company' => $membership->company->slug]);
+        return to_route('company.home', ['company' => $membership->company->slug]);
     }
 
     /**

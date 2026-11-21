@@ -11,9 +11,9 @@ enum ContractValuePeriod: string
     public function label(): string
     {
         return match ($this) {
-            self::Total => 'in total',
-            self::Yearly => 'per year',
-            self::Monthly => 'per month',
+            self::Total => __('in total'),
+            self::Yearly => __('per year'),
+            self::Monthly => __('per month'),
         };
     }
 

@@ -26,10 +26,12 @@ const ratingBeingDeleted = ref<SupplierRating | null>(null);
         <div class="flex items-center justify-between gap-4">
             <Heading
                 variant="small"
-                title="Ratings"
+                :title="$t('Ratings')"
                 :description="
                     latestScore
-                        ? `Latest overall score: ${latestScore} out of 5`
+                        ? $t('Latest overall score: :score out of 5', {
+                              score: latestScore,
+                          })
                         : undefined
                 "
             />
@@ -39,12 +41,12 @@ const ratingBeingDeleted = ref<SupplierRating | null>(null);
                 size="sm"
                 @click="isAdding = true"
             >
-                <Plus /> Add rating
+                <Plus /> {{ $t('Add rating') }}
             </Button>
         </div>
 
         <p v-if="ratings.length === 0" class="text-sm text-muted-foreground">
-            No ratings yet.
+            {{ $t('No ratings yet.') }}
         </p>
 
         <ul v-else class="divide-y rounded-xl border">
@@ -55,9 +57,11 @@ const ratingBeingDeleted = ref<SupplierRating | null>(null);
             >
                 <div class="space-y-1">
                     <p>
-                        <span class="font-medium"
-                            >{{ rating.overall_score }} out of 5</span
-                        >
+                        <span class="font-medium">{{
+                            $t(':score out of 5', {
+                                score: rating.overall_score,
+                            })
+                        }}</span>
                         <span class="text-muted-foreground">
                             · {{ formatDate(rating.rated_on) }}
                             <template v-if="rating.rated_by">
@@ -83,7 +87,11 @@ const ratingBeingDeleted = ref<SupplierRating | null>(null);
                     v-if="canEdit"
                     variant="ghost"
                     size="icon-sm"
-                    :aria-label="`Delete rating from ${formatDate(rating.rated_on)}`"
+                    :aria-label="
+                        $t('Delete rating from :date', {
+                            date: formatDate(rating.rated_on),
+                        })
+                    "
                     @click="ratingBeingDeleted = rating"
                 >
                     <Trash2 />
@@ -108,9 +116,13 @@ const ratingBeingDeleted = ref<SupplierRating | null>(null);
                 rating: ratingBeingDeleted.id,
             })
         "
-        title="Delete this rating?"
-        description="It is removed permanently, and the supplier's latest score and risk level are updated."
-        confirm-label="Delete"
+        :title="$t('Delete this rating?')"
+        :description="
+            $t(
+                'It is removed permanently, and the supplier\'s latest score and risk level are updated.',
+            )
+        "
+        :confirm-label="$t('Delete')"
         :open="true"
         @update:open="ratingBeingDeleted = null"
     />

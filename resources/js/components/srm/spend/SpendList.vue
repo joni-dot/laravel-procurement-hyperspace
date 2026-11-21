@@ -24,19 +24,19 @@ const spendBeingDeleted = ref<SupplierSpend | null>(null);
 <template>
     <section class="space-y-4">
         <div class="flex items-center justify-between gap-4">
-            <Heading variant="small" title="Spend" />
+            <Heading variant="small" :title="$t('Spend')" />
             <Button
                 v-if="canEdit"
                 variant="outline"
                 size="sm"
                 @click="isAdding = true"
             >
-                <Plus /> Add spend
+                <Plus /> {{ $t('Add spend') }}
             </Button>
         </div>
 
         <p v-if="spends.length === 0" class="text-sm text-muted-foreground">
-            No spend recorded yet.
+            {{ $t('No spend recorded yet.') }}
         </p>
 
         <ul v-else class="divide-y rounded-xl border">
@@ -55,7 +55,9 @@ const spendBeingDeleted = ref<SupplierSpend | null>(null);
                     <Button
                         variant="ghost"
                         size="icon-sm"
-                        :aria-label="`Edit spend for ${spend.year}`"
+                        :aria-label="
+                            $t('Edit spend for :year', { year: spend.year })
+                        "
                         @click="spendBeingEdited = spend"
                     >
                         <Pencil />
@@ -63,7 +65,9 @@ const spendBeingDeleted = ref<SupplierSpend | null>(null);
                     <Button
                         variant="ghost"
                         size="icon-sm"
-                        :aria-label="`Delete spend for ${spend.year}`"
+                        :aria-label="
+                            $t('Delete spend for :year', { year: spend.year })
+                        "
                         @click="spendBeingDeleted = spend"
                     >
                         <Trash2 />
@@ -98,9 +102,9 @@ const spendBeingDeleted = ref<SupplierSpend | null>(null);
                 spend: spendBeingDeleted.id,
             })
         "
-        :title="`Delete spend for ${spendBeingDeleted.year}?`"
-        description="The amount is removed permanently."
-        confirm-label="Delete"
+        :title="$t('Delete spend for :year?', { year: spendBeingDeleted.year })"
+        :description="$t('The amount is removed permanently.')"
+        :confirm-label="$t('Delete')"
         :open="true"
         @update:open="spendBeingDeleted = null"
     />

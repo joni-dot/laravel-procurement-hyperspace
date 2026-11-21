@@ -60,7 +60,7 @@ class CertificatesExpiring extends Notification implements ShouldQueue
         $count = count($this->items);
 
         return (new MailMessage)
-            ->subject($this->companyName.': '.trans_choice(':count certificate is expiring soon|:count certificates are expiring soon', $count))
+            ->subject(trans_choice(':company: :count certificate is expiring soon|:company: :count certificates are expiring soon', $count, ['company' => $this->companyName]))
             ->markdown('mail.srm.certificates-expiring', [
                 'intro' => trans_choice('This certificate needs to be renewed soon:|These certificates need to be renewed soon:', $count),
                 'items' => $this->items,

@@ -12,10 +12,10 @@ enum SupplierStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::Prospect => 'Prospect',
-            self::Active => 'Active',
-            self::Inactive => 'Inactive',
-            self::Blocked => 'Blocked',
+            self::Prospect => __('Prospect'),
+            self::Active => __('Active'),
+            self::Inactive => __('Inactive'),
+            self::Blocked => __('Blocked'),
         };
     }
 

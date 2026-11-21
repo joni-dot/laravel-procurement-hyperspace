@@ -5,13 +5,10 @@ import { Input } from '@/components/ui/input';
 
 const MAX_REMINDERS = 5;
 
-withDefaults(
-    defineProps<{
-        disabled?: boolean;
-        unitLabel?: string;
-    }>(),
-    { unitLabel: 'days before expiry' },
-);
+defineProps<{
+    disabled?: boolean;
+    unitLabel?: string;
+}>();
 
 const days = defineModel<number[]>({ required: true });
 
@@ -40,15 +37,23 @@ function removeReminder(index: number): void {
                 required
                 class="w-24"
                 :disabled="disabled"
-                :aria-label="`Reminder ${index + 1}, days before expiry`"
+                :aria-label="
+                    $t('Reminder :number, days before expiry', {
+                        number: index + 1,
+                    })
+                "
             />
-            <span class="text-sm text-muted-foreground">{{ unitLabel }}</span>
+            <span class="text-sm text-muted-foreground">{{
+                unitLabel ?? $t('days before expiry')
+            }}</span>
             <Button
                 type="button"
                 variant="ghost"
                 size="icon-sm"
                 :disabled="disabled"
-                :aria-label="`Remove reminder ${index + 1}`"
+                :aria-label="
+                    $t('Remove reminder :number', { number: index + 1 })
+                "
                 @click="removeReminder(index)"
             >
                 <X />
@@ -62,7 +67,7 @@ function removeReminder(index: number): void {
             :disabled="disabled"
             @click="addReminder"
         >
-            <Plus /> Add reminder
+            <Plus /> {{ $t('Add reminder') }}
         </Button>
     </div>
 </template>

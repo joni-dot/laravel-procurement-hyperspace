@@ -5,6 +5,7 @@ import SupplierController from '@/actions/App/Modules/Srm/Http/Controllers/Suppl
 import ContractForm from '@/components/srm/contracts/ContractForm.vue';
 import Heading from '@/components/Heading.vue';
 import type { ContractFormOptions } from '@/types/srm';
+import { trans } from '@/lib/i18n';
 
 const props = defineProps<
     ContractFormOptions & {
@@ -14,13 +15,13 @@ const props = defineProps<
 
 setLayoutProps({
     breadcrumbs: [
-        { title: 'Suppliers', href: SupplierController.index() },
+        { title: trans('Suppliers'), href: SupplierController.index() },
         {
             title: props.supplier.name,
             href: SupplierController.show({ supplier: props.supplier.id }),
         },
         {
-            title: 'New contract',
+            title: trans('New contract'),
             href: ContractController.create({ supplier: props.supplier.id }),
         },
     ],
@@ -28,16 +29,16 @@ setLayoutProps({
 </script>
 
 <template>
-    <Head title="New contract" />
+    <Head :title="$t('New contract')" />
 
     <div class="p-4">
-        <Heading title="New contract" :description="supplier.name" />
+        <Heading :title="$t('New contract')" :description="supplier.name" />
         <ContractForm
             :action="ContractController.store.form({ supplier: supplier.id })"
             :cancel-href="
                 SupplierController.show.url({ supplier: supplier.id })
             "
-            submit-label="Create contract"
+            :submit-label="$t('Create contract')"
             :options="props"
         />
     </div>

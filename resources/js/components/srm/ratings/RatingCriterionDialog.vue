@@ -39,13 +39,17 @@ const action = props.criterion
             >
                 <DialogHeader>
                     <DialogTitle>
-                        {{ criterion ? 'Rename criterion' : 'Add criterion' }}
+                        {{
+                            criterion
+                                ? $t('Rename criterion')
+                                : $t('Add criterion')
+                        }}
                     </DialogTitle>
                 </DialogHeader>
 
                 <FormField
                     id="criterion-name"
-                    label="Name"
+                    :label="$t('Name')"
                     :error="errors.name"
                 >
                     <Input
@@ -60,13 +64,13 @@ const action = props.criterion
 
                 <DialogFooter class="gap-2">
                     <DialogClose as-child>
-                        <Button type="button" variant="secondary"
-                            >Cancel</Button
-                        >
+                        <Button type="button" variant="secondary">
+                            {{ $t('Cancel') }}
+                        </Button>
                     </DialogClose>
                     <Button type="submit" :disabled="processing">
                         <Spinner v-if="processing" />
-                        Save
+                        {{ $t('Save') }}
                     </Button>
                 </DialogFooter>
             </Form>

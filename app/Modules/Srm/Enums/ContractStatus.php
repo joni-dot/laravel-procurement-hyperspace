@@ -14,9 +14,9 @@ enum ContractStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::Draft => 'Draft',
-            self::Active => 'Active',
-            self::Terminated => 'Terminated',
+            self::Draft => __('Draft'),
+            self::Active => __('Active'),
+            self::Terminated => __('Terminated'),
         };
     }
 
