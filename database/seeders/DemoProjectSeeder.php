@@ -12,6 +12,9 @@ use App\Modules\Ppr\Models\Project;
 use App\Modules\Ppr\Models\ProjectCategory;
 use App\Modules\Ppr\Models\ProjectMilestone;
 use App\Modules\Ppr\Scheduling\Days;
+use App\Modules\Sourcing\Enums\QuoteStatus;
+use App\Modules\Srm\Enums\SupplierStatus;
+use App\Modules\Srm\Models\Supplier;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +23,8 @@ use RuntimeException;
 /**
  * A large made-up project in the Demo Company for trying out lists and filters with realistic amounts of data:
  * about 3,000 packages, up to three levels deep, most with milestone dates. Its people join the company as
- * viewers, since their project roles decide what they may do. Admins see it without being members.
+ * viewers, since their project roles decide what they may do. Admins see it without being members. Most
+ * top-level packages have suppliers asked for a quote, many with one chosen.
  *
  * Run with: sail artisan db:seed --class=DemoProjectSeeder
  */
@@ -81,6 +85,47 @@ class DemoProjectSeeder extends Seeder
         }
 
         $this->addMilestoneDates($project);
+        $this->addSuppliers($project);
+    }
+
+    /**
+     * Asks one to three of the company's suppliers for a quote on most top-level packages and chooses one for
+     * many, so the package risk includes suppliers too (blocked and high-risk ones make packages amber).
+     * Inserted in bulk; runs after DemoCompany's suppliers exist and does nothing without them.
+     */
+    private function addSuppliers(Project $project): void
+    {
+        $supplierIds = Supplier::query()->whereNull('archived_at')->where('status', '!=', SupplierStatus::Blocked)->pluck('id')->all();
+
+        if ($supplierIds === []) {
+            return;
+        }
+
+        $now = now();
+        $rows = [];
+
+        foreach (DB::table('packages')->where('project_id', $project->id)->whereNull('parent_id')->pluck('id') as $packageId) {
+            if (random_int(1, 100) > 60) {
+                continue;
+            }
+
+            $asked = (array) array_rand(array_flip($supplierIds), random_int(1, 3));
+            $chosen = random_int(1, 100) <= 70 ? $asked[0] : null;
+
+            foreach ($asked as $supplierId) {
+                $status = match (true) {
+                    $supplierId === $chosen => QuoteStatus::Chosen,
+                    $chosen !== null => QuoteStatus::OfferReceived,
+                    default => fake()->randomElement([QuoteStatus::Asked, QuoteStatus::OfferReceived, QuoteStatus::Declined]),
+                };
+                $rows[] = ['package_id' => $packageId, 'supplier_id' => $supplierId, 'status' => $status->value, 'created_at' => $now, 'updated_at' => $now];
+            }
+        }
+
+        // Plain inserts: the database fills in the open company.
+        foreach (array_chunk($rows, 1000) as $chunk) {
+            DB::table('package_suppliers')->insert($chunk);
+        }
     }
 
     /**

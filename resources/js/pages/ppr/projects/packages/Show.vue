@@ -6,6 +6,7 @@ import PackageController from '@/actions/App/Modules/Ppr/Http/Controllers/Projec
 import PackageRiskFlagController from '@/actions/App/Modules/Ppr/Http/Controllers/Projects/PackageRiskFlagController';
 import PackageScheduleController from '@/actions/App/Modules/Ppr/Http/Controllers/Projects/PackageScheduleController';
 import FormField from '@/components/FormField.vue';
+import PageSections from '@/components/PageSections.vue';
 import Heading from '@/components/Heading.vue';
 import PackageRiskBadge from '@/components/ppr/packages/PackageRiskBadge.vue';
 import PackageStatusBadge from '@/components/ppr/packages/PackageStatusBadge.vue';
@@ -30,6 +31,7 @@ import type {
     ProjectHeader,
     SubPackageRow,
 } from '@/types/ppr';
+import type { PageSection } from '@/types/sections';
 
 defineOptions({
     layout: (props: { project: ProjectHeader; package: PackageDetails }) => {
@@ -62,6 +64,7 @@ const props = defineProps<{
     subPackages: SubPackageRow[];
     categories: ProjectCategory[];
     can: { update: boolean; create: boolean };
+    sections: PageSection[];
 }>();
 
 const flagForm = useForm({ reason: props.risk.flag?.reason ?? '' });
@@ -491,6 +494,8 @@ function floatOrDash(days: number | null): string {
                 </table>
             </div>
         </section>
+
+        <PageSections :sections="sections" />
 
         <section class="space-y-4">
             <Heading variant="small" :title="$t('Sub-packages')" class="mb-0" />

@@ -6,11 +6,11 @@ use App\Companies\CurrentCompany;
 use App\Enums\Role;
 use App\Models\Company;
 use App\Models\Membership;
+use App\Models\Notification;
 use App\Models\User;
 use App\Modules\Ppr\Enums\PackageStatus;
 use App\Modules\Ppr\Enums\ProjectRole;
 use App\Modules\Ppr\Jobs\CheckProjectRisks;
-use App\Modules\Ppr\Models\Notification;
 use App\Modules\Ppr\Models\Package;
 use App\Modules\Ppr\Models\PackageMilestone;
 use App\Modules\Ppr\Models\Project;
@@ -190,7 +190,7 @@ class RiskCompanyTest extends TestCase
 
         // An account setting: changed once, outside every company, it counts in both.
         app(CurrentCompany::class)->clear();
-        $this->actingAs($person)->put(route('notification-settings.update'), ['notification_days' => 6])->assertSessionHasNoErrors();
+        $this->actingAs($person)->put(route('notification-days.update'), ['notification_days' => 6])->assertSessionHasNoErrors();
         $this->enterCompany($this->company);
         $this->artisan('packages:check-risks')->assertSuccessful();
 

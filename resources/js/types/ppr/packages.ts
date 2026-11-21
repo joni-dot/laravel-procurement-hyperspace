@@ -49,7 +49,7 @@ export type PackageRow = {
 
 export type RiskLevel = 'none' | 'amber' | 'red';
 
-// In the order pages list them, most serious kind first. See app/Risk/RiskReason.php.
+// In the order pages list them, most serious kind first. See app/Modules/Ppr/Risk/RiskReason.php.
 export type RiskReason =
     | 'manual_flag'
     | 'overdue'
@@ -58,7 +58,8 @@ export type RiskReason =
     | 'no_owner'
     | 'owner_deactivated'
     | 'no_buyer'
-    | 'buyer_deactivated';
+    | 'buyer_deactivated'
+    | 'supplier_at_risk';
 
 /**
  * The risk column of the package list. The server works it out; details come only where a reason needs them.

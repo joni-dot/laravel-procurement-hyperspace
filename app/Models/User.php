@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Companies\CurrentCompany;
+use App\Enums\NotificationEmail;
 use App\Enums\Role;
 use App\Notifications\ResetPasswordLink;
 use Carbon\CarbonImmutable;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Query\JoinClause;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -36,6 +38,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property Carbon|null $two_factor_confirmed_at
  * @property string|null $remember_token
  * @property CarbonImmutable|null $deactivated_at
+ * @property NotificationEmail $notification_email whether their notifications also come by email
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -55,6 +58,15 @@ class User extends Authenticatable implements PasskeyUser
     private array $membershipsByCompany = [];
 
     /**
+     * The database's defaults, so a new person's model has them before it is read back.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'notification_email' => 'daily',
+    ];
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -67,6 +79,7 @@ class User extends Authenticatable implements PasskeyUser
             'two_factor_confirmed_at' => 'datetime',
             'is_platform_admin' => 'boolean',
             'deactivated_at' => 'datetime',
+            'notification_email' => NotificationEmail::class,
         ];
     }
 
@@ -215,6 +228,17 @@ class User extends Authenticatable implements PasskeyUser
     public function isDeactivated(): bool
     {
         return $this->deactivated_at !== null;
+    }
+
+    /**
+     * The person's in-app notifications, in the current company. Read them through Notification::visibleTo()
+     * to leave out those they may no longer see.
+     *
+     * @return MorphMany<Notification, $this>
+     */
+    public function notifications(): MorphMany
+    {
+        return $this->morphMany(Notification::class, 'notifiable')->latest();
     }
 
     /**

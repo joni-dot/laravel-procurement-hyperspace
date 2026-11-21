@@ -14,19 +14,24 @@ import { toUrl } from '@/lib/utils';
 import type { NavItem } from '@/types';
 
 const props = defineProps<{
-    label: string;
+    // Optional, for a group of one that needs no heading.
+    label?: string;
     items: NavItem[];
 }>();
 
-const { isCurrentOrParentUrl, isOpeningSlowly } = useCurrentUrl();
+const { isCurrentUrl, isCurrentOrParentUrl, isOpeningSlowly } = useCurrentUrl();
 
 // A page below an item keeps that item highlighted, but only the closest one: the project dashboard
 // lives below the projects list's address, and must not light up both.
 const activeUrl = computed(
     () =>
         props.items
+            .filter((item) =>
+                item.exact
+                    ? isCurrentUrl(item.href)
+                    : isCurrentOrParentUrl(item.href),
+            )
             .map((item) => toUrl(item.href))
-            .filter((url) => isCurrentOrParentUrl(url))
             .sort((a, b) => b.length - a.length)[0] ?? null,
 );
 
@@ -37,7 +42,7 @@ function isActive(item: NavItem): boolean {
 
 <template>
     <SidebarGroup class="px-2 py-0">
-        <SidebarGroupLabel>{{ label }}</SidebarGroupLabel>
+        <SidebarGroupLabel v-if="label">{{ label }}</SidebarGroupLabel>
         <SidebarMenu>
             <SidebarMenuItem v-for="item in items" :key="toUrl(item.href)">
                 <SidebarMenuButton

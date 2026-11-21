@@ -4,6 +4,7 @@ namespace App\Modules\Ppr\Notifications;
 
 use App\Modules\Ppr\Models\Project;
 use App\Modules\Ppr\Risk\RiskLevel;
+use App\Notifications\NotificationMessage;
 
 /**
  * "Risk level changed for 14 packages in Harbour crane: 5 now red, 6 now amber, 3 no longer at risk."
@@ -46,5 +47,18 @@ class RiskChangesSummary extends ProjectNotification
             'amber' => $this->amber,
             'none' => $this->none,
         ];
+    }
+
+    public static function message(array $data, string $projectName): NotificationMessage
+    {
+        $params = $data['params'];
+
+        return NotificationMessage::make(__(':count packages in :project changed risk level: :red now red, :amber now amber, :none no longer at risk.'), [
+            'project' => $projectName,
+            'count' => (int) $params['changed'],
+            'red' => (int) $params['red'],
+            'amber' => (int) $params['amber'],
+            'none' => (int) $params['none'],
+        ]);
     }
 }

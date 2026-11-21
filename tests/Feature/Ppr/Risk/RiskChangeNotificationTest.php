@@ -2,12 +2,12 @@
 
 namespace Tests\Feature\Ppr\Risk;
 
+use App\Models\Notification;
 use App\Models\User;
 use App\Modules\Ppr\Actions\Packages\CreatePackage;
 use App\Modules\Ppr\Actions\Risk\NotifyRiskChanges;
 use App\Modules\Ppr\Enums\ProjectRole;
 use App\Modules\Ppr\Jobs\CheckProjectRisks;
-use App\Modules\Ppr\Models\Notification;
 use App\Modules\Ppr\Models\Package;
 use App\Modules\Ppr\Models\PackageMilestone;
 use App\Modules\Ppr\Models\Project;

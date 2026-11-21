@@ -12,7 +12,8 @@ use App\Modules\Ppr\Scheduling\ScheduledMilestone;
  * - Red: flagged by hand; a milestone that hasn't happened was due (forecast, else planned) before today; or the float
  *   (counting sub-packages) is below the project's red warning.
  * - Amber: the float is below the amber warning; the need date isn't planned, so the float can't be
- *   judged; or the package has no owner or buyer, or theirs is deactivated.
+ *   judged; the package has no owner or buyer, or theirs is deactivated; or another module found a reason,
+ *   such as the chosen supplier being high risk (OutsideRiskReasons).
  * - The level is the worst of the reasons. Only the float counts sub-packages; the other reasons
  *   are about the package itself.
  */
@@ -48,6 +49,7 @@ final readonly class PackageRisk
             [RiskReason::OwnerDeactivated, $facts->owner === AssignedPerson::Deactivated ? RiskLevel::Amber : null],
             [RiskReason::NoBuyer, $facts->buyer === AssignedPerson::Nobody ? RiskLevel::Amber : null],
             [RiskReason::BuyerDeactivated, $facts->buyer === AssignedPerson::Deactivated ? RiskLevel::Amber : null],
+            ...array_map(fn (RiskReason $reason) => [$reason, RiskLevel::Amber], $facts->outsideReasons),
         ], fn (array $reasonAndLevel) => $reasonAndLevel[1] !== null);
 
         return new self(self::worst(array_column($found, 1)), array_column($found, 0), $overdue);

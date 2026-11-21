@@ -2,33 +2,36 @@
 
 namespace App\Modules\Ppr;
 
-use App\Companies\CompanyHomePages;
-use App\Companies\NavigationCompany;
 use App\Events\MembershipDeactivated;
 use App\Events\MembershipReactivated;
 use App\Models\Company;
 use App\Models\User;
 use App\Modules\Ppr\Access\ProjectRoles;
 use App\Modules\Ppr\Console\Commands\CheckPackageRisks;
+use App\Modules\Ppr\Dashboard\HomeSections;
+use App\Modules\Ppr\Http\Requests\Settings\NotificationDaysUpdateRequest;
 use App\Modules\Ppr\Jobs\CheckProjectRisks;
-use App\Modules\Ppr\Models\Notification;
-use App\Modules\Ppr\Models\ProjectMember;
+use App\Modules\Ppr\Notifications\ProjectNotificationKinds;
+use App\Modules\Ppr\Risk\OutsideRiskReasons;
+use App\Notifications\NotificationKinds;
+use App\Pages\PageSections;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Http\Events\RequestHandled;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
-use Inertia\Inertia;
 
 /**
  * Plugs the project procurement register module into the app: its routes, tables, commands,
- * timed jobs, shared page data and the company's home page.
+ * timed jobs, shared page data and its sections on the company's home page.
  */
 class PprServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
         $this->app->scoped(ProjectRoles::class);
+        // Other modules add their checks while booting.
+        $this->app->singleton(OutsideRiskReasons::class);
     }
 
     /**
@@ -46,18 +49,28 @@ class PprServiceProvider extends ServiceProvider
     {
         $this->loadMigrationsFrom(__DIR__.'/Database/Migrations');
         $this->forgetProjectRolesAfterEachRequest();
-        $this->offerHomePage();
+        $this->addHomeSections();
         $this->checkRisksWhenMembershipsChange();
-        $this->shareUnreadNotificationCount();
+        $this->plugInNotifications();
         $this->registerRoutes();
         $this->registerCommands();
     }
 
-    /** Admins and project members open the company on the project dashboard. */
-    private function offerHomePage(): void
+    /** The start of the person's project dashboard, for project members and admins. */
+    private function addHomeSections(): void
     {
-        $this->app->make(CompanyHomePages::class)->offer(10, fn (User $user): ?string => $user->isAdmin()
-            || ProjectMember::query()->where('user_id', $user->id)->exists() ? 'projects.dashboard' : null);
+        $sections = $this->app->make(PageSections::class);
+        $home = fn (): HomeSections => $this->app->make(HomeSections::class);
+
+        // Deferred: they read every package of the person's projects, so the page opens first.
+        $sections->add('home', 'ppr_next_actions', 10, 'ppr/NextActions',
+            fn (User $user): bool => $home()->showsNextActions($user),
+            fn (User $user): array => $home()->nextActions($user),
+            deferred: true);
+        $sections->add('home', 'ppr_projects', 20, 'ppr/MyProjects',
+            fn (User $user): bool => $home()->showsProjects($user),
+            fn (User $user): array => $home()->projects($user),
+            deferred: true);
     }
 
     /** A package whose owner or buyer left the company is at risk, and becomes safe again when they return. */
@@ -72,36 +85,19 @@ class PprServiceProvider extends ServiceProvider
         });
     }
 
-    /** For the bell on every page. Counted in the navigation company, so account pages show it too. */
-    private function shareUnreadNotificationCount(): void
+    /** Project notifications in Core's bell and summary, and the reminder period on Settings → Notifications. */
+    private function plugInNotifications(): void
     {
-        // A closure, so partial reloads that don't ask for it skip the query.
-        Inertia::share('ppr', fn (): array => [
-            'unreadNotificationCount' => $this->unreadNotificationCount(),
-        ]);
-    }
+        $this->callAfterResolving(NotificationKinds::class, function (NotificationKinds $kinds): void {
+            $kinds->register(new ProjectNotificationKinds);
+        });
 
-    private function unreadNotificationCount(): int
-    {
-        $request = request();
-        $user = $request->user();
-
-        // Platform pages never read company data, not even a person's own notifications.
-        if (! $user instanceof User || $request->routeIs('platform.*')) {
-            return 0;
-        }
-
-        $navigationCompany = $this->app->make(NavigationCompany::class);
-
-        // Outside every company (a platform admin, someone not yet in one) there is nothing to count.
-        if ($navigationCompany->for($user) === null) {
-            return 0;
-        }
-
-        return $navigationCompany->runFor($user, fn (): int => Notification::query()
-            ->visibleTo($user)
-            ->whereNull('read_at')
-            ->count());
+        $this->app->make(PageSections::class)->add('settings.notifications', 'ppr_notification_days', 10, 'ppr/NotificationDays',
+            fn (): bool => true,
+            fn (User $user): array => [
+                'notificationDays' => $user->notification_days,
+                'maxNotificationDays' => NotificationDaysUpdateRequest::MAX_DAYS,
+            ]);
     }
 
     private function registerRoutes(): void

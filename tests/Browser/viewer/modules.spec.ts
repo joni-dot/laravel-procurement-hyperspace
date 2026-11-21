@@ -47,6 +47,8 @@ test('the menu shows both modules and each of their pages opens', async ({
             heading: 'Needs attention',
         },
         { link: 'Suppliers', path: '/suppliers', heading: 'Suppliers' },
+        // Home's address starts every other one, yet it is highlighted only on its own page.
+        { link: 'Home', path: '', heading: 'Home' },
     ];
 
     for (const { link, path, heading } of pages) {
@@ -100,17 +102,15 @@ test('a slow supplier page shows the same loading cues as the project pages', as
     await expect(page.getByRole('status', { name: 'Loading' })).toHaveCount(0);
 });
 
-test('the company switcher opens the project dashboard for someone in a project', async ({
-    page,
-}) => {
+test('the company switcher opens the Home page', async ({ page }) => {
     // An account page, outside every company, so the switcher has somewhere to go.
     await page.goto('/settings/profile');
 
     await page.getByRole('button', { name: /switch company/ }).click();
     await page.getByRole('menuitem', { name: 'Browser Test Company' }).click();
 
-    await expect(page).toHaveURL(new RegExp(`${company}/projects/dashboard$`));
+    await expect(page).toHaveURL(new RegExp(`${company}$`));
     await expect(
-        page.getByRole('heading', { name: 'Project dashboard', exact: true }),
+        page.getByRole('heading', { name: 'Home', exact: true }),
     ).toBeVisible();
 });

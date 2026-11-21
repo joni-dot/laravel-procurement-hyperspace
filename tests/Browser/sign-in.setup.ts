@@ -2,14 +2,6 @@ import { company, password, platformAdmin, users } from './support/test-data';
 import { expect, test } from './support/test';
 import { twoFactorCode } from './support/totp';
 
-// Where each role lands: admins and people in a project open the project dashboard, everyone else
-// the supplier dashboard (CompanyHomePages).
-const homePages: Record<keyof typeof users, string> = {
-    admin: `${company}/projects/dashboard`,
-    buyer: `${company}/dashboard`,
-    viewer: `${company}/projects/dashboard`,
-};
-
 // Signs in once per role, so the other tests can start signed in. The addresses
 // exist only in the test data, so this also fails if the app is on another database.
 for (const [role, email] of Object.entries(users) as [
@@ -22,7 +14,8 @@ for (const [role, email] of Object.entries(users) as [
         await page.getByLabel('Password', { exact: true }).fill(password);
         await page.getByTestId('login-button').click();
 
-        await expect(page).toHaveURL(new RegExp(`${homePages[role]}$`));
+        // Everyone lands on the company's Home page.
+        await expect(page).toHaveURL(new RegExp(`${company}$`));
 
         await page
             .context()

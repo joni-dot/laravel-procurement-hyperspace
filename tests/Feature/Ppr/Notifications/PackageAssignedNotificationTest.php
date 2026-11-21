@@ -2,11 +2,11 @@
 
 namespace Tests\Feature\Ppr\Notifications;
 
+use App\Models\Notification;
 use App\Models\User;
 use App\Modules\Ppr\Actions\Packages\NotifyNewPackageAssignees;
 use App\Modules\Ppr\Enums\PackageAssignment;
 use App\Modules\Ppr\Enums\ProjectRole;
-use App\Modules\Ppr\Models\Notification;
 use App\Modules\Ppr\Models\Package;
 use App\Modules\Ppr\Models\Project;
 use App\Modules\Ppr\Models\ProjectMember;

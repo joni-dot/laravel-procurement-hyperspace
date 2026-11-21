@@ -2,20 +2,25 @@
 
 namespace App\Modules\Srm;
 
-use App\Companies\CompanyHomePages;
 use App\Companies\CurrentCompany;
 use App\Models\Company;
+use App\Models\User;
 use App\Modules\Srm\Actions\AddStartingLists;
 use App\Modules\Srm\Console\Commands\RenewContracts;
 use App\Modules\Srm\Console\Commands\SendCertificateReminders;
 use App\Modules\Srm\Console\Commands\SendContractReminders;
+use App\Modules\Srm\Dashboard\SupplierAttention;
+use App\Modules\Srm\Notifications\CertificateExpiringNotifications;
+use App\Modules\Srm\Notifications\ContractNeedsActionNotifications;
+use App\Notifications\NotificationKinds;
+use App\Pages\PageSections;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
 /**
  * Plugs the supplier relationship management module into the app: its routes, tables,
- * commands and timed jobs.
+ * commands, timed jobs and its sections on the company's home page.
  */
 class SrmServiceProvider extends ServiceProvider
 {
@@ -23,7 +28,8 @@ class SrmServiceProvider extends ServiceProvider
     {
         $this->loadMigrationsFrom(__DIR__.'/Database/Migrations');
         $this->startNewCompanies();
-        $this->offerHomePage();
+        $this->addHomeSections();
+        $this->registerNotificationKinds();
         $this->registerRoutes();
         $this->registerCommands();
     }
@@ -38,10 +44,29 @@ class SrmServiceProvider extends ServiceProvider
         });
     }
 
-    /** The supplier dashboard suits everyone, so it is the last choice. */
-    private function offerHomePage(): void
+    /** Certificate and contract reminders addressed to a person arrive in Core's bell and summary email. */
+    private function registerNotificationKinds(): void
     {
-        $this->app->make(CompanyHomePages::class)->offer(100, fn (): string => 'dashboard');
+        $this->callAfterResolving(NotificationKinds::class, function (NotificationKinds $kinds): void {
+            $kinds->register(new CertificateExpiringNotifications);
+            $kinds->register(new ContractNeedsActionNotifications);
+        });
+    }
+
+    /** The supplier dashboard's attention tiles and soonest dates, for every member: everyone can see suppliers. */
+    private function addHomeSections(): void
+    {
+        $sections = $this->app->make(PageSections::class);
+
+        // Deferred: the counts read every supplier, so the page opens first.
+        $sections->add('home', 'srm_attention', 30, 'srm/SupplierAttention',
+            fn (): bool => true,
+            fn (User $user): array => SupplierAttention::for($user)->counts(),
+            deferred: true);
+        $sections->add('home', 'srm_upcoming', 40, 'srm/UpcomingDates',
+            fn (): bool => true,
+            fn (User $user): array => SupplierAttention::for($user)->upcoming(),
+            deferred: true);
     }
 
     private function registerRoutes(): void

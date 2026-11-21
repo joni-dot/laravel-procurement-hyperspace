@@ -23,9 +23,8 @@ void createInertiaApp({
         switch (true) {
             case name.startsWith('auth/'):
                 return AuthLayout;
-            // A module's account settings (ppr/settings/...) sit next to Core's, in the same layout.
+            // Modules add to account settings pages as sections (App\Pages\PageSections), not pages of their own.
             case name.startsWith('settings/'):
-            case name.startsWith('ppr/settings/'):
                 return [AppLayout, SettingsLayout];
             default:
                 return AppLayout;

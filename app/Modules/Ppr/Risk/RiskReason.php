@@ -20,4 +20,7 @@ enum RiskReason: string
     case OwnerDeactivated = 'owner_deactivated';
     case NoBuyer = 'no_buyer';
     case BuyerDeactivated = 'buyer_deactivated';
+    // The supplier chosen for the package is high risk (blocked included) or archived. Another module knows
+    // suppliers; it tells the risk rules through OutsideRiskReasons.
+    case SupplierAtRisk = 'supplier_at_risk';
 }

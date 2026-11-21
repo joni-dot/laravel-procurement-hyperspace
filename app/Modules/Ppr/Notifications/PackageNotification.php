@@ -28,6 +28,16 @@ abstract class PackageNotification extends ProjectNotification
     }
 
     /**
+     * "P100-ELE-0007 Main transformer", as it was when the notification was sent.
+     *
+     * @param  array{package_number?: string, package_title?: string}  $data
+     */
+    protected static function packageName(array $data): string
+    {
+        return ($data['package_number'] ?? '').' '.($data['package_title'] ?? '');
+    }
+
+    /**
      * @return array{package_id: int, package_number: string, package_title: string}
      */
     final protected function about(): array

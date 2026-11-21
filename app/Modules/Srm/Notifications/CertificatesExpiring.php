@@ -9,6 +9,7 @@ use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 /**
  * One email per recipient and company listing every certificate that needs attention.
@@ -36,8 +37,8 @@ class CertificatesExpiring extends Notification implements ShouldQueue
         $this->items = array_values($certificates
             ->sortBy('expires_on')
             ->map(fn (Certificate $certificate) => [
-                'supplier' => $certificate->supplier->name,
-                'type' => $certificate->type->name,
+                'supplier' => Str::squish($certificate->supplier->name),
+                'type' => Str::squish($certificate->type->name),
                 'expires_on' => (string) $certificate->expires_on?->toDateString(),
                 'days_left' => (int) today()->diffInDays($certificate->expires_on),
                 'url' => route('suppliers.show', $certificate->supplier_id),

@@ -26,7 +26,7 @@ test('a user can sign in and log out', async ({ page }) => {
     await page.getByLabel('Email address').fill(users.viewer);
     await page.getByLabel('Password', { exact: true }).fill(password);
     await page.getByTestId('login-button').click();
-    await expect(page).toHaveURL(new RegExp(`${company}/projects/dashboard$`));
+    await expect(page).toHaveURL(new RegExp(`${company}$`));
 
     await page.getByRole('button', { name: 'Browser Viewer' }).click();
     await page.getByTestId('logout-button').click();
@@ -41,9 +41,9 @@ test('after signing out, Back does not show the previous pages', async ({
     await page.getByLabel('Email address').fill(users.viewer);
     await page.getByLabel('Password', { exact: true }).fill(password);
     await page.getByTestId('login-button').click();
-    await expect(page).toHaveURL(new RegExp(`${company}/projects/dashboard$`));
+    await expect(page).toHaveURL(new RegExp(`${company}$`));
     await expect(
-        page.getByRole('heading', { name: 'Project dashboard', exact: true }),
+        page.getByRole('heading', { name: 'Home', exact: true }),
     ).toBeVisible();
 
     await page.getByRole('button', { name: 'Browser Viewer' }).click();
@@ -53,7 +53,7 @@ test('after signing out, Back does not show the previous pages', async ({
     await page.goBack();
 
     // Inertia can't read the kept page any more, so it asks the server again and shows the
-    // sign-in form. (It may keep /dashboard in the address bar; the page is what matters.)
+    // sign-in form. (It may keep the company's address in the address bar; the page is what matters.)
     await expect(
         page.getByRole('heading', { name: 'Log in to your account' }),
     ).toBeVisible();

@@ -8,12 +8,13 @@ use App\Enums\ApiScope;
 use App\Enums\Role;
 use App\Models\Company;
 use App\Models\Membership;
+use App\Models\Notification;
 use App\Models\User;
-use App\Modules\Ppr\Models\Notification;
 use App\Modules\Ppr\Models\Package;
 use App\Modules\Ppr\Models\Project;
 use App\Modules\Ppr\Models\ProjectCategory;
 use App\Modules\Ppr\Models\ProjectMember;
+use App\Modules\Sourcing\Models\PackageSupplier;
 use App\Modules\Srm\Models\Category;
 use App\Modules\Srm\Models\Certificate;
 use App\Modules\Srm\Models\CertificateType;
@@ -90,6 +91,9 @@ class CrossCompanyAccessTest extends TestCase
         'projects.packages.schedule.update',
         'projects.packages.show',
         'projects.packages.store',
+        'projects.packages.suppliers.destroy',
+        'projects.packages.suppliers.store',
+        'projects.packages.suppliers.update',
         'projects.packages.update',
         'projects.show',
         'projects.update',
@@ -228,6 +232,7 @@ class CrossCompanyAccessTest extends TestCase
             Storage::disk('local')->put((string) $certificate->file_path, 'their certificate');
             $project = Project::factory()->withDefaultMilestones()->create();
             $projectCategory = ProjectCategory::factory()->for($project)->create();
+            $package = Package::factory()->for($project)->create(['category_id' => $projectCategory->id]);
 
             return [
                 'supplier' => $supplier->id,
@@ -248,7 +253,8 @@ class CrossCompanyAccessTest extends TestCase
                 'projectCategory' => $projectCategory->id,
                 'member' => ProjectMember::factory()->for($project)->create()->id,
                 'milestone' => $project->milestones()->firstOrFail()->id,
-                'package' => Package::factory()->for($project)->create(['category_id' => $projectCategory->id])->id,
+                'package' => $package->id,
+                'packageSupplier' => PackageSupplier::factory()->for($package)->for($supplier)->create()->id,
                 // Addressed to our member, so only the company stands between them and it.
                 'notification' => $this->notificationOf($member, $project),
                 '_documentFile' => $document->file_path,
@@ -281,8 +287,13 @@ class CrossCompanyAccessTest extends TestCase
         return $parameter === 'category' && str_starts_with((string) $route->getName(), 'projects.') ? 'projectCategory' : $parameter;
     }
 
+    /**
+     * Notifications only go to people of their company, so our member has a deactivated membership there:
+     * the row can exist, but the company no longer opens for them.
+     */
     private function notificationOf(User $person, Project $project): string
     {
+        Membership::factory()->deactivated()->create(['company_id' => $project->company_id, 'user_id' => $person->id]);
         $notification = new Notification;
         $notification->forceFill([
             'id' => (string) Str::uuid(),

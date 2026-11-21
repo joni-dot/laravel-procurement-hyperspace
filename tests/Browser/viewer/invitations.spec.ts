@@ -17,8 +17,8 @@ test('the viewer accepts an invitation and lands in the new company', async ({
         })
         .click();
 
-    await expect(page).toHaveURL(new RegExp(`${inviteCompany.url}/dashboard$`));
+    await expect(page).toHaveURL(new RegExp(`${inviteCompany.url}$`));
     await expect(
-        page.getByRole('heading', { name: 'Needs attention' }),
+        page.getByRole('heading', { name: 'Suppliers needing attention' }),
     ).toBeVisible();
 });

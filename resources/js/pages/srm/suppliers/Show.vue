@@ -13,6 +13,7 @@ import CertificateList from '@/components/srm/certificates/CertificateList.vue';
 import CommentSection from '@/components/srm/comments/CommentSection.vue';
 import ConfirmActionDialog from '@/components/ConfirmActionDialog.vue';
 import Heading from '@/components/Heading.vue';
+import PageSections from '@/components/PageSections.vue';
 import ContractList from '@/components/srm/contracts/ContractList.vue';
 import DocumentList from '@/components/srm/documents/DocumentList.vue';
 import ContactList from '@/components/srm/suppliers/ContactList.vue';
@@ -27,6 +28,7 @@ import type {
     SelectOption,
     SupplierDetails,
 } from '@/types/srm';
+import type { PageSection } from '@/types/sections';
 import { trans } from '@/lib/i18n';
 
 const props = defineProps<{
@@ -44,6 +46,7 @@ const props = defineProps<{
         viewContracts: boolean;
         viewSpend: boolean;
     };
+    sections: PageSection[];
 }>();
 
 setLayoutProps({
@@ -291,6 +294,8 @@ function restore(): void {
                 }}
             </p>
         </section>
+
+        <PageSections :sections="sections" />
 
         <DocumentList
             :title="$t('Documents')"

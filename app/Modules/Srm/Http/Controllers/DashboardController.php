@@ -3,11 +3,9 @@
 namespace App\Modules\Srm\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Srm\Dashboard\SupplierAttention;
 use App\Modules\Srm\Enums\RiskLevel;
 use App\Modules\Srm\Enums\SupplierStatus;
-use App\Modules\Srm\Models\Certificate;
-use App\Modules\Srm\Models\Contract;
-use App\Modules\Srm\Models\Supplier;
 use App\Modules\Srm\Models\SupplierSpend;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -16,33 +14,24 @@ use Inertia\Response;
 
 /**
  * Every count here matches the supplier list the dashboard links to, so archived suppliers never count.
+ * The attention tiles and the soonest dates are SupplierAttention's, which the home page shows too.
  */
 class DashboardController extends Controller
 {
-    private const int UPCOMING_SHOWN = 10;
-
     private const int TOP_SPEND_SHOWN = 5;
 
     public function __invoke(Request $request): Response
     {
-        $canViewContracts = $request->user()->can('viewDetails', Contract::class);
+        $attention = SupplierAttention::for($request->user());
         $canViewSpend = $request->user()->can('viewAny', SupplierSpend::class);
         $spendYear = today()->year;
 
         return Inertia::render('srm/Dashboard', [
-            'attention' => [
-                'contracts_action_soon' => $canViewContracts
-                    ? $this->suppliers()->whereHas('contracts', fn (Builder $contracts) => $contracts->needingActionSoon())->count()
-                    : null,
-                'missing_certificates' => $this->suppliers()->missingRequiredCertificates()->count(),
-                'certificates_expiring' => $this->activeSuppliers()->withExpiringCertificateNotReplaced()->count(),
-                'high_risk' => $this->activeSuppliers()->withRiskLevel(RiskLevel::High)->count(),
-                'rating_overdue' => $this->suppliers()->ratingOverdue()->count(),
-            ],
-            'upcoming' => $this->upcomingDeadlines($canViewContracts),
+            'attention' => $attention->counts(),
+            'upcoming' => $attention->upcoming(),
             'riskLevels' => array_map(fn (RiskLevel $level) => [
                 'level' => $level,
-                'count' => $this->suppliers()->withRiskLevel($level)->count(),
+                'count' => SupplierAttention::suppliers()->withRiskLevel($level)->count(),
             ], [RiskLevel::High, RiskLevel::Medium, RiskLevel::Low]),
             'statuses' => $this->statusCounts(),
             'spendYear' => $spendYear,
@@ -51,75 +40,11 @@ class DashboardController extends Controller
     }
 
     /**
-     * @return Builder<Supplier>
-     */
-    private function suppliers(): Builder
-    {
-        return Supplier::query()->whereNull('archived_at');
-    }
-
-    /**
-     * @return Builder<Supplier>
-     */
-    private function activeSuppliers(): Builder
-    {
-        return $this->suppliers()->where('status', SupplierStatus::Active);
-    }
-
-    /**
-     * The soonest dates across contracts and certificates. Contracts are only read for people allowed to see them.
-     *
-     * @return list<array<string, mixed>>
-     */
-    private function upcomingDeadlines(bool $canViewContracts): array
-    {
-        $contracts = ! $canViewContracts ? collect() : Contract::query()
-            ->needingActionSoon()
-            ->whereHas('supplier', fn (Builder $supplier) => $supplier->whereNull('archived_at'))
-            ->with('supplier:id,name')
-            ->orderBy('action_by')
-            ->limit(self::UPCOMING_SHOWN)
-            ->get(['id', 'supplier_id', 'title', 'auto_renews', 'action_by'])
-            ->map(fn (Contract $contract) => [
-                'key' => "contract-{$contract->id}",
-                'kind' => $contract->auto_renews ? 'contract_cancel_by' : 'contract_ends',
-                'date' => $contract->action_by->toDateString(),
-                'title' => $contract->title,
-                'contract_id' => $contract->id,
-                'supplier_id' => $contract->supplier_id,
-                'supplier_name' => $contract->supplier->name,
-            ]);
-
-        $certificates = Certificate::query()
-            ->expiringWithoutReplacement()
-            ->where('expires_on', '>=', today())
-            ->whereHas('supplier', fn (Builder $supplier) => $supplier->whereNull('archived_at')->where('status', SupplierStatus::Active))
-            ->with(['supplier:id,name', 'type:id,name'])
-            ->orderBy('expires_on')
-            ->limit(self::UPCOMING_SHOWN)
-            ->get(['id', 'supplier_id', 'certificate_type_id', 'expires_on'])
-            ->map(fn (Certificate $certificate) => [
-                'key' => "certificate-{$certificate->id}",
-                'kind' => 'certificate_expires',
-                'date' => $certificate->expires_on->toDateString(),
-                'title' => $certificate->type->name,
-                'contract_id' => null,
-                'supplier_id' => $certificate->supplier_id,
-                'supplier_name' => $certificate->supplier->name,
-            ]);
-
-        return array_values($contracts->concat($certificates)
-            ->sortBy('date')
-            ->take(self::UPCOMING_SHOWN)
-            ->all());
-    }
-
-    /**
      * @return list<array{status: SupplierStatus, count: int}>
      */
     private function statusCounts(): array
     {
-        $counts = $this->suppliers()
+        $counts = SupplierAttention::suppliers()
             ->selectRaw('status, COUNT(*) AS total')
             ->groupBy('status')
             ->pluck('total', 'status');

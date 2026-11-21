@@ -28,6 +28,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable|null $invitation_sent_at
  * @property CarbonImmutable|null $joined_at
  * @property CarbonImmutable|null $deactivated_at
+ * @property CarbonImmutable|null $notifications_summarized_at up to when the daily summary email has covered the person's notifications here
  */
 class Membership extends Model
 {
@@ -54,6 +55,7 @@ class Membership extends Model
             'invitation_sent_at' => 'datetime',
             'joined_at' => 'datetime',
             'deactivated_at' => 'datetime',
+            'notifications_summarized_at' => 'datetime',
         ];
     }
 

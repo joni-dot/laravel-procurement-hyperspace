@@ -2,7 +2,7 @@
 import { usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import Breadcrumbs from '@/components/Breadcrumbs.vue';
-import NotificationBell from '@/components/ppr/NotificationBell.vue';
+import NotificationBell from '@/components/NotificationBell.vue';
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import type { BreadcrumbItem } from '@/types';
 

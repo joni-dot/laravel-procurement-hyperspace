@@ -16,4 +16,9 @@ export type NavItem = {
      * changes something, because that would then happen without a click.
      */
     prefetch?: boolean;
+    /**
+     * Highlighted only on its own address, not on the pages below it: Home's address is the start of
+     * every company page's.
+     */
+    exact?: boolean;
 };

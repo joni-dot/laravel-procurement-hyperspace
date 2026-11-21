@@ -5,17 +5,17 @@ namespace Tests\Feature\Ppr\Notifications;
 use App\Companies\CurrentCompany;
 use App\Companies\NavigationCompany;
 use App\Enums\Role;
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Company;
 use App\Models\Membership;
+use App\Models\Notification;
 use App\Models\User;
 use App\Modules\Ppr\Enums\PackageAssignment;
 use App\Modules\Ppr\Enums\ProjectRole;
-use App\Modules\Ppr\Models\Notification;
 use App\Modules\Ppr\Models\Package;
 use App\Modules\Ppr\Models\Project;
 use App\Modules\Ppr\Notifications\PackageAssigned;
 use Illuminate\Support\Facades\DB;
-use Inertia\Inertia;
 use Tests\Concerns\RefreshDatabase;
 use Tests\Concerns\RunsQueuedJobsLikeAWorker;
 use Tests\TestCase;
@@ -55,15 +55,15 @@ class NotificationCompanyTest extends TestCase
             ->get(route('notifications.index'))
             ->assertInertia(fn ($page) => $page
                 ->where('notifications.total', 1)
-                ->where('notifications.data.0.projectName', 'Harbour crane')
-                ->where('ppr.unreadNotificationCount', 1)
+                ->where('notifications.data.0.source', 'Harbour crane')
+                ->where('unreadNotificationCount', 1)
             );
 
         $this->actingAs($this->person)
             ->get(route('notifications.index', ['company' => $this->other->slug]))
             ->assertInertia(fn ($page) => $page
                 ->where('notifications.total', 2)
-                ->where('ppr.unreadNotificationCount', 2)
+                ->where('unreadNotificationCount', 2)
             );
     }
 
@@ -121,7 +121,7 @@ class NotificationCompanyTest extends TestCase
     {
         $platformAdmin = User::factory()->platformAdmin()->withTwoFactor()->create();
         Membership::factory()->create(['company_id' => $this->company->id, 'user_id' => $platformAdmin->id, 'role' => Role::Admin]);
-        $this->notify($platformAdmin, $this->here->project->packages()->firstOrFail());
+        $this->notify($platformAdmin, $this->packageOf($this->here));
         $tables = [];
         DB::listen(function ($query) use (&$tables) {
             preg_match_all('/\b(?:from|join|into|update)\s+"?(\w+)"?/i', $query->sql, $matches);
@@ -132,7 +132,7 @@ class NotificationCompanyTest extends TestCase
             ->withSession(['auth.password_confirmed_at' => time()])
             ->get(route('platform.companies.index'))
             ->assertOk()
-            ->assertInertia(fn ($page) => $page->where('ppr.unreadNotificationCount', 0));
+            ->assertInertia(fn ($page) => $page->where('unreadNotificationCount', 0));
 
         $this->assertNotContains('notifications', $tables);
         $this->assertNotContains('projects', $tables);
@@ -140,7 +140,7 @@ class NotificationCompanyTest extends TestCase
 
     public function test_a_queued_notification_is_dropped_when_the_person_left_this_company_before_it_went_out()
     {
-        $package = $this->here->project->packages()->firstOrFail();
+        $package = $this->packageOf($this->here);
         $this->queueJobsForTheWorker();
         $this->person->notify(new PackageAssigned($package, PackageAssignment::Owner));
         $this->person->memberships()->where('company_id', $this->company->id)->update(['deactivated_at' => now()]);
@@ -153,7 +153,7 @@ class NotificationCompanyTest extends TestCase
 
     public function test_a_queued_notification_goes_out_in_its_own_company_whatever_happens_in_another()
     {
-        $package = $this->here->project->packages()->firstOrFail();
+        $package = $this->packageOf($this->here);
         $this->queueJobsForTheWorker();
         $this->person->notify(new PackageAssigned($package, PackageAssignment::Owner));
         $this->person->memberships()->where('company_id', $this->other->id)->update(['deactivated_at' => now()]);
@@ -163,6 +163,11 @@ class NotificationCompanyTest extends TestCase
         $this->assertNoJobFailed();
         $this->assertSame([$this->company->id], Notification::query()->where('data->params->role', 'owner')->pluck('company_id')->all());
         $this->assertSame(0, $this->inCompany($this->other, fn () => Notification::query()->where('data->params->role', 'owner')->count()));
+    }
+
+    private function packageOf(Notification $notification): Package
+    {
+        return Package::query()->findOrFail($notification->data['package_id']);
     }
 
     private function packageIn(string $projectName): Package
@@ -189,7 +194,7 @@ class NotificationCompanyTest extends TestCase
         $this->actingAs($user)
             ->get(route('profile.edit'))
             ->assertOk()
-            ->assertInertia(fn ($page) => $page->where('ppr.unreadNotificationCount', $count));
+            ->assertInertia(fn ($page) => $page->where('unreadNotificationCount', $count));
 
         $this->enterCompany($this->company);
     }
@@ -203,8 +208,9 @@ class NotificationCompanyTest extends TestCase
         // The page reads these for the menu anyway (the company and the role in it); the bell must not add to them.
         app(NavigationCompany::class)->for($person);
         $person->activeMembershipIn($this->company->id);
-        $this->app['request']->setUserResolver(fn () => $person);
-        $count = Inertia::getShared('ppr');
+        $request = $this->app['request'];
+        $request->setUserResolver(fn () => $person);
+        $count = app(HandleInertiaRequests::class)->share($request)['unreadNotificationCount'];
 
         DB::flushQueryLog();
         DB::enableQueryLog();
