@@ -44,14 +44,14 @@ const action = props.contact
             >
                 <DialogHeader>
                     <DialogTitle>
-                        {{ contact ? 'Edit contact' : 'Add contact' }}
+                        {{ contact ? $t('Edit contact') : $t('Add contact') }}
                     </DialogTitle>
                 </DialogHeader>
 
                 <div class="grid gap-4 sm:grid-cols-2">
                     <FormField
                         id="contact-name"
-                        label="Name"
+                        :label="$t('Name')"
                         :error="errors.name"
                     >
                         <Input
@@ -64,7 +64,7 @@ const action = props.contact
                     </FormField>
                     <FormField
                         id="contact-job-title"
-                        label="Job title"
+                        :label="$t('Job title')"
                         :error="errors.job_title"
                     >
                         <Input
@@ -76,7 +76,7 @@ const action = props.contact
                     </FormField>
                     <FormField
                         id="contact-email"
-                        label="Email"
+                        :label="$t('Email')"
                         :error="errors.email"
                     >
                         <Input
@@ -89,7 +89,7 @@ const action = props.contact
                     </FormField>
                     <FormField
                         id="contact-phone"
-                        label="Phone"
+                        :label="$t('Phone')"
                         :error="errors.phone"
                     >
                         <Input
@@ -108,18 +108,18 @@ const action = props.contact
                         value="1"
                         :default-value="contact?.is_primary ?? false"
                     />
-                    Primary contact
+                    {{ $t('Primary contact') }}
                 </Label>
 
                 <DialogFooter class="gap-2">
                     <DialogClose as-child>
-                        <Button type="button" variant="secondary"
-                            >Cancel</Button
-                        >
+                        <Button type="button" variant="secondary">
+                            {{ $t('Cancel') }}
+                        </Button>
                     </DialogClose>
                     <Button type="submit" :disabled="processing">
                         <Spinner v-if="processing" />
-                        Save
+                        {{ $t('Save') }}
                     </Button>
                 </DialogFooter>
             </Form>

@@ -6,6 +6,7 @@ use Database\Seeders\BrowserTestSeeder;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoCertificateSeeder;
 use Database\Seeders\DemoContractSeeder;
+use Database\Seeders\DemoProjectSeeder;
 use Database\Seeders\DemoRatingSeeder;
 use Database\Seeders\DemoSupplierSeeder;
 use Illuminate\Database\Seeder;
@@ -34,6 +35,7 @@ class SeedersRefuseProductionTest extends TestCase
 
         $this->assertDatabaseEmpty('users');
         $this->assertDatabaseEmpty('suppliers');
+        $this->assertDatabaseEmpty('projects');
     }
 
     /**
@@ -47,6 +49,7 @@ class SeedersRefuseProductionTest extends TestCase
             'demo certificates' => [DemoCertificateSeeder::class],
             'demo contracts' => [DemoContractSeeder::class],
             'demo ratings' => [DemoRatingSeeder::class],
+            'demo project' => [DemoProjectSeeder::class],
             'browser test data' => [BrowserTestSeeder::class],
         ];
     }

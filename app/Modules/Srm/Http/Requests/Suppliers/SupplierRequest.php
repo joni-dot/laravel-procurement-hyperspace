@@ -64,9 +64,9 @@ class SupplierRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'business_id.unique' => 'A supplier from this country already has this business ID.',
-            'supplier_number.unique' => 'Another supplier already has this supplier number.',
-            'phone.regex' => 'The phone number may only contain digits, spaces and + ( ) -.',
+            'business_id.unique' => __('A supplier from this country already has this business ID.'),
+            'supplier_number.unique' => __('Another supplier already has this supplier number.'),
+            'phone.regex' => __('The phone number may only contain digits, spaces and + ( ) -.'),
         ];
     }
 
@@ -76,11 +76,11 @@ class SupplierRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'business_id' => 'business ID',
-            'vat_number' => 'VAT number',
-            'country_code' => 'country',
-            'currency_code' => 'currency',
-            'responsible_user_id' => 'responsible buyer',
+            'business_id' => __('business ID'),
+            'vat_number' => __('VAT number'),
+            'country_code' => __('country'),
+            'currency_code' => __('currency'),
+            'responsible_user_id' => __('responsible buyer'),
         ];
     }
 

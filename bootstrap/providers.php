@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Ppr\PprServiceProvider;
 use App\Modules\Srm\SrmServiceProvider;
 use App\Providers\ApiServiceProvider;
 use App\Providers\AppServiceProvider;
@@ -12,4 +13,5 @@ return [
     ApiServiceProvider::class,
     FortifyServiceProvider::class,
     SrmServiceProvider::class,
+    PprServiceProvider::class,
 ];

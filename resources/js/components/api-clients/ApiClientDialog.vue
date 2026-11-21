@@ -52,18 +52,25 @@ function hasScope(scope: string): boolean {
             >
                 <DialogHeader>
                     <DialogTitle>
-                        {{ apiClient ? 'Edit API client' : 'Add API client' }}
+                        {{
+                            apiClient
+                                ? $t('Edit API client')
+                                : $t('Add API client')
+                        }}
                     </DialogTitle>
                     <DialogDescription>
-                        A system that reads supplier data on its own, such as an
-                        ERP or reporting tool.
+                        {{
+                            $t(
+                                'A system that reads supplier data on its own, such as an ERP or reporting tool.',
+                            )
+                        }}
                     </DialogDescription>
                 </DialogHeader>
 
                 <FormField
                     id="api-client-name"
-                    label="Name"
-                    hint="Which system this is, e.g. ERP integration"
+                    :label="$t('Name')"
+                    :hint="$t('Which system this is, e.g. ERP integration')"
                     :error="errors.name"
                 >
                     <Input
@@ -77,7 +84,9 @@ function hasScope(scope: string): boolean {
                 </FormField>
 
                 <fieldset class="space-y-3">
-                    <legend class="text-sm font-medium">Access</legend>
+                    <legend class="text-sm font-medium">
+                        {{ $t('Access') }}
+                    </legend>
                     <div
                         v-for="scope in scopes"
                         :key="scope.value"
@@ -100,8 +109,8 @@ function hasScope(scope: string): boolean {
 
                 <FormField
                     id="api-client-responsible"
-                    label="Responsible person"
-                    hint="Who to ask about this integration"
+                    :label="$t('Responsible person')"
+                    :hint="$t('Who to ask about this integration')"
                     :error="errors.responsible_user_id"
                 >
                     <NativeSelect
@@ -110,7 +119,9 @@ function hasScope(scope: string): boolean {
                         name="responsible_user_id"
                         required
                     >
-                        <option value="" disabled>Choose a person</option>
+                        <option value="" disabled>
+                            {{ $t('Choose a person') }}
+                        </option>
                         <option
                             v-for="user in responsibleUsers"
                             :key="user.id"
@@ -123,13 +134,13 @@ function hasScope(scope: string): boolean {
 
                 <DialogFooter class="gap-2">
                     <DialogClose as-child>
-                        <Button type="button" variant="secondary"
-                            >Cancel</Button
-                        >
+                        <Button type="button" variant="secondary">
+                            {{ $t('Cancel') }}
+                        </Button>
                     </DialogClose>
                     <Button type="submit" :disabled="processing">
                         <Spinner v-if="processing" />
-                        Save
+                        {{ $t('Save') }}
                     </Button>
                 </DialogFooter>
             </Form>

@@ -12,6 +12,7 @@ import { NativeSelect } from '@/components/ui/native-select';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import type { SupplierFormData, SupplierFormOptions } from '@/types/srm';
+import { trans } from '@/lib/i18n';
 
 const props = defineProps<{
     action: RouteFormDefinition<'post'>;
@@ -29,7 +30,9 @@ const deliveryTerm = ref(props.supplier?.delivery_term ?? '');
 const notes = ref(props.supplier?.notes ?? '');
 
 const businessIdHint = computed(() =>
-    countryCode.value === 'FI' ? 'Finnish business ID, e.g. 1234567-8' : '',
+    countryCode.value === 'FI'
+        ? trans('Finnish business ID, e.g. 1234567-8')
+        : '',
 );
 
 function isInCategory(categoryId: number): boolean {
@@ -44,11 +47,11 @@ function isInCategory(categoryId: number): boolean {
         v-slot="{ errors, processing }"
     >
         <section class="space-y-4">
-            <h2 class="text-base font-medium">Basic information</h2>
+            <h2 class="text-base font-medium">{{ $t('Basic information') }}</h2>
             <div class="grid gap-4 sm:grid-cols-2">
                 <FormField
                     id="name"
-                    label="Name"
+                    :label="$t('Name')"
                     :error="errors.name"
                     class="sm:col-span-2"
                 >
@@ -62,8 +65,8 @@ function isInCategory(categoryId: number): boolean {
                 </FormField>
                 <FormField
                     id="supplier_number"
-                    label="Supplier number"
-                    hint="Your own ID, e.g. from your ERP"
+                    :label="$t('Supplier number')"
+                    :hint="$t('Your own ID, e.g. from your ERP')"
                     :error="errors.supplier_number"
                 >
                     <Input
@@ -74,8 +77,8 @@ function isInCategory(categoryId: number): boolean {
                 </FormField>
                 <FormField
                     id="responsible_user_id"
-                    label="Responsible buyer"
-                    hint="Gets the certificate reminders"
+                    :label="$t('Responsible buyer')"
+                    :hint="$t('Gets the certificate reminders')"
                     :error="errors.responsible_user_id"
                 >
                     <NativeSelect
@@ -83,7 +86,7 @@ function isInCategory(categoryId: number): boolean {
                         v-model="responsibleUserId"
                         name="responsible_user_id"
                     >
-                        <option value="">Nobody yet</option>
+                        <option value="">{{ $t('Nobody yet') }}</option>
                         <option
                             v-for="user in options.responsibleUsers"
                             :key="user.id"
@@ -93,7 +96,11 @@ function isInCategory(categoryId: number): boolean {
                         </option>
                     </NativeSelect>
                 </FormField>
-                <FormField id="status" label="Status" :error="errors.status">
+                <FormField
+                    id="status"
+                    :label="$t('Status')"
+                    :error="errors.status"
+                >
                     <NativeSelect id="status" v-model="status" name="status">
                         <option
                             v-for="option in options.statuses"
@@ -107,7 +114,9 @@ function isInCategory(categoryId: number): boolean {
             </div>
 
             <fieldset v-if="options.categories.length > 0" class="space-y-3">
-                <legend class="text-sm font-medium">Categories</legend>
+                <legend class="text-sm font-medium">
+                    {{ $t('Categories') }}
+                </legend>
                 <div class="grid gap-2 sm:grid-cols-3">
                     <Label
                         v-for="category in options.categories"
@@ -127,11 +136,13 @@ function isInCategory(categoryId: number): boolean {
         </section>
 
         <section class="space-y-4">
-            <h2 class="text-base font-medium">Company identification</h2>
+            <h2 class="text-base font-medium">
+                {{ $t('Company identification') }}
+            </h2>
             <div class="grid gap-4 sm:grid-cols-3">
                 <FormField
                     id="country_code"
-                    label="Country"
+                    :label="$t('Country')"
                     :error="errors.country_code"
                 >
                     <NativeSelect
@@ -151,7 +162,7 @@ function isInCategory(categoryId: number): boolean {
                 </FormField>
                 <FormField
                     id="business_id"
-                    label="Business ID"
+                    :label="$t('Business ID')"
                     :hint="businessIdHint"
                     :error="errors.business_id"
                 >
@@ -163,7 +174,7 @@ function isInCategory(categoryId: number): boolean {
                 </FormField>
                 <FormField
                     id="vat_number"
-                    label="VAT number"
+                    :label="$t('VAT number')"
                     :error="errors.vat_number"
                 >
                     <Input
@@ -176,11 +187,13 @@ function isInCategory(categoryId: number): boolean {
         </section>
 
         <section class="space-y-4">
-            <h2 class="text-base font-medium">Address and contact details</h2>
+            <h2 class="text-base font-medium">
+                {{ $t('Address and contact details') }}
+            </h2>
             <div class="grid gap-4 sm:grid-cols-3">
                 <FormField
                     id="street_address"
-                    label="Street address"
+                    :label="$t('Street address')"
                     :error="errors.street_address"
                     class="sm:col-span-3"
                 >
@@ -193,7 +206,7 @@ function isInCategory(categoryId: number): boolean {
                 </FormField>
                 <FormField
                     id="postal_code"
-                    label="Postal code"
+                    :label="$t('Postal code')"
                     :error="errors.postal_code"
                 >
                     <Input
@@ -205,7 +218,7 @@ function isInCategory(categoryId: number): boolean {
                 </FormField>
                 <FormField
                     id="city"
-                    label="City"
+                    :label="$t('City')"
                     :error="errors.city"
                     class="sm:col-span-2"
                 >
@@ -216,7 +229,11 @@ function isInCategory(categoryId: number): boolean {
                         :default-value="supplier?.city ?? ''"
                     />
                 </FormField>
-                <FormField id="website" label="Website" :error="errors.website">
+                <FormField
+                    id="website"
+                    :label="$t('Website')"
+                    :error="errors.website"
+                >
                     <Input
                         id="website"
                         name="website"
@@ -224,7 +241,11 @@ function isInCategory(categoryId: number): boolean {
                         :default-value="supplier?.website ?? ''"
                     />
                 </FormField>
-                <FormField id="email" label="Email" :error="errors.email">
+                <FormField
+                    id="email"
+                    :label="$t('Email')"
+                    :error="errors.email"
+                >
                     <Input
                         id="email"
                         type="email"
@@ -233,7 +254,11 @@ function isInCategory(categoryId: number): boolean {
                         :default-value="supplier?.email ?? ''"
                     />
                 </FormField>
-                <FormField id="phone" label="Phone" :error="errors.phone">
+                <FormField
+                    id="phone"
+                    :label="$t('Phone')"
+                    :error="errors.phone"
+                >
                     <Input
                         id="phone"
                         type="tel"
@@ -246,23 +271,23 @@ function isInCategory(categoryId: number): boolean {
         </section>
 
         <section class="space-y-4">
-            <h2 class="text-base font-medium">Commercial terms</h2>
+            <h2 class="text-base font-medium">{{ $t('Commercial terms') }}</h2>
             <div class="grid gap-4 sm:grid-cols-2">
                 <FormField
                     id="payment_terms"
-                    label="Payment terms"
+                    :label="$t('Payment terms')"
                     :error="errors.payment_terms"
                 >
                     <Input
                         id="payment_terms"
                         name="payment_terms"
-                        placeholder="30 days net"
+                        :placeholder="$t('30 days net')"
                         :default-value="supplier?.payment_terms ?? ''"
                     />
                 </FormField>
                 <FormField
                     id="currency_code"
-                    label="Currency"
+                    :label="$t('Currency')"
                     :error="errors.currency_code"
                 >
                     <NativeSelect
@@ -270,7 +295,7 @@ function isInCategory(categoryId: number): boolean {
                         v-model="currencyCode"
                         name="currency_code"
                     >
-                        <option value="">Not set</option>
+                        <option value="">{{ $t('Not set') }}</option>
                         <option
                             v-for="option in options.currencies"
                             :key="option.value"
@@ -282,7 +307,7 @@ function isInCategory(categoryId: number): boolean {
                 </FormField>
                 <FormField
                     id="delivery_term"
-                    label="Delivery term (Incoterm)"
+                    :label="$t('Delivery term (Incoterm)')"
                     :error="errors.delivery_term"
                 >
                     <NativeSelect
@@ -290,7 +315,7 @@ function isInCategory(categoryId: number): boolean {
                         v-model="deliveryTerm"
                         name="delivery_term"
                     >
-                        <option value="">Not set</option>
+                        <option value="">{{ $t('Not set') }}</option>
                         <option
                             v-for="option in options.deliveryTerms"
                             :key="option.value"
@@ -302,8 +327,8 @@ function isInCategory(categoryId: number): boolean {
                 </FormField>
                 <FormField
                     id="delivery_place"
-                    label="Delivery place"
-                    hint="e.g. Helsinki warehouse"
+                    :label="$t('Delivery place')"
+                    :hint="$t('e.g. Helsinki warehouse')"
                     :error="errors.delivery_place"
                 >
                     <Input
@@ -316,7 +341,7 @@ function isInCategory(categoryId: number): boolean {
         </section>
 
         <section class="space-y-4">
-            <FormField id="notes" label="Notes" :error="errors.notes">
+            <FormField id="notes" :label="$t('Notes')" :error="errors.notes">
                 <Textarea
                     id="notes"
                     v-model="notes"
@@ -333,7 +358,7 @@ function isInCategory(categoryId: number): boolean {
                 {{ submitLabel }}
             </Button>
             <Button variant="ghost" as-child>
-                <Link :href="cancelHref">Cancel</Link>
+                <Link :href="cancelHref">{{ $t('Cancel') }}</Link>
             </Button>
         </div>
     </Form>

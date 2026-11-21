@@ -16,6 +16,7 @@ use App\Modules\Srm\Models\Contract;
 use App\Modules\Srm\Models\ContractType;
 use App\Modules\Srm\Models\Document;
 use App\Modules\Srm\Models\Supplier;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -27,7 +28,8 @@ class ContractController extends Controller
     {
         $contract->load([
             'type:id,name',
-            'owner:id,name',
+            // As the company knows them: someone who has left keeps the name they had then.
+            'owner' => fn (BelongsTo $owner) => $owner->withNameKnownToCurrentCompany(),
             'reminders:id,contract_id,days_before',
             'documents' => fn ($query) => $query->orderBy('file_name'),
         ]);

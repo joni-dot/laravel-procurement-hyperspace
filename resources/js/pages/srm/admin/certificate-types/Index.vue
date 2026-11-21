@@ -8,6 +8,7 @@ import ConfirmActionDialog from '@/components/ConfirmActionDialog.vue';
 import Heading from '@/components/Heading.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { trans } from '@/lib/i18n';
 
 type CertificateTypeRow = {
     id: number;
@@ -17,14 +18,14 @@ type CertificateTypeRow = {
 };
 
 defineOptions({
-    layout: {
+    layout: () => ({
         breadcrumbs: [
             {
-                title: 'Certificate types',
+                title: trans('Certificate types'),
                 href: CertificateTypeController.index(),
             },
         ],
-    },
+    }),
 });
 
 defineProps<{
@@ -37,29 +38,35 @@ const typeBeingDeleted = ref<CertificateTypeRow | null>(null);
 
 function certificateCount(type: CertificateTypeRow): string {
     return type.certificates_count === 1
-        ? '1 certificate'
-        : `${type.certificates_count} certificates`;
+        ? trans('1 certificate')
+        : trans(':count certificates', { count: type.certificates_count });
 }
 </script>
 
 <template>
-    <Head title="Certificate types" />
+    <Head :title="$t('Certificate types')" />
 
     <div class="flex max-w-3xl flex-1 flex-col gap-6 p-4">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <Heading
-                title="Certificate types"
-                description="The kinds of certificates buyers can record, and which ones every active supplier must have"
+                :title="$t('Certificate types')"
+                :description="
+                    $t(
+                        'The kinds of certificates buyers can record, and which ones every active supplier must have',
+                    )
+                "
                 class="mb-0"
             />
-            <Button @click="isAdding = true"><Plus /> Add type</Button>
+            <Button @click="isAdding = true">
+                <Plus /> {{ $t('Add type') }}
+            </Button>
         </div>
 
         <p
             v-if="certificateTypes.length === 0"
             class="text-sm text-muted-foreground"
         >
-            No certificate types yet.
+            {{ $t('No certificate types yet.') }}
         </p>
 
         <ul v-else class="divide-y rounded-xl border">
@@ -71,9 +78,9 @@ function certificateCount(type: CertificateTypeRow): string {
                 <div>
                     <p class="font-medium">
                         {{ type.name }}
-                        <Badge v-if="type.is_required" class="ml-1"
-                            >Required</Badge
-                        >
+                        <Badge v-if="type.is_required" class="ml-1">{{
+                            $t('Required')
+                        }}</Badge>
                     </p>
                     <p class="text-muted-foreground">
                         {{ certificateCount(type) }}
@@ -83,7 +90,7 @@ function certificateCount(type: CertificateTypeRow): string {
                     <Button
                         variant="ghost"
                         size="icon-sm"
-                        :aria-label="`Edit ${type.name}`"
+                        :aria-label="$t('Edit :name', { name: type.name })"
                         @click="typeBeingEdited = type"
                     >
                         <Pencil />
@@ -92,7 +99,7 @@ function certificateCount(type: CertificateTypeRow): string {
                         v-if="type.certificates_count === 0"
                         variant="ghost"
                         size="icon-sm"
-                        :aria-label="`Delete ${type.name}`"
+                        :aria-label="$t('Delete :name', { name: type.name })"
                         @click="typeBeingDeleted = type"
                     >
                         <Trash2 />
@@ -122,9 +129,11 @@ function certificateCount(type: CertificateTypeRow): string {
                 certificateType: typeBeingDeleted.id,
             })
         "
-        :title="`Delete ${typeBeingDeleted.name}?`"
-        description="No certificates use this type, so nothing else is affected."
-        confirm-label="Delete"
+        :title="$t('Delete :name?', { name: typeBeingDeleted.name })"
+        :description="
+            $t('No certificates use this type, so nothing else is affected.')
+        "
+        :confirm-label="$t('Delete')"
         :open="true"
         @update:open="typeBeingDeleted = null"
     />

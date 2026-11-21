@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Srm\Models\Comment;
 use App\Modules\Srm\Models\Contract;
 use App\Modules\Srm\Models\Supplier;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Http\Request;
 
@@ -56,7 +57,8 @@ class CommentFeed
     {
         // One extra row tells whether older comments exist without counting them all.
         $newestFirst = $comments
-            ->with('author:id,name')
+            // As the company knows them: someone who has left keeps the name they had then.
+            ->with(['author' => fn (BelongsTo $author) => $author->withNameKnownToCurrentCompany()])
             ->latest()
             ->latest('id')
             ->limit($limit + 1)

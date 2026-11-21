@@ -38,12 +38,14 @@ const isOpen = defineModel<boolean>('open', { required: true });
                 v-slot="{ errors, processing }"
             >
                 <DialogHeader>
-                    <DialogTitle>Change role of {{ member.name }}</DialogTitle>
+                    <DialogTitle>
+                        {{ $t('Change role of :name', { name: member.name }) }}
+                    </DialogTitle>
                     <DialogDescription>{{ member.email }}</DialogDescription>
                 </DialogHeader>
 
                 <div class="grid gap-2">
-                    <Label for="change-role">Role</Label>
+                    <Label for="change-role">{{ $t('Role') }}</Label>
                     <RoleSelect
                         id="change-role"
                         :roles="roles"
@@ -54,13 +56,13 @@ const isOpen = defineModel<boolean>('open', { required: true });
 
                 <DialogFooter class="gap-2">
                     <DialogClose as-child>
-                        <Button type="button" variant="secondary"
-                            >Cancel</Button
-                        >
+                        <Button type="button" variant="secondary">
+                            {{ $t('Cancel') }}
+                        </Button>
                     </DialogClose>
                     <Button type="submit" :disabled="processing">
                         <Spinner v-if="processing" />
-                        Save
+                        {{ $t('Save') }}
                     </Button>
                 </DialogFooter>
             </Form>

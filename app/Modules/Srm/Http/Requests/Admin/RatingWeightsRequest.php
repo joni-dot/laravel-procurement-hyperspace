@@ -34,7 +34,7 @@ class RatingWeightsRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'weights.*' => 'weight',
+            'weights.*' => __('weight'),
         ];
     }
 

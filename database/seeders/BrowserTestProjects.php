@@ -1,0 +1,255 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\User;
+use App\Modules\Ppr\Actions\Packages\CreatePackage;
+use App\Modules\Ppr\Enums\PackageStatus;
+use App\Modules\Ppr\Enums\ProjectRole;
+use App\Modules\Ppr\Jobs\CheckProjectRisks;
+use App\Modules\Ppr\Models\Package;
+use App\Modules\Ppr\Models\PackageMilestone;
+use App\Modules\Ppr\Models\Project;
+use App\Modules\Ppr\Models\ProjectCategory;
+use Illuminate\Support\Collection;
+
+/**
+ * The projects of the browser tests, inside the browser test company (BrowserTestSeeder). The tests
+ * read these values from tests/Browser/support/test-data.ts, so change both together.
+ *
+ * The "member" of the project tests is a company viewer: everything they may do in a project comes
+ * from their role in it.
+ */
+final class BrowserTestProjects
+{
+    public function __construct(private readonly CreatePackage $createPackage) {}
+
+    public function add(User $admin, User $member, User $manager): void
+    {
+        // The database is emptied first, so the projects get ids 1 to 9.
+        Project::factory()
+            ->withDefaultMilestones()
+            ->withMember($manager, ProjectRole::ProjectManager)
+            ->withMember($member, ProjectRole::Viewer)
+            ->create(['name' => 'Browser Project', 'code' => 'BP1']);
+        Project::factory()
+            ->withDefaultMilestones()
+            ->withMember($manager, ProjectRole::ProjectManager)
+            ->create(['name' => 'Hidden Project', 'code' => 'HP2']);
+
+        // Its own project, so the package tests don't depend on the numbering the project tests change.
+        $packageProject = Project::factory()
+            ->withDefaultMilestones()
+            ->withMember($manager, ProjectRole::ProjectManager)
+            ->withMember($member, ProjectRole::Viewer)
+            ->create(['name' => 'Package Project', 'code' => 'PP3']);
+        ProjectCategory::factory()->for($packageProject)->create(['code' => 'ELE', 'name' => 'Electrical']);
+        $mechanical = ProjectCategory::factory()->for($packageProject)->create(['code' => 'MEC', 'name' => 'Mechanical']);
+        $seededPump = $this->createPackage->handle($packageProject, 'Seeded pump', $mechanical);
+        // After the need date, so the package list's next milestone and float stay empty for the other tests.
+        PackageMilestone::factory()->for($seededPump)->create([
+            'project_milestone_id' => $packageProject->milestones()->where('name', 'Installed / commissioned')->value('id'),
+            'forecast_date' => '2027-09-30',
+        ]);
+
+        // Its own project too, so changing the milestone list doesn't disturb the package tests.
+        Project::factory()
+            ->withDefaultMilestones()
+            ->withMember($manager, ProjectRole::ProjectManager)
+            ->withMember($member, ProjectRole::Viewer)
+            ->create(['name' => 'Milestone Project', 'code' => 'MP4']);
+
+        // For the notification tests: the member is a buyer here, so the manager can make them a package's buyer.
+        $notificationProject = Project::factory()
+            ->withDefaultMilestones()
+            ->withMember($manager, ProjectRole::ProjectManager)
+            ->withMember($member, ProjectRole::Buyer)
+            ->create(['name' => 'Notification Project', 'code' => 'NP5']);
+        $notifiedMechanical = ProjectCategory::factory()->for($notificationProject)->create(['code' => 'MEC', 'name' => 'Mechanical']);
+        $this->createPackage->handle($notificationProject, 'Notified valve', $notifiedMechanical);
+
+        $this->addRiskProject($manager, $member);
+        $this->addRiskCheckProject($manager, $member, $admin);
+        $this->addLongListProject($manager, $member);
+        $this->addDashboardProject($manager, $member);
+        // Last, so the package ids above don't move.
+        $this->addFinishedParentProject($manager, $member);
+        $this->addSummaryPackages($notificationProject, $notifiedMechanical, $member);
+    }
+
+    /**
+     * For the summary notification test: eleven packages of the notification project that the member owns and
+     * buys, with plenty of spare time (151 days). Raising the project's amber warning above that turns all of them
+     * amber at once, which is more than the ten notices one check sends a person one by one.
+     */
+    private function addSummaryPackages(Project $project, ProjectCategory $category, User $member): void
+    {
+        $needDateId = $project->milestones()->where('name', 'Required on site')->value('id');
+
+        foreach (range(1, 11) as $number) {
+            $package = $this->createPackage->handle($project, sprintf('Summary pump %02d', $number), $category);
+            $package->forceFill(['owner_id' => $member->id, 'buyer_id' => $member->id, 'status' => PackageStatus::Ordered])->save();
+            PackageMilestone::factory()->for($package)->create(['project_milestone_id' => $needDateId, 'planned_date' => '2099-06-01', 'forecast_date' => '2099-01-01']);
+        }
+
+        // The first check only stores the levels, so the test's change is the one people hear about.
+        CheckProjectRisks::dispatchSync($project->id);
+    }
+
+    /**
+     * For the dashboard tests: one package behind each number, with dates counted from today so the numbers
+     * stay the same whenever the tests run. The member owns two of them and is a package owner here.
+     * Nothing changes this project, so every dashboard test can read it.
+     */
+    private function addDashboardProject(User $manager, User $member): void
+    {
+        $project = Project::factory()
+            ->withDefaultMilestones()
+            ->withMember($manager, ProjectRole::ProjectManager)
+            ->withMember($member, ProjectRole::PackageOwner)
+            ->create(['name' => 'Dashboard Project', 'code' => 'DP9', 'number_includes_category' => true, 'risk_amber_days' => 7, 'risk_red_days' => 0]);
+        $electrical = ProjectCategory::factory()->for($project)->create(['code' => 'ELE', 'name' => 'Electrical']);
+        $mechanical = ProjectCategory::factory()->for($project)->create(['code' => 'MEC', 'name' => 'Mechanical']);
+        $milestoneIds = $project->milestones()->pluck('id', 'name');
+        $today = now('UTC');
+        $plenty = ['Required on site' => ['planned_date' => '2099-06-01', 'forecast_date' => '2099-01-01']];
+
+        $this->addDashboardPackage($project, 'Overdue order', $mechanical, $member, $manager, $milestoneIds, [
+            ...$plenty,
+            'Order placed' => ['planned_date' => $today->copy()->subDays(3)->toDateString()],
+        ]);
+        $this->addDashboardPackage($project, 'Coming delivery', $mechanical, $member, $manager, $milestoneIds, [
+            ...$plenty,
+            'Delivered from supplier' => ['forecast_date' => $today->copy()->addDays(5)->toDateString()],
+        ]);
+        $this->addDashboardPackage($project, 'Buyerless cable', $electrical, $manager, null, $milestoneIds, $plenty);
+        $flagged = $this->addDashboardPackage($project, 'Flagged switchgear', $electrical, $manager, $manager, $milestoneIds, $plenty);
+        $flagged->forceFill(['risk_flag_reason' => 'Supplier close to bankruptcy', 'risk_flagged_by_id' => $manager->id, 'risk_flagged_at' => now()])->save();
+        $this->addDashboardPackage($project, 'Undated panel', $electrical, $manager, $manager, $milestoneIds, []);
+        $closed = $this->addDashboardPackage($project, 'Closed pump', $mechanical, $manager, $manager, $milestoneIds, [
+            'Order placed' => ['planned_date' => '2020-01-15'],
+        ]);
+        $closed->forceFill(['status' => PackageStatus::Closed])->save();
+    }
+
+    /**
+     * @param  Collection<string, int>  $milestoneIds
+     * @param  array<string, array<string, string>>  $dates  per milestone name
+     */
+    private function addDashboardPackage(Project $project, string $title, ProjectCategory $category, User $owner, ?User $buyer, Collection $milestoneIds, array $dates): Package
+    {
+        $package = $this->createPackage->handle($project, $title, $category);
+        $package->forceFill(['owner_id' => $owner->id, 'buyer_id' => $buyer?->id, 'status' => PackageStatus::Ordered])->save();
+
+        foreach ($dates as $milestone => $values) {
+            PackageMilestone::factory()->for($package)->create(['project_milestone_id' => $milestoneIds[$milestone], ...$values]);
+        }
+
+        return $package;
+    }
+
+    /**
+     * A cancelled package with a sub-package that would be red on its own: no owner, buyer or need date, and an
+     * order date long past. Below a cancelled package it counts as finished.
+     */
+    private function addFinishedParentProject(User $manager, User $member): void
+    {
+        $project = Project::factory()
+            ->withDefaultMilestones()
+            ->withMember($manager, ProjectRole::ProjectManager)
+            ->withMember($member, ProjectRole::Viewer)
+            ->create(['name' => 'Finished Parent Project', 'code' => 'FP10', 'number_includes_category' => false]);
+        $milestoneIds = $project->milestones()->pluck('id', 'name');
+
+        $frame = $this->addRiskPackage($project, 'Cancelled frame', null, $manager, $milestoneIds, []);
+        $this->addRiskPackage($project, 'Leftover bolts', $frame, null, $milestoneIds, ['Order placed' => ['planned_date' => '2020-01-15']]);
+        $frame->forceFill(['status' => PackageStatus::Cancelled])->save();
+    }
+
+    /**
+     * For the long list tests: enough packages that the list draws only some of them at a time.
+     * The member is a viewer here.
+     */
+    private function addLongListProject(User $manager, User $member): void
+    {
+        $project = Project::factory()
+            ->withDefaultMilestones()
+            ->withMember($manager, ProjectRole::ProjectManager)
+            ->withMember($member, ProjectRole::Viewer)
+            ->create(['name' => 'Long List Project', 'code' => 'LL8', 'number_includes_category' => false]);
+
+        foreach (range(1, 300) as $number) {
+            $this->createPackage->handle($project, sprintf('Long list item %03d', $number), null);
+        }
+    }
+
+    /**
+     * For the risk check tests: the member owns a package with plenty of time, which the manager makes late
+     * in the test. The admin owns one with a date overdue and one coming up, as if the feature had been
+     * running for a while and the daily check had then found them, so the admin starts with those reminders.
+     */
+    private function addRiskCheckProject(User $manager, User $member, User $admin): void
+    {
+        $project = Project::factory()
+            ->withDefaultMilestones()
+            ->withMember($manager, ProjectRole::ProjectManager)
+            ->withMember($member, ProjectRole::PackageOwner)
+            ->withMember($admin, ProjectRole::PackageOwner)
+            ->create(['name' => 'Risk Check Project', 'code' => 'RC7', 'number_includes_category' => false]);
+        $milestoneIds = $project->milestones()->pluck('id', 'name');
+        $plenty = ['Required on site' => ['planned_date' => '2099-06-01', 'forecast_date' => '2099-01-01']];
+
+        $watched = $this->addRiskPackage($project, 'Watched tank', null, $manager, $milestoneIds, $plenty);
+        $watched->forceFill(['owner_id' => $member->id])->save();
+        $reminded = $this->addRiskPackage($project, 'Reminded compressor', null, $manager, $milestoneIds, $plenty);
+        $reminded->forceFill(['owner_id' => $admin->id])->save();
+
+        // The first check only stores the levels; overdue dates found then would be kept quiet.
+        CheckProjectRisks::dispatchSync($project->id);
+
+        $today = now('UTC');
+        PackageMilestone::factory()->for($reminded)->create(['project_milestone_id' => $milestoneIds['Order placed'], 'planned_date' => $today->copy()->subDays(2)->toDateString()]);
+        PackageMilestone::factory()->for($reminded)->create(['project_milestone_id' => $milestoneIds['Delivered from supplier'], 'planned_date' => $today->copy()->addDays(3)->toDateString()]);
+        CheckProjectRisks::dispatchSync($project->id, sendDateReminders: true);
+    }
+
+    /**
+     * For the risk tests: one package at each level, and a red one under a package that is fine, to see the
+     * list's risk filter keep the packages above a match. Dates are far in the past or future, so the levels
+     * don't change as the days go by. The member is a viewer here.
+     */
+    private function addRiskProject(User $manager, User $member): void
+    {
+        $project = Project::factory()
+            ->withDefaultMilestones()
+            ->withMember($manager, ProjectRole::ProjectManager)
+            ->withMember($member, ProjectRole::Viewer)
+            ->create(['name' => 'Risk Project', 'code' => 'RP6', 'number_includes_category' => false]);
+        $milestoneIds = $project->milestones()->pluck('id', 'name');
+        $plenty = ['Required on site' => ['planned_date' => '2099-06-01', 'forecast_date' => '2099-01-01']];
+
+        $skid = $this->addRiskPackage($project, 'Main skid', null, $manager, $milestoneIds, $plenty);
+        $this->addRiskPackage($project, 'Overdue pump', $skid, $manager, $milestoneIds, [
+            ...$plenty,
+            'Order placed' => ['planned_date' => '2020-01-15'],
+        ]);
+        $this->addRiskPackage($project, 'Unowned crate', null, null, $milestoneIds, $plenty);
+        $this->addRiskPackage($project, 'Calm valve', null, $manager, $milestoneIds, $plenty);
+    }
+
+    /**
+     * @param  Collection<string, int>  $milestoneIds
+     * @param  array<string, array<string, string>>  $dates  per milestone name
+     */
+    private function addRiskPackage(Project $project, string $title, ?Package $parent, ?User $ownerAndBuyer, Collection $milestoneIds, array $dates): Package
+    {
+        $package = $this->createPackage->handle($project, $title, null, $parent);
+        $package->forceFill(['owner_id' => $ownerAndBuyer?->id, 'buyer_id' => $ownerAndBuyer?->id, 'status' => PackageStatus::Ordered])->save();
+
+        foreach ($dates as $milestone => $values) {
+            PackageMilestone::factory()->for($package)->create(['project_milestone_id' => $milestoneIds[$milestone], ...$values]);
+        }
+
+        return $package;
+    }
+}

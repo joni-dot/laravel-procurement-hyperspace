@@ -36,18 +36,22 @@ const action = InviteFirstAdminController.form({ company: props.company.id });
                 v-slot="{ errors, processing }"
             >
                 <DialogHeader>
-                    <DialogTitle>Invite the first admin</DialogTitle>
+                    <DialogTitle>{{
+                        $t('Invite the first admin')
+                    }}</DialogTitle>
                     <DialogDescription>
-                        {{ company.name }} has no admin yet, so nobody can
-                        invite people. Send the invitation again, or to a
-                        corrected address. A link sent earlier to another
-                        address stops working.
+                        {{
+                            $t(
+                                ':company has no admin yet, so nobody can invite people. Send the invitation again, or to a corrected address. A link sent earlier to another address stops working.',
+                                { company: company.name },
+                            )
+                        }}
                     </DialogDescription>
                 </DialogHeader>
 
                 <FormField
                     id="first-admin-name"
-                    label="Admin's name"
+                    :label="$t('Admin\'s name')"
                     :error="errors.admin_name"
                 >
                     <Input
@@ -64,7 +68,7 @@ const action = InviteFirstAdminController.form({ company: props.company.id });
 
                 <FormField
                     id="first-admin-email"
-                    label="Admin's email"
+                    :label="$t('Admin\'s email')"
                     :error="errors.admin_email"
                 >
                     <Input
@@ -82,13 +86,13 @@ const action = InviteFirstAdminController.form({ company: props.company.id });
 
                 <DialogFooter class="gap-2">
                     <DialogClose as-child>
-                        <Button type="button" variant="secondary"
-                            >Cancel</Button
-                        >
+                        <Button type="button" variant="secondary">
+                            {{ $t('Cancel') }}
+                        </Button>
                     </DialogClose>
                     <Button type="submit" :disabled="processing">
                         <Spinner v-if="processing" />
-                        Send invitation
+                        {{ $t('Send invitation') }}
                     </Button>
                 </DialogFooter>
             </Form>

@@ -9,6 +9,7 @@ import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { formatDate, formatFileSize } from '@/lib/format';
 import type { Certificate, CertificateType } from '@/types/srm';
+import { trans } from '@/lib/i18n';
 
 defineProps<{
     supplierId: number;
@@ -23,24 +24,26 @@ const certificateBeingDeleted = ref<Certificate | null>(null);
 
 function reminderSummary(certificate: Certificate): string {
     if (!certificate.expires_on || certificate.reminder_days.length === 0) {
-        return 'No reminders';
+        return trans('No reminders');
     }
 
-    return `Reminders ${certificate.reminder_days.join(' and ')} days before`;
+    return trans('Reminders :days days before', {
+        days: certificate.reminder_days.join(` ${trans('and')} `),
+    });
 }
 </script>
 
 <template>
     <section class="space-y-4">
         <div class="flex items-center justify-between gap-4">
-            <Heading variant="small" title="Certificates" />
+            <Heading variant="small" :title="$t('Certificates')" />
             <Button
                 v-if="canEdit"
                 variant="outline"
                 size="sm"
                 @click="isAdding = true"
             >
-                <Plus /> Add certificate
+                <Plus /> {{ $t('Add certificate') }}
             </Button>
         </div>
 
@@ -48,23 +51,27 @@ function reminderSummary(certificate: Certificate): string {
             v-if="certificates.length === 0"
             class="text-sm text-muted-foreground"
         >
-            No certificates yet.
+            {{ $t('No certificates yet.') }}
         </p>
 
         <div v-else class="overflow-x-auto rounded-xl border">
             <table class="w-full text-sm">
                 <thead class="bg-muted/50 text-left text-muted-foreground">
                     <tr>
-                        <th scope="col" class="px-4 py-3 font-medium">Type</th>
                         <th scope="col" class="px-4 py-3 font-medium">
-                            Valid until
+                            {{ $t('Type') }}
                         </th>
                         <th scope="col" class="px-4 py-3 font-medium">
-                            Status
+                            {{ $t('Valid until') }}
                         </th>
-                        <th scope="col" class="px-4 py-3 font-medium">File</th>
+                        <th scope="col" class="px-4 py-3 font-medium">
+                            {{ $t('Status') }}
+                        </th>
+                        <th scope="col" class="px-4 py-3 font-medium">
+                            {{ $t('File') }}
+                        </th>
                         <th scope="col" class="px-4 py-3">
-                            <span class="sr-only">Actions</span>
+                            <span class="sr-only">{{ $t('Actions') }}</span>
                         </th>
                     </tr>
                 </thead>
@@ -79,7 +86,11 @@ function reminderSummary(certificate: Certificate): string {
                                 v-if="certificate.reference"
                                 class="text-muted-foreground"
                             >
-                                No. {{ certificate.reference }}
+                                {{
+                                    $t('No. :reference', {
+                                        reference: certificate.reference,
+                                    })
+                                }}
                             </p>
                         </td>
                         <td class="px-4 py-3">
@@ -87,7 +98,7 @@ function reminderSummary(certificate: Certificate): string {
                                 {{
                                     certificate.expires_on
                                         ? formatDate(certificate.expires_on)
-                                        : 'No expiry'
+                                        : $t('No expiry')
                                 }}
                             </p>
                             <p class="text-muted-foreground">
@@ -129,7 +140,11 @@ function reminderSummary(certificate: Certificate): string {
                                 <Button
                                     variant="ghost"
                                     size="icon-sm"
-                                    :aria-label="`Edit ${certificate.type}`"
+                                    :aria-label="
+                                        $t('Edit :name', {
+                                            name: certificate.type,
+                                        })
+                                    "
                                     @click="
                                         certificateBeingEdited = certificate
                                     "
@@ -139,7 +154,11 @@ function reminderSummary(certificate: Certificate): string {
                                 <Button
                                     variant="ghost"
                                     size="icon-sm"
-                                    :aria-label="`Delete ${certificate.type}`"
+                                    :aria-label="
+                                        $t('Delete :name', {
+                                            name: certificate.type,
+                                        })
+                                    "
                                     @click="
                                         certificateBeingDeleted = certificate
                                     "
@@ -179,9 +198,13 @@ function reminderSummary(certificate: Certificate): string {
                 certificate: certificateBeingDeleted.id,
             })
         "
-        :title="`Delete ${certificateBeingDeleted.type}?`"
-        description="The certificate, its file and its reminders are removed permanently."
-        confirm-label="Delete"
+        :title="$t('Delete :name?', { name: certificateBeingDeleted.type })"
+        :description="
+            $t(
+                'The certificate, its file and its reminders are removed permanently.',
+            )
+        "
+        :confirm-label="$t('Delete')"
         :open="true"
         @update:open="certificateBeingDeleted = null"
     />

@@ -36,10 +36,10 @@ class CertificateRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'certificate_type_id' => 'certificate type',
-            'issued_on' => 'issue date',
-            'expires_on' => 'expiry date',
-            'reminder_days.*' => 'reminder',
+            'certificate_type_id' => __('certificate type'),
+            'issued_on' => __('issue date'),
+            'expires_on' => __('expiry date'),
+            'reminder_days.*' => __('reminder'),
         ];
     }
 

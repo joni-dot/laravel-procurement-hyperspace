@@ -57,6 +57,7 @@ for (const url of [
     `${company}/suppliers/create`,
     `${company}/admin/users`,
     `${company}/admin/settings`,
+    `${company}/admin/risk-warnings`,
     `${company}/admin/api-clients`,
 ]) {
     test(`${url} is forbidden`, async ({ page }) => {
@@ -65,3 +66,14 @@ for (const url of [
         expect(response.status()).toBe(403);
     });
 }
+
+test('a viewer can open the project dashboard but sees no admin menu', async ({
+    page,
+}) => {
+    await page.goto(`${company}/projects/dashboard`);
+
+    await expect(
+        page.getByRole('heading', { name: 'Project dashboard', exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText('Administration')).toHaveCount(0);
+});

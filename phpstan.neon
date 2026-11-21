@@ -17,3 +17,4 @@ parameters:
     databaseMigrationsPath:
         - database/migrations
         - app/Modules/Srm/Database/Migrations
+        - app/Modules/Ppr/Database/Migrations

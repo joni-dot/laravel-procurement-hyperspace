@@ -2,6 +2,7 @@
 import { Badge } from '@/components/ui/badge';
 import type { BadgeVariants } from '@/components/ui/badge';
 import type { CertificateStatus } from '@/types/srm';
+import { trans } from '@/lib/i18n';
 
 defineProps<{
     status: CertificateStatus;
@@ -9,16 +10,16 @@ defineProps<{
 
 const appearance: Record<
     CertificateStatus,
-    { label: string; variant: BadgeVariants['variant'] }
+    { label: () => string; variant: BadgeVariants['variant'] }
 > = {
-    valid: { label: 'Valid', variant: 'secondary' },
-    expiring_soon: { label: 'Expiring soon', variant: 'outline' },
-    expired: { label: 'Expired', variant: 'destructive' },
+    valid: { label: () => trans('Valid'), variant: 'secondary' },
+    expiring_soon: { label: () => trans('Expiring soon'), variant: 'outline' },
+    expired: { label: () => trans('Expired'), variant: 'destructive' },
 };
 </script>
 
 <template>
     <Badge :variant="appearance[status].variant">
-        {{ appearance[status].label }}
+        {{ appearance[status].label() }}
     </Badge>
 </template>

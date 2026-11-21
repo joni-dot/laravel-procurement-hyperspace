@@ -62,14 +62,14 @@ class InvitationsTest extends TestCase
             );
     }
 
-    public function test_accepting_joins_the_company_and_opens_its_dashboard()
+    public function test_accepting_joins_the_company_and_opens_it()
     {
         $acme = Company::factory()->create();
         $invitation = $this->inviteTo($acme, Role::Buyer);
 
         $this->actingAs($this->person)
             ->post(route('invitations.accept', ['invitation' => $invitation->id]))
-            ->assertRedirect(route('dashboard', ['company' => $acme->slug]));
+            ->assertRedirect(route('company.home', ['company' => $acme->slug]));
 
         $invitation->refresh();
         $this->assertTrue($invitation->isActive());
@@ -122,7 +122,8 @@ class InvitationsTest extends TestCase
 
         DB::enableQueryLog();
         $this->get(route('profile.edit'))->assertInertia(fn (AssertableInertia $page) => $page->where('invitationCount', 2));
-        $countQueries = collect(DB::getQueryLog())->filter(fn (array $query) => str_contains($query['query'], 'count(*)'));
+        $countQueries = collect(DB::getQueryLog())->filter(fn (array $query) => str_contains($query['query'], 'count(*)')
+            && str_contains($query['query'], 'from "memberships"'));
         DB::disableQueryLog();
 
         $this->assertCount(1, $countQueries);

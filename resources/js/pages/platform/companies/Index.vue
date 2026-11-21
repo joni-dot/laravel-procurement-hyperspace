@@ -16,11 +16,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatDate } from '@/lib/format';
 import type { Paginated, PlatformCompanyRow } from '@/types';
+import { trans } from '@/lib/i18n';
 
 defineOptions({
-    layout: {
-        breadcrumbs: [{ title: 'Companies', href: CompanyController.index() }],
-    },
+    layout: () => ({
+        breadcrumbs: [
+            { title: trans('Companies'), href: CompanyController.index() },
+        ],
+    }),
 });
 
 const props = defineProps<{
@@ -52,25 +55,38 @@ const searchCompanies = useDebounceFn((term: string) => {
 watch(search, searchCompanies);
 
 function memberSummary(company: PlatformCompanyRow): string {
-    const members = `${company.active_members_count} ${company.active_members_count === 1 ? 'member' : 'members'}`;
+    const count = company.active_members_count;
+    const members =
+        count === 1
+            ? trans(':count member', { count })
+            : trans(':count members', { count });
 
     return company.pending_invitations_count > 0
-        ? `${members}, ${company.pending_invitations_count} invited`
+        ? trans(':members, :invited invited', {
+              members,
+              invited: company.pending_invitations_count,
+          })
         : members;
 }
 </script>
 
 <template>
-    <Head title="Companies" />
+    <Head :title="$t('Companies')" />
 
     <div class="flex flex-1 flex-col gap-6 p-4">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <Heading
-                title="Companies"
-                description="The companies using the service. You can't see their data, only who they are and how many people they have."
+                :title="$t('Companies')"
+                :description="
+                    $t(
+                        'The companies using the service. You can\'t see their data, only who they are and how many people they have.',
+                    )
+                "
                 class="mb-0"
             />
-            <Button @click="isAdding = true"><Plus /> Add company</Button>
+            <Button @click="isAdding = true">
+                <Plus /> {{ $t('Add company') }}
+            </Button>
         </div>
 
         <div class="relative max-w-sm">
@@ -80,8 +96,8 @@ function memberSummary(company: PlatformCompanyRow): string {
             <Input
                 v-model="search"
                 type="search"
-                placeholder="Search by name or address"
-                aria-label="Search companies"
+                :placeholder="$t('Search by name or address')"
+                :aria-label="$t('Search companies')"
                 class="pl-9"
             />
         </div>
@@ -90,21 +106,23 @@ function memberSummary(company: PlatformCompanyRow): string {
             <table class="w-full text-sm">
                 <thead class="bg-muted/50 text-left text-muted-foreground">
                     <tr>
-                        <th scope="col" class="px-4 py-3 font-medium">Name</th>
                         <th scope="col" class="px-4 py-3 font-medium">
-                            Address
+                            {{ $t('Name') }}
                         </th>
                         <th scope="col" class="px-4 py-3 font-medium">
-                            Status
+                            {{ $t('Address') }}
                         </th>
                         <th scope="col" class="px-4 py-3 font-medium">
-                            Members
+                            {{ $t('Status') }}
                         </th>
                         <th scope="col" class="px-4 py-3 font-medium">
-                            Created
+                            {{ $t('Members') }}
+                        </th>
+                        <th scope="col" class="px-4 py-3 font-medium">
+                            {{ $t('Created') }}
                         </th>
                         <th scope="col" class="px-4 py-3">
-                            <span class="sr-only">Actions</span>
+                            <span class="sr-only">{{ $t('Actions') }}</span>
                         </th>
                     </tr>
                 </thead>
@@ -126,8 +144,8 @@ function memberSummary(company: PlatformCompanyRow): string {
                             >
                                 {{
                                     company.is_suspended
-                                        ? 'Suspended'
-                                        : 'Active'
+                                        ? $t('Suspended')
+                                        : $t('Active')
                                 }}
                             </Badge>
                         </td>
@@ -140,7 +158,11 @@ function memberSummary(company: PlatformCompanyRow): string {
                                 v-if="company.first_admin_invitation"
                                 variant="ghost"
                                 size="icon-sm"
-                                :aria-label="`Invite the first admin of ${company.name}`"
+                                :aria-label="
+                                    $t('Invite the first admin of :name', {
+                                        name: company.name,
+                                    })
+                                "
                                 @click="companyNeedingAdmin = company"
                             >
                                 <UserPlus />
@@ -148,7 +170,9 @@ function memberSummary(company: PlatformCompanyRow): string {
                             <Button
                                 variant="ghost"
                                 size="icon-sm"
-                                :aria-label="`Edit ${company.name}`"
+                                :aria-label="
+                                    $t('Edit :name', { name: company.name })
+                                "
                                 @click="companyBeingEdited = company"
                             >
                                 <Pencil />
@@ -157,7 +181,9 @@ function memberSummary(company: PlatformCompanyRow): string {
                                 v-if="company.is_suspended"
                                 variant="ghost"
                                 size="icon-sm"
-                                :aria-label="`Reopen ${company.name}`"
+                                :aria-label="
+                                    $t('Reopen :name', { name: company.name })
+                                "
                                 @click="companyBeingReopened = company"
                             >
                                 <Play />
@@ -166,7 +192,9 @@ function memberSummary(company: PlatformCompanyRow): string {
                                 v-else
                                 variant="ghost"
                                 size="icon-sm"
-                                :aria-label="`Suspend ${company.name}`"
+                                :aria-label="
+                                    $t('Suspend :name', { name: company.name })
+                                "
                                 @click="companyBeingSuspended = company"
                             >
                                 <Pause />
@@ -178,7 +206,7 @@ function memberSummary(company: PlatformCompanyRow): string {
                             colspan="6"
                             class="px-4 py-10 text-center text-muted-foreground"
                         >
-                            No companies found.
+                            {{ $t('No companies found.') }}
                         </td>
                     </tr>
                 </tbody>
@@ -213,9 +241,13 @@ function memberSummary(company: PlatformCompanyRow): string {
         :action="
             SuspendCompanyController.form({ company: companyBeingSuspended.id })
         "
-        :title="`Suspend ${companyBeingSuspended.name}?`"
-        description="Its members can't open the company until you reopen it. All its data is kept."
-        confirm-label="Suspend"
+        :title="$t('Suspend :name?', { name: companyBeingSuspended.name })"
+        :description="
+            $t(
+                'Its members can\'t open the company until you reopen it. All its data is kept.',
+            )
+        "
+        :confirm-label="$t('Suspend')"
         :open="true"
         @update:open="companyBeingSuspended = null"
     />
@@ -225,9 +257,13 @@ function memberSummary(company: PlatformCompanyRow): string {
         :action="
             ReopenCompanyController.form({ company: companyBeingReopened.id })
         "
-        :title="`Reopen ${companyBeingReopened.name}?`"
-        description="Its members can open the company again, with all its data as it was."
-        confirm-label="Reopen"
+        :title="$t('Reopen :name?', { name: companyBeingReopened.name })"
+        :description="
+            $t(
+                'Its members can open the company again, with all its data as it was.',
+            )
+        "
+        :confirm-label="$t('Reopen')"
         :open="true"
         @update:open="companyBeingReopened = null"
     />

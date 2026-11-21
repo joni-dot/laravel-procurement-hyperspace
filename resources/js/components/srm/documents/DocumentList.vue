@@ -32,12 +32,12 @@ const documentBeingDeleted = ref<SupplierDocument | null>(null);
                 size="sm"
                 @click="isUploading = true"
             >
-                <Upload /> Upload document
+                <Upload /> {{ $t('Upload document') }}
             </Button>
         </div>
 
         <p v-if="documents.length === 0" class="text-sm text-muted-foreground">
-            No documents yet.
+            {{ $t('No documents yet.') }}
         </p>
 
         <ul v-else class="divide-y rounded-xl border">
@@ -65,7 +65,9 @@ const documentBeingDeleted = ref<SupplierDocument | null>(null);
                     v-if="canEdit"
                     variant="ghost"
                     size="icon-sm"
-                    :aria-label="`Delete ${document.file_name}`"
+                    :aria-label="
+                        $t('Delete :name', { name: document.file_name })
+                    "
                     @click="documentBeingDeleted = document"
                 >
                     <Trash2 />
@@ -89,9 +91,9 @@ const documentBeingDeleted = ref<SupplierDocument | null>(null);
                 document: documentBeingDeleted.id,
             })
         "
-        :title="`Delete ${documentBeingDeleted.file_name}?`"
-        description="The file is removed permanently."
-        confirm-label="Delete"
+        :title="$t('Delete :name?', { name: documentBeingDeleted.file_name })"
+        :description="$t('The file is removed permanently.')"
+        :confirm-label="$t('Delete')"
         :open="true"
         @update:open="documentBeingDeleted = null"
     />

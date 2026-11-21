@@ -41,12 +41,17 @@ async function copy(field: string, value: string): Promise<void> {
     <Dialog v-model:open="isOpen">
         <DialogContent>
             <DialogHeader>
-                <DialogTitle
-                    >Credentials for {{ credentials.name }}</DialogTitle
-                >
+                <DialogTitle>
+                    {{
+                        $t('Credentials for :name', { name: credentials.name })
+                    }}
+                </DialogTitle>
                 <DialogDescription>
-                    Copy the secret now and store it in the other system. It is
-                    not shown again; if it is lost, create a new secret.
+                    {{
+                        $t(
+                            'Copy the secret now and store it in the other system. It is not shown again; if it is lost, create a new secret.',
+                        )
+                    }}
                 </DialogDescription>
             </DialogHeader>
 
@@ -55,17 +60,17 @@ async function copy(field: string, value: string): Promise<void> {
                     v-for="field in [
                         {
                             id: 'token-url',
-                            label: 'Token URL',
+                            label: $t('Token URL'),
                             value: tokenUrl,
                         },
                         {
                             id: 'client-id',
-                            label: 'Client ID',
+                            label: $t('Client ID'),
                             value: credentials.client_id,
                         },
                         {
                             id: 'client-secret',
-                            label: 'Client secret',
+                            label: $t('Client secret'),
                             value: credentials.secret,
                         },
                     ]"
@@ -87,7 +92,9 @@ async function copy(field: string, value: string): Promise<void> {
                             type="button"
                             variant="outline"
                             size="icon"
-                            :aria-label="`Copy ${field.label}`"
+                            :aria-label="
+                                $t('Copy :label', { label: field.label })
+                            "
                             @click="copy(field.id, field.value)"
                         >
                             <Check v-if="copiedField === field.id" />
@@ -99,7 +106,7 @@ async function copy(field: string, value: string): Promise<void> {
 
             <DialogFooter>
                 <DialogClose as-child>
-                    <Button type="button">Done</Button>
+                    <Button type="button">{{ $t('Done') }}</Button>
                 </DialogClose>
             </DialogFooter>
         </DialogContent>

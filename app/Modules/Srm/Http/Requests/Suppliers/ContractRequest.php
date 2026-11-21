@@ -52,15 +52,15 @@ class ContractRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'contract_type_id' => 'contract type',
-            'owner_user_id' => 'contract owner',
-            'starts_on' => 'start date',
-            'ends_on' => 'end date',
-            'renewal_term_months' => 'renewal term',
-            'notice_period_days' => 'notice period',
-            'currency_code' => 'currency',
-            'value_period' => 'value period',
-            'reminder_days.*' => 'reminder',
+            'contract_type_id' => __('contract type'),
+            'owner_user_id' => __('contract owner'),
+            'starts_on' => __('start date'),
+            'ends_on' => __('end date'),
+            'renewal_term_months' => __('renewal term'),
+            'notice_period_days' => __('notice period'),
+            'currency_code' => __('currency'),
+            'value_period' => __('value period'),
+            'reminder_days.*' => __('reminder'),
         ];
     }
 

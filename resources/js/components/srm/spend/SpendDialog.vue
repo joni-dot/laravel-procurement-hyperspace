@@ -43,19 +43,26 @@ const currencyCode = ref(props.spend?.currency_code ?? 'EUR');
                 <DialogHeader>
                     <DialogTitle>
                         {{
-                            spend ? `Edit spend for ${spend.year}` : 'Add spend'
+                            spend
+                                ? $t('Edit spend for :year', {
+                                      year: spend.year,
+                                  })
+                                : $t('Add spend')
                         }}
                     </DialogTitle>
                     <DialogDescription>
-                        One amount per year. Saving a year again replaces its
-                        amount.
+                        {{
+                            $t(
+                                'One amount per year. Saving a year again replaces its amount.',
+                            )
+                        }}
                     </DialogDescription>
                 </DialogHeader>
 
                 <div class="grid gap-4 sm:grid-cols-3">
                     <FormField
                         id="spend-year"
-                        label="Year"
+                        :label="$t('Year')"
                         :error="errors.year"
                     >
                         <Input
@@ -71,7 +78,7 @@ const currencyCode = ref(props.spend?.currency_code ?? 'EUR');
                     </FormField>
                     <FormField
                         id="spend-amount"
-                        label="Amount"
+                        :label="$t('Amount')"
                         :error="errors.amount"
                     >
                         <Input
@@ -86,7 +93,7 @@ const currencyCode = ref(props.spend?.currency_code ?? 'EUR');
                     </FormField>
                     <FormField
                         id="spend-currency"
-                        label="Currency"
+                        :label="$t('Currency')"
                         :error="errors.currency_code"
                     >
                         <NativeSelect
@@ -108,13 +115,13 @@ const currencyCode = ref(props.spend?.currency_code ?? 'EUR');
 
                 <DialogFooter class="gap-2">
                     <DialogClose as-child>
-                        <Button type="button" variant="secondary"
-                            >Cancel</Button
-                        >
+                        <Button type="button" variant="secondary">
+                            {{ $t('Cancel') }}
+                        </Button>
                     </DialogClose>
                     <Button type="submit" :disabled="processing">
                         <Spinner v-if="processing" />
-                        Save
+                        {{ $t('Save') }}
                     </Button>
                 </DialogFooter>
             </Form>

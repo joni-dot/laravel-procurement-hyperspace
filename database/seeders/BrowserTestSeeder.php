@@ -33,9 +33,11 @@ class BrowserTestSeeder extends Seeder
         $company = Company::factory()->create(['name' => 'Browser Test Company', 'slug' => 'browser-test']);
         app(CurrentCompany::class)->set($company);
 
-        User::factory()->admin()->create(['name' => 'Browser Admin', 'email' => 'admin@browser-test.example']);
+        $admin = User::factory()->admin()->create(['name' => 'Browser Admin', 'email' => 'admin@browser-test.example']);
         $buyer = User::factory()->buyer()->create(['name' => 'Browser Buyer', 'email' => 'buyer@browser-test.example']);
         $viewer = User::factory()->create(['name' => 'Browser Viewer', 'email' => 'viewer@browser-test.example']);
+        // Runs the browser test projects; a company viewer, like the viewer, as rights come from project roles.
+        $manager = User::factory()->create(['name' => 'Browser Manager', 'email' => 'manager@browser-test.example']);
 
         CertificateType::factory()->required()->create(['name' => 'ISO 9001']);
 
@@ -61,6 +63,8 @@ class BrowserTestSeeder extends Seeder
             'amount' => 987654,
             'currency_code' => Currency::Eur,
         ]);
+
+        app(BrowserTestProjects::class)->add($admin, $viewer, $manager);
 
         $this->addPlatformAdmin();
         $this->inviteToAnotherCompany($viewer);

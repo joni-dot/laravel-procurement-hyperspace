@@ -47,7 +47,7 @@ const page = usePage();
             rel="noopener noreferrer"
             class="text-xs text-muted-foreground underline-offset-4 hover:underline"
         >
-            Source code
+            {{ $t('Source code') }}
         </a>
     </div>
 </template>

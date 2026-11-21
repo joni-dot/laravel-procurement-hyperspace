@@ -23,19 +23,19 @@ const contactBeingDeleted = ref<Contact | null>(null);
 <template>
     <section class="space-y-4">
         <div class="flex items-center justify-between gap-4">
-            <Heading variant="small" title="Contacts" />
+            <Heading variant="small" :title="$t('Contacts')" />
             <Button
                 v-if="canEdit"
                 variant="outline"
                 size="sm"
                 @click="isAdding = true"
             >
-                <Plus /> Add contact
+                <Plus /> {{ $t('Add contact') }}
             </Button>
         </div>
 
         <p v-if="contacts.length === 0" class="text-sm text-muted-foreground">
-            No contacts yet.
+            {{ $t('No contacts yet.') }}
         </p>
 
         <ul v-else class="grid gap-3 md:grid-cols-2">
@@ -52,7 +52,7 @@ const contactBeingDeleted = ref<Contact | null>(null);
                                 v-if="contact.is_primary"
                                 variant="secondary"
                                 class="ml-1"
-                                >Primary</Badge
+                                >{{ $t('Primary') }}</Badge
                             >
                         </p>
                         <p
@@ -66,7 +66,9 @@ const contactBeingDeleted = ref<Contact | null>(null);
                         <Button
                             variant="ghost"
                             size="icon-sm"
-                            :aria-label="`Edit ${contact.name}`"
+                            :aria-label="
+                                $t('Edit :name', { name: contact.name })
+                            "
                             @click="contactBeingEdited = contact"
                         >
                             <Pencil />
@@ -74,7 +76,9 @@ const contactBeingDeleted = ref<Contact | null>(null);
                         <Button
                             variant="ghost"
                             size="icon-sm"
-                            :aria-label="`Delete ${contact.name}`"
+                            :aria-label="
+                                $t('Delete :name', { name: contact.name })
+                            "
                             @click="contactBeingDeleted = contact"
                         >
                             <Trash2 />
@@ -124,9 +128,9 @@ const contactBeingDeleted = ref<Contact | null>(null);
                 contact: contactBeingDeleted.id,
             })
         "
-        :title="`Delete ${contactBeingDeleted.name}?`"
-        description="Their contact details are removed permanently."
-        confirm-label="Delete"
+        :title="$t('Delete :name?', { name: contactBeingDeleted.name })"
+        :description="$t('Their contact details are removed permanently.')"
+        :confirm-label="$t('Delete')"
         :open="true"
         @update:open="contactBeingDeleted = null"
     />

@@ -18,13 +18,14 @@ import { NativeSelect } from '@/components/ui/native-select';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import type { RatingCriterion } from '@/types/srm';
+import { trans } from '@/lib/i18n';
 
 const SCORES = [
-    { value: 5, label: '5 – Excellent' },
-    { value: 4, label: '4 – Good' },
-    { value: 3, label: '3 – Acceptable' },
-    { value: 2, label: '2 – Poor' },
-    { value: 1, label: '1 – Very poor' },
+    { value: 5, label: () => trans('5 – Excellent') },
+    { value: 4, label: () => trans('4 – Good') },
+    { value: 3, label: () => trans('3 – Acceptable') },
+    { value: 2, label: () => trans('2 – Poor') },
+    { value: 1, label: () => trans('1 – Very poor') },
 ];
 
 const props = defineProps<{
@@ -59,10 +60,13 @@ function todayAsDate(): string {
                 v-slot="{ errors, processing }"
             >
                 <DialogHeader>
-                    <DialogTitle>Add rating</DialogTitle>
+                    <DialogTitle>{{ $t('Add rating') }}</DialogTitle>
                     <DialogDescription>
-                        The overall score is the weighted average of these
-                        scores.
+                        {{
+                            $t(
+                                'The overall score is the weighted average of these scores.',
+                            )
+                        }}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -80,13 +84,15 @@ function todayAsDate(): string {
                             :name="`scores[${criterion.id}]`"
                             required
                         >
-                            <option value="" disabled>Choose a score</option>
+                            <option value="" disabled>
+                                {{ $t('Choose a score') }}
+                            </option>
                             <option
                                 v-for="score in SCORES"
                                 :key="score.value"
                                 :value="score.value"
                             >
-                                {{ score.label }}
+                                {{ score.label() }}
                             </option>
                         </NativeSelect>
                     </FormField>
@@ -94,7 +100,7 @@ function todayAsDate(): string {
 
                 <FormField
                     id="rating-date"
-                    label="Rating date"
+                    :label="$t('Rating date')"
                     :error="errors.rated_on"
                 >
                     <Input
@@ -108,7 +114,7 @@ function todayAsDate(): string {
 
                 <FormField
                     id="rating-comment"
-                    label="Comment"
+                    :label="$t('Comment')"
                     :error="errors.comment"
                 >
                     <Textarea
@@ -122,13 +128,13 @@ function todayAsDate(): string {
 
                 <DialogFooter class="gap-2">
                     <DialogClose as-child>
-                        <Button type="button" variant="secondary"
-                            >Cancel</Button
-                        >
+                        <Button type="button" variant="secondary">
+                            {{ $t('Cancel') }}
+                        </Button>
                     </DialogClose>
                     <Button type="submit" :disabled="processing">
                         <Spinner v-if="processing" />
-                        Save
+                        {{ $t('Save') }}
                     </Button>
                 </DialogFooter>
             </Form>

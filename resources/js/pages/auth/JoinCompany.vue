@@ -3,11 +3,12 @@ import { Form, Head } from '@inertiajs/vue3';
 import InvitationController from '@/actions/App/Http/Controllers/InvitationController';
 import JoinCompanyController from '@/actions/App/Http/Controllers/JoinCompanyController';
 import { Button } from '@/components/ui/button';
+import { trans } from '@/lib/i18n';
 
 defineOptions({
-    layout: {
-        title: 'Invitation',
-    },
+    layout: () => ({
+        title: trans('Invitation'),
+    }),
 });
 
 defineProps<{
@@ -16,11 +17,16 @@ defineProps<{
 </script>
 
 <template>
-    <Head title="Invitation" />
+    <Head :title="$t('Invitation')" />
 
     <div class="space-y-6 text-center">
         <h2 class="text-lg font-medium">
-            Join {{ invitation.companyName }} as {{ invitation.role }}
+            {{
+                $t('Join :company as :role', {
+                    company: invitation.companyName,
+                    role: invitation.role,
+                })
+            }}
         </h2>
 
         <div class="flex justify-center gap-2">
@@ -37,7 +43,7 @@ defineProps<{
                     variant="secondary"
                     :disabled="processing"
                 >
-                    Decline
+                    {{ $t('Decline') }}
                 </Button>
             </Form>
             <Form
@@ -46,7 +52,9 @@ defineProps<{
                 "
                 v-slot="{ processing }"
             >
-                <Button type="submit" :disabled="processing">Accept</Button>
+                <Button type="submit" :disabled="processing">
+                    {{ $t('Accept') }}
+                </Button>
             </Form>
         </div>
     </div>

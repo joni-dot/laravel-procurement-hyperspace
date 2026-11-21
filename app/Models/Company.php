@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Role;
+use App\Rules\CompanySlug as CompanySlugRule;
 use Carbon\CarbonImmutable;
 use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -26,6 +27,19 @@ class Company extends Model
 
     /** What an address may look like: lowercase letters, digits and inner dashes, at most 40 characters. */
     public const string SLUG_PATTERN = '[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?';
+
+    /**
+     * The {company} part of a route: an address that isn't reserved. Pages outside companies, such as
+     * /settings/notifications, then never match a company route, whatever order the routes are
+     * registered in.
+     */
+    public static function routePattern(): string
+    {
+        $reserved = array_filter(CompanySlugRule::RESERVED, fn (string $word) => preg_match('/^'.self::SLUG_PATTERN.'$/D', $word) === 1);
+
+        // Not followed by another address character, so "settings" is refused but "settings-team" isn't.
+        return '(?!(?:'.implode('|', array_map(fn (string $word) => preg_quote($word, '#'), $reserved)).')(?![a-z0-9-]))'.self::SLUG_PATTERN;
+    }
 
     protected $fillable = ['name', 'slug'];
 

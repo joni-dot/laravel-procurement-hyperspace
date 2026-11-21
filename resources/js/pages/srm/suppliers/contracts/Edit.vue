@@ -5,6 +5,7 @@ import SupplierController from '@/actions/App/Modules/Srm/Http/Controllers/Suppl
 import ContractForm from '@/components/srm/contracts/ContractForm.vue';
 import Heading from '@/components/Heading.vue';
 import type { ContractFormData, ContractFormOptions } from '@/types/srm';
+import { trans } from '@/lib/i18n';
 
 const props = defineProps<
     ContractFormOptions & {
@@ -17,29 +18,29 @@ const route = { supplier: props.supplier.id, contract: props.contract.id };
 
 setLayoutProps({
     breadcrumbs: [
-        { title: 'Suppliers', href: SupplierController.index() },
+        { title: trans('Suppliers'), href: SupplierController.index() },
         {
             title: props.supplier.name,
             href: SupplierController.show({ supplier: props.supplier.id }),
         },
         { title: props.contract.title, href: ContractController.show(route) },
-        { title: 'Edit', href: ContractController.edit(route) },
+        { title: trans('Edit'), href: ContractController.edit(route) },
     ],
 });
 </script>
 
 <template>
-    <Head :title="`Edit ${contract.title}`" />
+    <Head :title="$t('Edit :name', { name: contract.title })" />
 
     <div class="p-4">
         <Heading
-            :title="`Edit ${contract.title}`"
+            :title="$t('Edit :name', { name: contract.title })"
             :description="supplier.name"
         />
         <ContractForm
             :action="ContractController.update.form(route)"
             :cancel-href="ContractController.show.url(route)"
-            submit-label="Save changes"
+            :submit-label="$t('Save changes')"
             :options="props"
             :contract="contract"
         />

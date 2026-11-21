@@ -29,7 +29,7 @@ class GuardTokenEndpoint
             $this->log('warning', 'Blocked token request after repeated failures', $request, Response::HTTP_TOO_MANY_REQUESTS);
 
             return response()->json(
-                ['error' => 'too_many_attempts', 'message' => 'Too many failed attempts. Try again later.'],
+                ['error' => 'too_many_attempts', 'message' => __('Too many failed attempts. Try again later.')],
                 Response::HTTP_TOO_MANY_REQUESTS,
                 ['Retry-After' => RateLimiter::availableIn($key)],
             );

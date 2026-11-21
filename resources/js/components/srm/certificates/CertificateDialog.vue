@@ -68,19 +68,24 @@ const action = props.certificate
                 <DialogHeader>
                     <DialogTitle>
                         {{
-                            certificate ? 'Edit certificate' : 'Add certificate'
+                            certificate
+                                ? $t('Edit certificate')
+                                : $t('Add certificate')
                         }}
                     </DialogTitle>
                     <DialogDescription>
-                        Reminders are emailed to the supplier's responsible
-                        buyer.
+                        {{
+                            $t(
+                                "Reminders are emailed to the supplier's responsible buyer.",
+                            )
+                        }}
                     </DialogDescription>
                 </DialogHeader>
 
                 <div class="grid gap-4 sm:grid-cols-2">
                     <FormField
                         id="certificate-type"
-                        label="Type"
+                        :label="$t('Type')"
                         :error="errors.certificate_type_id"
                     >
                         <NativeSelect
@@ -89,7 +94,9 @@ const action = props.certificate
                             name="certificate_type_id"
                             required
                         >
-                            <option value="" disabled>Choose a type</option>
+                            <option value="" disabled>
+                                {{ $t('Choose a type') }}
+                            </option>
                             <option
                                 v-for="type in certificateTypes"
                                 :key="type.id"
@@ -101,7 +108,7 @@ const action = props.certificate
                     </FormField>
                     <FormField
                         id="certificate-reference"
-                        label="Certificate number"
+                        :label="$t('Certificate number')"
                         :error="errors.reference"
                     >
                         <Input
@@ -113,7 +120,7 @@ const action = props.certificate
                     </FormField>
                     <FormField
                         id="certificate-issued-on"
-                        label="Issue date"
+                        :label="$t('Issue date')"
                         :error="errors.issued_on"
                     >
                         <Input
@@ -125,8 +132,8 @@ const action = props.certificate
                     </FormField>
                     <FormField
                         id="certificate-expires-on"
-                        label="Expiry date"
-                        hint="Leave empty if it never expires"
+                        :label="$t('Expiry date')"
+                        :hint="$t('Leave empty if it never expires')"
                         :error="errors.expires_on"
                     >
                         <Input
@@ -139,9 +146,11 @@ const action = props.certificate
                 </div>
 
                 <fieldset class="space-y-2">
-                    <legend class="text-sm font-medium">Email reminders</legend>
+                    <legend class="text-sm font-medium">
+                        {{ $t('Email reminders') }}
+                    </legend>
                     <p v-if="!expiresOn" class="text-sm text-muted-foreground">
-                        Set an expiry date to get reminders.
+                        {{ $t('Set an expiry date to get reminders.') }}
                     </p>
                     <ReminderDaysInput v-else v-model="reminderDays" />
                     <InputError :message="firstReminderError(errors)" />
@@ -149,11 +158,14 @@ const action = props.certificate
 
                 <FormField
                     id="certificate-file"
-                    label="File"
+                    :label="$t('File')"
                     :hint="
                         certificate?.file_name
-                            ? `Current file: ${certificate.file_name}. Choose a new file to replace it.`
-                            : 'PDF, JPG or PNG, up to 10 MB'
+                            ? $t(
+                                  'Current file: :name. Choose a new file to replace it.',
+                                  { name: certificate.file_name },
+                              )
+                            : $t('PDF, JPG or PNG, up to 10 MB')
                     "
                     :error="errors.file"
                 >
@@ -177,13 +189,13 @@ const action = props.certificate
 
                 <DialogFooter class="gap-2">
                     <DialogClose as-child>
-                        <Button type="button" variant="secondary"
-                            >Cancel</Button
-                        >
+                        <Button type="button" variant="secondary">
+                            {{ $t('Cancel') }}
+                        </Button>
                     </DialogClose>
                     <Button type="submit" :disabled="processing">
                         <Spinner v-if="processing" />
-                        Save
+                        {{ $t('Save') }}
                     </Button>
                 </DialogFooter>
             </Form>

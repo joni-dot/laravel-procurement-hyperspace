@@ -6,11 +6,17 @@ import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import { trans } from '@/lib/i18n';
 
 defineOptions({
-    layout: {
-        breadcrumbs: [{ title: 'Settings', href: SettingsController.edit() }],
-    },
+    layout: () => ({
+        breadcrumbs: [
+            {
+                title: trans('Supplier settings'),
+                href: SettingsController.edit(),
+            },
+        ],
+    }),
 });
 
 defineProps<{
@@ -19,10 +25,10 @@ defineProps<{
 </script>
 
 <template>
-    <Head title="Settings" />
+    <Head :title="$t('Supplier settings')" />
 
     <div class="flex max-w-xl flex-col gap-6 p-4">
-        <Heading title="Settings" class="mb-0" />
+        <Heading :title="$t('Supplier settings')" class="mb-0" />
 
         <Form
             v-bind="SettingsController.update.form()"
@@ -32,8 +38,12 @@ defineProps<{
         >
             <FormField
                 id="reminder_email"
-                label="Reminder email"
-                hint="Certificate reminders for suppliers without a responsible buyer go here, e.g. a shared procurement mailbox."
+                :label="$t('Reminder email')"
+                :hint="
+                    $t(
+                        'Certificate reminders for suppliers without a responsible buyer go here, e.g. a shared procurement mailbox.',
+                    )
+                "
                 :error="errors.reminder_email"
             >
                 <Input
@@ -41,14 +51,14 @@ defineProps<{
                     type="email"
                     name="reminder_email"
                     :default-value="reminderEmail ?? ''"
-                    placeholder="procurement@example.com"
+                    :placeholder="$t('procurement@example.com')"
                     autocomplete="off"
                 />
             </FormField>
 
             <Button type="submit" :disabled="processing">
                 <Spinner v-if="processing" />
-                Save
+                {{ $t('Save') }}
             </Button>
         </Form>
     </div>

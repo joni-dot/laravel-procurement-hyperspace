@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import { trans } from '@/lib/i18n';
 
 type CriterionRow = {
     id: number;
@@ -23,14 +24,14 @@ type CriterionRow = {
 };
 
 defineOptions({
-    layout: {
+    layout: () => ({
         breadcrumbs: [
             {
-                title: 'Rating criteria',
+                title: trans('Rating criteria'),
                 href: RatingCriterionController.index(),
             },
         ],
-    },
+    }),
 });
 
 const props = defineProps<{
@@ -81,28 +82,32 @@ const isOverMaximum = computed(() => totalWeightInUse.value > MAX_TOTAL_WEIGHT);
 
 function share(criterion: CriterionRow): string {
     if (criterion.retired_at) {
-        return 'Old ratings only';
+        return trans('Old ratings only');
     }
 
     const weight = Number(weights.value[criterion.id]) || 0;
 
     if (weight === 0) {
-        return 'Does not count';
+        return trans('Does not count');
     }
 
-    return `${Math.round((weight / totalWeightInUse.value) * 100)}% of the score`;
+    return trans(':percent% of the score', {
+        percent: Math.round((weight / totalWeightInUse.value) * 100),
+    });
 }
 
 function usage(criterion: CriterionRow): string {
     return criterion.scores_count === 1
-        ? 'Used in 1 rating'
-        : `Used in ${criterion.scores_count} ratings`;
+        ? trans('Used in 1 rating')
+        : trans('Used in :count ratings', { count: criterion.scores_count });
 }
 
 function removalDescription(criterion: CriterionRow): string {
     return criterion.scores_count > 0
-        ? 'Old ratings keep it, so it is retired rather than deleted. New ratings will not use it. Overall scores of old ratings do not change.'
-        : 'No ratings use it, so it is deleted permanently.';
+        ? trans(
+              'Old ratings keep it, so it is retired rather than deleted. New ratings will not use it. Overall scores of old ratings do not change.',
+          )
+        : trans('No ratings use it, so it is deleted permanently.');
 }
 
 function restore(criterion: CriterionRow): void {
@@ -115,20 +120,22 @@ function restore(criterion: CriterionRow): void {
 </script>
 
 <template>
-    <Head title="Rating criteria" />
+    <Head :title="$t('Rating criteria')" />
 
     <div class="flex max-w-3xl flex-1 flex-col gap-6 p-4">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <Heading
-                title="Rating criteria"
-                description="What buyers score suppliers on, from 1 to 5"
+                :title="$t('Rating criteria')"
+                :description="$t('What buyers score suppliers on, from 1 to 5')"
                 class="mb-0"
             />
-            <Button @click="isAdding = true"><Plus /> Add criterion</Button>
+            <Button @click="isAdding = true">
+                <Plus /> {{ $t('Add criterion') }}
+            </Button>
         </div>
 
         <p v-if="criteria.length === 0" class="text-sm text-muted-foreground">
-            No criteria yet.
+            {{ $t('No criteria yet.') }}
         </p>
 
         <Form
@@ -151,7 +158,7 @@ function restore(criterion: CriterionRow): void {
                                 v-if="criterion.retired_at"
                                 variant="outline"
                                 class="ml-1"
-                                >Retired</Badge
+                                >{{ $t('Retired') }}</Badge
                             >
                         </p>
                         <p class="text-muted-foreground">
@@ -163,7 +170,11 @@ function restore(criterion: CriterionRow): void {
                             <Input
                                 v-model="weights[criterion.id]"
                                 :name="`weights[${criterion.id}]`"
-                                :aria-label="`Weight of ${criterion.name}`"
+                                :aria-label="
+                                    $t('Weight of :name', {
+                                        name: criterion.name,
+                                    })
+                                "
                                 type="number"
                                 min="0"
                                 max="100"
@@ -186,7 +197,9 @@ function restore(criterion: CriterionRow): void {
                             type="button"
                             variant="ghost"
                             size="icon-sm"
-                            :aria-label="`Rename ${criterion.name}`"
+                            :aria-label="
+                                $t('Rename :name', { name: criterion.name })
+                            "
                             @click="criterionBeingRenamed = criterion"
                         >
                             <Pencil />
@@ -196,7 +209,9 @@ function restore(criterion: CriterionRow): void {
                             type="button"
                             variant="ghost"
                             size="icon-sm"
-                            :aria-label="`Bring back ${criterion.name}`"
+                            :aria-label="
+                                $t('Bring back :name', { name: criterion.name })
+                            "
                             @click="restore(criterion)"
                         >
                             <ArchiveRestore />
@@ -206,7 +221,9 @@ function restore(criterion: CriterionRow): void {
                             type="button"
                             variant="ghost"
                             size="icon-sm"
-                            :aria-label="`Remove ${criterion.name}`"
+                            :aria-label="
+                                $t('Remove :name', { name: criterion.name })
+                            "
                             @click="criterionBeingRemoved = criterion"
                         >
                             <Trash2 />
@@ -220,24 +237,34 @@ function restore(criterion: CriterionRow): void {
                     class="text-sm font-medium"
                     :class="{ 'text-destructive': isOverMaximum }"
                 >
-                    Total: {{ totalWeightInUse }}% of {{ MAX_TOTAL_WEIGHT }}%
+                    {{
+                        $t('Total: :total% of :maximum%', {
+                            total: totalWeightInUse,
+                            maximum: MAX_TOTAL_WEIGHT,
+                        })
+                    }}
                 </p>
                 <p v-if="isOverMaximum" class="text-sm text-destructive">
-                    Lower the weights by
-                    {{ totalWeightInUse - MAX_TOTAL_WEIGHT }}% to save.
+                    {{
+                        $t('Lower the weights by :excess% to save.', {
+                            excess: totalWeightInUse - MAX_TOTAL_WEIGHT,
+                        })
+                    }}
                 </p>
                 <InputError v-else :message="errors.weights" />
             </div>
 
             <div class="flex flex-wrap items-center justify-between gap-4">
                 <p class="max-w-md text-sm text-muted-foreground">
-                    A bigger weight makes a criterion count more. Saving
-                    recalculates the overall score of every rating and every
-                    risk level.
+                    {{
+                        $t(
+                            'A bigger weight makes a criterion count more. Saving recalculates the overall score of every rating and every risk level.',
+                        )
+                    }}
                 </p>
                 <Button type="submit" :disabled="processing || isOverMaximum">
                     <Spinner v-if="processing" />
-                    Save weights
+                    {{ $t('Save weights') }}
                 </Button>
             </div>
         </Form>
@@ -263,9 +290,9 @@ function restore(criterion: CriterionRow): void {
                 ratingCriterion: criterionBeingRemoved.id,
             })
         "
-        :title="`Remove ${criterionBeingRemoved.name}?`"
+        :title="$t('Remove :name?', { name: criterionBeingRemoved.name })"
         :description="removalDescription(criterionBeingRemoved)"
-        confirm-label="Remove"
+        :confirm-label="$t('Remove')"
         :open="true"
         @update:open="criterionBeingRemoved = null"
     />

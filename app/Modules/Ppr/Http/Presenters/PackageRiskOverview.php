@@ -1,0 +1,79 @@
+<?php
+
+namespace App\Modules\Ppr\Http\Presenters;
+
+use App\Modules\Ppr\Models\Package;
+use App\Modules\Ppr\Models\Project;
+use App\Modules\Ppr\Risk\ProjectRisks;
+use App\Modules\Ppr\Risk\RiskReason;
+use App\Modules\Ppr\Risk\RiskThresholds;
+use App\Modules\Ppr\Scheduling\ProjectSchedules;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+/**
+ * A package's risk level and reasons for its page, and who flagged it by hand. Four queries at most,
+ * however many sub-packages it has.
+ */
+final class PackageRiskOverview
+{
+    /**
+     * @return array{
+     *     level: string,
+     *     isFinished: bool,
+     *     isItselfFinished: bool,
+     *     belowAFinishedPackage: bool,
+     *     reasons: list<string>,
+     *     floatDays: int|null,
+     *     thresholds: array{amberDays: int, redDays: int},
+     *     overdueMilestone: array{name: string, due: string|null}|null,
+     *     flag: array{reason: string, flaggedByName: string|null, flaggedAt: string|null}|null,
+     * }
+     */
+    public static function for(Project $project, Package $package, string $today, bool $belowAFinishedPackage): array
+    {
+        // Its sub-packages too, because its float counts them.
+        $rows = $package->limitToItsTree(ProjectRisks::packageRows($project))->get();
+        $schedules = ProjectSchedules::for($project, $rows, $today, allOfTheProject: false, belowAFinishedPackage: $belowAFinishedPackage);
+        $risk = ProjectRisks::fromRows($project, $rows, $schedules)[$package->id];
+        $thresholds = RiskThresholds::of($project);
+
+        return [
+            'level' => $risk->level->value,
+            // Closed or cancelled, itself or a package above it: never at risk.
+            'isFinished' => $schedules->isFinished($package->id),
+            // Which of the two reasons the page gives for it.
+            'isItselfFinished' => $package->status->isFinished(),
+            'belowAFinishedPackage' => $belowAFinishedPackage,
+            'reasons' => array_map(fn (RiskReason $reason) => $reason->value, $risk->reasons),
+            'floatDays' => $schedules->floatWithSubPackages($package->id),
+            'thresholds' => ['amberDays' => $thresholds->amberDays, 'redDays' => $thresholds->redDays],
+            'overdueMilestone' => $risk->overdueMilestone === null ? null : [
+                'name' => $schedules->milestoneName($risk->overdueMilestone->milestoneId),
+                // The date it was due and missed; its expected date is today by now.
+                'due' => $risk->overdueMilestone->due(),
+            ],
+            'flag' => self::flag($package),
+        ];
+    }
+
+    /**
+     * Shown even when the package is closed, so the people who may edit it can still clear the flag.
+     *
+     * @return array{reason: string, flaggedByName: string|null, flaggedAt: string|null}|null
+     */
+    private static function flag(Package $package): ?array
+    {
+        if ($package->risk_flag_reason === null) {
+            return null;
+        }
+
+        // As the company knows them: someone who has left keeps the name they had then.
+        $package->loadMissing(['riskFlaggedBy' => fn (BelongsTo $flagger) => $flagger->withNameKnownToCurrentCompany()]);
+
+        return [
+            'reason' => $package->risk_flag_reason,
+            'flaggedByName' => $package->riskFlaggedBy?->name,
+            'flaggedAt' => $package->risk_flagged_at?->toIso8601String(),
+        ];
+    }
+}

@@ -4,6 +4,7 @@ import SupplierController from '@/actions/App/Modules/Srm/Http/Controllers/Suppl
 import Heading from '@/components/Heading.vue';
 import SupplierForm from '@/components/srm/suppliers/SupplierForm.vue';
 import type { SupplierFormData, SupplierFormOptions } from '@/types/srm';
+import { trans } from '@/lib/i18n';
 
 const props = defineProps<
     SupplierFormOptions & {
@@ -13,13 +14,13 @@ const props = defineProps<
 
 setLayoutProps({
     breadcrumbs: [
-        { title: 'Suppliers', href: SupplierController.index() },
+        { title: trans('Suppliers'), href: SupplierController.index() },
         {
             title: props.supplier.name,
             href: SupplierController.show({ supplier: props.supplier.id }),
         },
         {
-            title: 'Edit',
+            title: trans('Edit'),
             href: SupplierController.edit({ supplier: props.supplier.id }),
         },
     ],
@@ -27,16 +28,16 @@ setLayoutProps({
 </script>
 
 <template>
-    <Head :title="`Edit ${supplier.name}`" />
+    <Head :title="$t('Edit :name', { name: supplier.name })" />
 
     <div class="p-4">
-        <Heading :title="`Edit ${supplier.name}`" />
+        <Heading :title="$t('Edit :name', { name: supplier.name })" />
         <SupplierForm
             :action="SupplierController.update.form({ supplier: supplier.id })"
             :cancel-href="
                 SupplierController.show.url({ supplier: supplier.id })
             "
-            submit-label="Save changes"
+            :submit-label="$t('Save changes')"
             :options="props"
             :supplier="supplier"
         />

@@ -7,7 +7,8 @@ const pages = {
     '/admin/certificate-types': 'Certificate types',
     '/admin/contract-types': 'Contract types',
     '/admin/rating-criteria': 'Rating criteria',
-    '/admin/settings': 'Settings',
+    '/admin/settings': 'Supplier settings',
+    '/admin/risk-warnings': 'Project risk warnings',
 };
 
 for (const [url, title] of Object.entries(pages)) {
@@ -19,6 +20,21 @@ for (const [url, title] of Object.entries(pages)) {
         ).toBeVisible();
     });
 }
+
+test('an admin can change the project risk warning defaults', async ({
+    page,
+}) => {
+    await page.goto(`${company}/admin/risk-warnings`);
+
+    await page.getByLabel('Amber below').fill('21');
+    await page.getByLabel('Red below').fill('3');
+    await page.getByRole('button', { name: 'Save' }).click();
+    await expect(page.getByText('Settings saved.')).toBeVisible();
+
+    await page.reload();
+    await expect(page.getByLabel('Amber below')).toHaveValue('21');
+    await expect(page.getByLabel('Red below')).toHaveValue('3');
+});
 
 test('an admin can add a category', async ({ page }) => {
     await page.goto(`${company}/admin/categories`);

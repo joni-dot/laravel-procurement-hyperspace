@@ -38,6 +38,7 @@ for (const url of [
     `${company}/admin/users`,
     `${company}/admin/categories`,
     `${company}/admin/settings`,
+    `${company}/admin/risk-warnings`,
     `${company}/admin/api-clients`,
 ]) {
     test(`${url} is forbidden for a buyer`, async ({ page }) => {

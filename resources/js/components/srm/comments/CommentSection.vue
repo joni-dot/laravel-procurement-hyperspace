@@ -34,7 +34,7 @@ function showOlder(): void {
 
 <template>
     <section class="space-y-4">
-        <Heading variant="small" title="Comments" />
+        <Heading variant="small" :title="$t('Comments')" />
 
         <Button
             v-if="feed.next_limit"
@@ -42,11 +42,11 @@ function showOlder(): void {
             size="sm"
             @click="showOlder"
         >
-            Show older comments
+            {{ $t('Show older comments') }}
         </Button>
 
         <p v-if="feed.items.length === 0" class="text-sm text-muted-foreground">
-            No comments yet.
+            {{ $t('No comments yet.') }}
         </p>
 
         <ul v-else class="space-y-3">
@@ -75,7 +75,7 @@ function showOlder(): void {
             />
             <FormField
                 id="comment-body"
-                label="New comment"
+                :label="$t('New comment')"
                 :error="errors.body"
             >
                 <Textarea
@@ -91,7 +91,7 @@ function showOlder(): void {
             <div class="flex justify-end">
                 <Button type="submit" :disabled="processing">
                     <Spinner v-if="processing" />
-                    Post comment
+                    {{ $t('Post comment') }}
                 </Button>
             </div>
         </Form>
@@ -105,9 +105,9 @@ function showOlder(): void {
                 comment: commentBeingDeleted.id,
             })
         "
-        title="Delete this comment?"
-        description="The comment is removed permanently."
-        confirm-label="Delete"
+        :title="$t('Delete this comment?')"
+        :description="$t('The comment is removed permanently.')"
+        :confirm-label="$t('Delete')"
         :open="true"
         @update:open="commentBeingDeleted = null"
     />

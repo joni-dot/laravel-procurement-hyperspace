@@ -12,6 +12,7 @@ use App\Modules\Srm\Models\RatingScore;
 use App\Modules\Srm\Models\Supplier;
 use App\Modules\Srm\Models\SupplierRating;
 use App\Modules\Srm\Models\SupplierSpend;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Symfony\Component\Intl\Countries;
 
 /**
@@ -52,15 +53,16 @@ class SupplierDetails
     private function loadRelations(Supplier $supplier): void
     {
         $supplier->loadCount('contracts');
+        // People as the company knows them: someone who has left keeps the name they had then.
         $supplier->load([
             'categories:id,name',
-            'responsibleUser:id,name',
+            'responsibleUser' => fn (BelongsTo $user) => $user->withNameKnownToCurrentCompany(),
             'contacts' => fn ($query) => $query->orderByDesc('is_primary')->orderBy('name'),
             'certificates' => fn ($query) => $query->with(['type:id,name', 'reminders:id,certificate_id,days_before'])->orderByDesc('expires_on'),
             'documents' => fn ($query) => $query->whereNull('contract_id')->orderBy('file_name'),
-            'riskOverriddenBy:id,name',
+            'riskOverriddenBy' => fn (BelongsTo $user) => $user->withNameKnownToCurrentCompany(),
             'ratings' => fn ($query) => $query
-                ->with(['ratedBy:id,name', 'scores.criterion:id,name'])
+                ->with(['ratedBy' => fn (BelongsTo $user) => $user->withNameKnownToCurrentCompany(), 'scores.criterion:id,name'])
                 ->latest('rated_on')
                 ->latest('id')
                 ->limit(self::RATINGS_SHOWN),
@@ -79,7 +81,7 @@ class SupplierDetails
                 'payment_terms', 'delivery_place', 'notes', 'archived_at',
             ]),
             'responsible_user' => $supplier->responsibleUser?->name,
-            'country' => Countries::getName($supplier->country_code),
+            'country' => Countries::getName($supplier->country_code, app()->getLocale()),
             'currency' => $supplier->currency_code?->label(),
             'delivery_term' => $supplier->delivery_term?->label(),
             'categories' => $supplier->categories->pluck('name'),

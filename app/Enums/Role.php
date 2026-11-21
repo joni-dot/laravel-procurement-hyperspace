@@ -11,9 +11,9 @@ enum Role: string
     public function label(): string
     {
         return match ($this) {
-            self::Admin => 'Admin',
-            self::Buyer => 'Buyer',
-            self::Viewer => 'Viewer',
+            self::Admin => __('Admin'),
+            self::Buyer => __('Buyer'),
+            self::Viewer => __('Viewer'),
         };
     }
 

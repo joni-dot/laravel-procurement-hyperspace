@@ -21,6 +21,6 @@ class JoinCompanyController extends Controller
 
         $acceptInvitation->handle($membership);
 
-        return to_route('dashboard', ['company' => $membership->company->slug]);
+        return to_route('company.home', ['company' => $membership->company->slug]);
     }
 }

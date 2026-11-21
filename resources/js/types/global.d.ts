@@ -1,3 +1,4 @@
+import type { trans } from '@/lib/i18n';
 import type { Directive } from 'vue';
 import type { Auth } from '@/types/auth';
 
@@ -26,6 +27,8 @@ declare module '@inertiajs/core' {
             auth: Auth;
             /** Invitations to join a company that the person can still accept. */
             invitationCount: number;
+            /** The projects module's data for every page, counted in the navigation company. */
+            ppr: { unreadNotificationCount: number };
             sidebarOpen: boolean;
             [key: string]: unknown;
         };
@@ -41,5 +44,6 @@ declare module 'vue' {
         $inertia: typeof Router;
         $page: Page;
         $headManager: ReturnType<typeof createHeadManager>;
+        $t: typeof trans;
     }
 }

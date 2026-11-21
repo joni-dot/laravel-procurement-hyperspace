@@ -7,12 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { trans } from '@/lib/i18n';
 
 defineOptions({
-    layout: {
-        title: 'Welcome aboard',
-        description: 'Choose a password to finish setting up your account',
-    },
+    layout: () => ({
+        title: trans('Welcome aboard'),
+        description: trans(
+            'Choose a password to finish setting up your account',
+        ),
+    }),
 });
 
 defineProps<{
@@ -24,7 +27,7 @@ defineProps<{
 </script>
 
 <template>
-    <Head title="Set your password" />
+    <Head :title="$t('Set your password')" />
 
     <Form
         v-bind="AcceptInvitationController.store.form()"
@@ -36,7 +39,7 @@ defineProps<{
             <InputError :message="errors.token" />
 
             <div class="grid gap-2">
-                <Label for="email">Email</Label>
+                <Label for="email">{{ $t('Email') }}</Label>
                 <Input
                     id="email"
                     type="email"
@@ -47,7 +50,7 @@ defineProps<{
             </div>
 
             <div class="grid gap-2">
-                <Label for="name">Name</Label>
+                <Label for="name">{{ $t('Name') }}</Label>
                 <Input
                     id="name"
                     name="name"
@@ -59,7 +62,7 @@ defineProps<{
             </div>
 
             <div class="grid gap-2">
-                <Label for="password">Password</Label>
+                <Label for="password">{{ $t('Password') }}</Label>
                 <PasswordInput
                     id="password"
                     name="password"
@@ -71,7 +74,9 @@ defineProps<{
             </div>
 
             <div class="grid gap-2">
-                <Label for="password_confirmation">Confirm password</Label>
+                <Label for="password_confirmation">{{
+                    $t('Confirm password')
+                }}</Label>
                 <PasswordInput
                     id="password_confirmation"
                     name="password_confirmation"
@@ -83,7 +88,7 @@ defineProps<{
 
             <Button type="submit" class="mt-4 w-full" :disabled="processing">
                 <Spinner v-if="processing" />
-                Set password and join
+                {{ $t('Set password and join') }}
             </Button>
         </div>
     </Form>

@@ -44,16 +44,19 @@ const reason = ref(props.currentReason ?? '');
                 v-slot="{ errors, processing }"
             >
                 <DialogHeader>
-                    <DialogTitle>Change risk level</DialogTitle>
+                    <DialogTitle>{{ $t('Change risk level') }}</DialogTitle>
                     <DialogDescription>
-                        This replaces the calculated level until someone
-                        switches it back.
+                        {{
+                            $t(
+                                'This replaces the calculated level until someone switches it back.',
+                            )
+                        }}
                     </DialogDescription>
                 </DialogHeader>
 
                 <FormField
                     id="risk-level"
-                    label="Risk level"
+                    :label="$t('Risk level')"
                     :error="errors.level"
                 >
                     <NativeSelect
@@ -74,7 +77,7 @@ const reason = ref(props.currentReason ?? '');
 
                 <FormField
                     id="risk-reason"
-                    label="Reason"
+                    :label="$t('Reason')"
                     :error="errors.reason"
                 >
                     <Textarea
@@ -89,13 +92,13 @@ const reason = ref(props.currentReason ?? '');
 
                 <DialogFooter class="gap-2">
                     <DialogClose as-child>
-                        <Button type="button" variant="secondary"
-                            >Cancel</Button
-                        >
+                        <Button type="button" variant="secondary">
+                            {{ $t('Cancel') }}
+                        </Button>
                     </DialogClose>
                     <Button type="submit" :disabled="processing">
                         <Spinner v-if="processing" />
-                        Save
+                        {{ $t('Save') }}
                     </Button>
                 </DialogFooter>
             </Form>

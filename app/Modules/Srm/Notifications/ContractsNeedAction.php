@@ -38,7 +38,7 @@ class ContractsNeedAction extends Notification implements ShouldQueue
             ->map(fn (Contract $contract) => [
                 'supplier' => $contract->supplier->name,
                 'title' => $contract->title,
-                'action' => $contract->auto_renews ? 'Last day to cancel' : 'Ends',
+                'action' => $contract->auto_renews ? __('Last day to cancel') : __('Ends'),
                 'action_by' => (string) $contract->action_by?->toDateString(),
                 'days_left' => (int) today()->diffInDays($contract->action_by),
                 'url' => route('suppliers.contracts.show', [$contract->supplier_id, $contract->id]),
@@ -61,7 +61,7 @@ class ContractsNeedAction extends Notification implements ShouldQueue
         $count = count($this->items);
 
         return (new MailMessage)
-            ->subject($this->companyName.': '.trans_choice(':count contract needs your attention|:count contracts need your attention', $count))
+            ->subject(trans_choice(':company: :count contract needs your attention|:company: :count contracts need your attention', $count, ['company' => $this->companyName]))
             ->markdown('mail.srm.contracts-need-action', [
                 'intro' => trans_choice('This contract needs a decision soon:|These contracts need a decision soon:', $count),
                 'items' => $this->items,

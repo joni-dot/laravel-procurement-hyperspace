@@ -28,7 +28,7 @@ class ContactRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'phone.regex' => 'The phone number may only contain digits, spaces and + ( ) -.',
+            'phone.regex' => __('The phone number may only contain digits, spaces and + ( ) -.'),
         ];
     }
 

@@ -25,6 +25,6 @@ class OpenCompanyController extends Controller
                 : to_route('invitations.index');
         }
 
-        return to_route('dashboard', ['company' => $company->slug]);
+        return to_route('company.home', ['company' => $company->slug]);
     }
 }

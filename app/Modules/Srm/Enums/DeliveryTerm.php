@@ -22,17 +22,17 @@ enum DeliveryTerm: string
     public function label(): string
     {
         $description = match ($this) {
-            self::Exw => 'Ex Works',
-            self::Fca => 'Free Carrier',
-            self::Cpt => 'Carriage Paid To',
-            self::Cip => 'Carriage and Insurance Paid To',
-            self::Dap => 'Delivered at Place',
-            self::Dpu => 'Delivered at Place Unloaded',
-            self::Ddp => 'Delivered Duty Paid',
-            self::Fas => 'Free Alongside Ship',
-            self::Fob => 'Free on Board',
-            self::Cfr => 'Cost and Freight',
-            self::Cif => 'Cost, Insurance and Freight',
+            self::Exw => __('Ex Works'),
+            self::Fca => __('Free Carrier'),
+            self::Cpt => __('Carriage Paid To'),
+            self::Cip => __('Carriage and Insurance Paid To'),
+            self::Dap => __('Delivered at Place'),
+            self::Dpu => __('Delivered at Place Unloaded'),
+            self::Ddp => __('Delivered Duty Paid'),
+            self::Fas => __('Free Alongside Ship'),
+            self::Fob => __('Free on Board'),
+            self::Cfr => __('Cost and Freight'),
+            self::Cif => __('Cost, Insurance and Freight'),
         };
 
         return "{$this->value} – {$description}";
