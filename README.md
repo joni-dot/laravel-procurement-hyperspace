@@ -77,7 +77,10 @@ The service holds many companies, and each company's data is kept apart. A perso
 
 - **Addresses:** a company opens at `/{its address}`, for example `/acme/suppliers`. People who aren't members get "not found", the same answer as for an address no company has, so outsiders can't tell which companies exist.
 - **Switching companies:** the menu at the top of the sidebar shows the open company and every company the person belongs to (suspended ones are shown but can't be opened), plus their invitations and account settings. No new sign-in is needed. Signing in, or opening `/`, goes to the company used last.
-- **A company's home page:** `/{company}` opens the project dashboard for admins and for people who belong to at least one project there, and the supplier dashboard for everyone else. Each module offers its overview page (`App\Companies\CompanyHomePages`); Core doesn't know the modules' pages.
+- **Home page:** `/{company}` opens the company's **Home** page. Each module adds its own sections, and each section is shown only to the people it is useful for:
+    - Projects: **My next actions** (the 10 most urgent, for project members) and **My projects** (one row of numbers per project, for project members and admins; an admin in no project gets a link to Projects).
+    - Suppliers: the attention tiles and the soonest dates, for everyone. Contract tiles and dates appear only for buyers and admins.
+    - Each section links to its module's full dashboard, which stays where it was. The sections arrive just after the page, with grey placeholders meanwhile.
 - **Account and company:** name, email, password and two-factor sign-in belong to the account and work everywhere. Roles, settings (such as the reminder email) and API clients belong to one company.
 
 ### Roles in a company
@@ -142,7 +145,7 @@ The thresholds are in `app/Modules/Srm/Enums/RiskLevel.php`. The rules exist twi
 - **Who sees what:** everyone can see how many contracts a supplier has. Only buyers and admins can see contract details, values and files.
 - **Key date:** reminders count back from the last day to cancel for auto-renewing contracts, and from the end date for the rest.
 - **Auto-renewal:** every morning at 05:30 (UTC), active auto-renewing contracts past their end date move forward by their renewal term. Set a contract to Terminated to stop this.
-- **Reminders** go to the contract owner, then the responsible buyer, then the reminder email under **Settings**. Emails never include prices.
+- **Reminders** go to the bell (and daily summary email) of the contract owner, else the responsible buyer, or by email to the reminder email under **Settings** when there is neither. They never include prices.
 - **Documents** (PDF, JPG, PNG, .docx, .xlsx, up to 20 MB) are stored privately. Macro-enabled Office files are rejected.
 
 To run these jobs right away while testing:
@@ -154,7 +157,7 @@ To run these jobs right away while testing:
 
 ## Certificates
 
-- Each certificate has its own email reminders (for example 60 and 14 days before it expires). They go to the supplier's responsible buyer, or to the reminder email set by an admin under **Settings**.
+- Each certificate has its own reminders (for example 60 and 14 days before it expires). They go to the bell (and daily summary email) of the supplier's responsible buyer, or by email to the reminder email set by an admin under **Settings** when there is none.
 - Admins can mark a certificate type as **required**. Active suppliers without a valid certificate of that type are flagged in the supplier list.
 - Uploaded files (PDF, JPG, PNG, up to 10 MB) are stored privately and can only be downloaded by signed-in users.
 
@@ -258,6 +261,7 @@ Each package is **red**, **amber** or not at risk. The level is worked out every
 | Float below the project's amber warning                                                       | Amber |
 | No planned need date, so the float can't be judged                                            | Amber |
 | No package owner or responsible buyer, or theirs is no longer an active member of the company | Amber |
+| The chosen supplier is high risk (blocked included) or archived (see below)                   | Amber |
 
 - "Below" means the number itself is still fine: with amber at 7 days, 7 days to spare is not at risk and 6 is amber. A package with only a planned need date is expected exactly then, so it has no days to spare and is amber under the company defaults (amber below 7 days, red below 0).
 - Closed and cancelled packages are never at risk, and neither is any package below one, at any depth: it counts as finished, gets no date reminders and keeps its own status. Its page explains why.
@@ -266,9 +270,22 @@ Each package is **red**, **amber** or not at risk. The level is worked out every
 
 The package list has a **Risk** column (hover or a screen reader gives the reasons) and filters for the risk level and its reasons. The rules live in one place only, `app/Modules/Ppr/Risk/PackageRisk.php`; `App\Modules\Ppr\Risk\ProjectRisks::for($project)` works out every package of a project with three queries.
 
+### Suppliers on a package
+
+A package lists the suppliers asked for a quote, from the company's supplier register. Each has a status (**Asked for a quote**, **Offer received**, **Declined** or **Chosen**) and an optional note of up to 500 characters. Prices aren't kept here: money belongs in contracts, which viewers can't see.
+
+- At most one supplier is chosen: the one the package is bought from. Choosing another moves the previous one back to "Offer received".
+- Only suppliers that are neither archived nor blocked can be added or chosen. One archived or blocked later stays on the list, marked, and can still be removed.
+- Everyone who can see the package sees its suppliers; everyone who may edit the package manages them. To add one, search the company's suppliers by name or number; the page asks the server for at most 20 matches and never loads them all.
+- A supplier's own page lists the packages it is on, but only in projects the person can see (admins see all), at most 100, with the total.
+
+**The chosen supplier and package risk.** A package whose chosen supplier is high risk (blocked included, overrides respected) or archived is amber: "The chosen supplier is high risk or archived". Dates still decide red. Supplier risk is worked out live (`Supplier::withRiskLevel()`), so nothing is stored. Any save that can change a supplier's risk (its status, archiving, the risk override, ratings, rating weights, certificates and required certificate types) checks the projects whose packages chose it, and their project managers and package owners get the usual "risk level changed" notification, except the person who made the change. Certificates that expire with time are caught by the daily check at 04:00.
+
+This lives in its own module, `app/Modules/Sourcing`, because it joins the two others. The projects module offers a hook for risk reasons other modules know about (`App\Modules\Ppr\Risk\OutsideRiskReasons`); each is one more column of the query that reads the packages, so lists still need one query.
+
 ### Dashboard and project overview
 
-The **Project dashboard** is personal. It covers only the projects you are a member of, admins included; an admin who belongs to no project gets a link to the Projects page.
+The **Project dashboard** is personal; the Home page shows its start. It covers only the projects you are a member of, admins included; an admin who belongs to no project gets a link to the Projects page.
 
 - **My next actions:** milestones of the open packages you own or buy that are overdue, or due within your notification period (Settings → Notifications). It is the same rule as your date reminders; with 0 days, only overdue dates show. The most overdue come first. Up to 50 are listed, with the total.
 - **My projects:** one row per project with its red, amber, overdue and due-soon packages, plus missing owner or buyer, no need date and flagged.
@@ -307,15 +324,21 @@ The rules live in `app/Modules/Ppr/Numbering/PackageNumberFormat.php`. The numbe
 
 ### Notifications
 
-The bell at the top of every page shows how many unread notifications a person has and opens the **Notifications** page, newest first. Opening a notification goes to its package and marks it as read; **Mark as read** and **Mark all as read** do the same without leaving the page. Notifications are shown only in the app, not sent by email.
+Notifications cover both modules. The bell at the top of every page shows how many unread notifications a person has in the company and opens the **Notifications** page, newest first. Opening a notification marks it as read and goes to its package, supplier or contract; **Mark as read** and **Mark all as read** do the same without leaving the page.
 
-| Notification         | Who gets it                                                                                                      |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| You were assigned    | The person who becomes a package's owner or responsible buyer, unless they made the change themselves            |
-| Date coming up       | The package's owner and buyer, when a milestone's due date is within their own notification period               |
-| Date overdue         | The package's owner and buyer, the day after a milestone's due date has passed without an actual date            |
-| Risk level changed   | The project's managers and the package owner, when the package's level changes either way, unless they caused it |
-| Risk changes summary | Instead of the above, when one check would send a person more than 10 of them                                    |
+| Notification          | Who gets it                                                                                                      |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| You were assigned     | The person who becomes a package's owner or responsible buyer, unless they made the change themselves            |
+| Date coming up        | The package's owner and buyer, when a milestone's due date is within their own notification period               |
+| Date overdue          | The package's owner and buyer, the day after a milestone's due date has passed without an actual date            |
+| Risk level changed    | The project's managers and the package owner, when the package's level changes either way, unless they caused it |
+| Risk changes summary  | Instead of the above, when one check would send a person more than 10 of them                                    |
+| Certificate expiring  | A supplier's responsible buyer, on the certificate's reminder days                                               |
+| Contract needs action | The contract owner, else the supplier's responsible buyer, on the contract's reminder days; never with prices    |
+
+- **Email:** on **Settings → Notifications** each person chooses **Daily summary** (the default) or **Off**. The summary is one email per person and company each morning at 06:30 UTC, after the reminders. It lists that company's unread notifications that arrived since the last summary (newest first, at most 20, then "and N more"), and its links lead into the company. Turning email on later never sends old notifications. Run it by hand with `sail artisan notifications:send-summaries`.
+- Certificate and contract reminders addressed to a person arrive only this way, no longer as separate emails. When no person qualifies, the company's reminder email gets them by email as before.
+- Contract reminders are shown only while the person may see contract details (buyers and admins).
 
 - Each person sets on **Settings → Notifications** how many days ahead they want to hear about their packages' coming dates: 0 to 90, 7 at first, and 0 turns these reminders off. Overdue dates are still reported.
 - **Risk changes** are noticed by a background check of the whole project, which runs right after every save that can change a package's risk (a package, its dates or risk flag, the risk warnings, the milestone list, a member's role, deactivating someone) and once a day for what time changes. The app remembers the level people were last told about (`packages.notified_risk_level`). The first check of a package, for example a new one, only stores its level, so nobody gets a flood of notifications.
@@ -328,7 +351,7 @@ The bell at the top of every page shows how many unread notifications a person h
 - Notifications are private: nobody else, not even an admin, can open or mark someone's notifications.
 - They are sent in the background by the `queue` container.
 - **Companies:** notifications belong to the company of their project and are seen and counted only inside it. Opening or marking another company's notification answers "not found". The reminder period (Settings → Notifications) belongs to the person and is the same in every company.
-- For developers: each kind is a class extending `app/Modules/Ppr/Notifications/PackageNotification.php` (about one package) or `ProjectNotification.php` (about the whole project), which describe how every notification is stored, plus one message line in `resources/js/components/ppr/notifications/notificationMessages.ts`.
+- For developers: notifications live in Core (`App\Models\Notification`). Each module registers its kinds in `App\Notifications\NotificationKinds`: which stored types are its own, who may still see them (SQL), what they say (`NotificationMessage`, translated on the server and shared by the page and the email) and where opening one leads. A kind no module registers is never shown. Project kinds extend `PackageNotification` (about one package) or `ProjectNotification` (about the whole project), implement `message()`, and are listed in `ProjectNotificationKinds`.
 
 ## Page loading
 
@@ -355,7 +378,7 @@ The interface is in English, built so that other languages can be added later wi
 
 ## How the code is organised
 
-The app has a **Core** (sign-in, companies, users, settings, API clients and the layout) and two **modules**: suppliers (`app/Modules/Srm`, `resources/js/pages/srm`) and projects (`app/Modules/Ppr`, `resources/js/pages/ppr`). Each module keeps its code, database tables, pages and tests in its own folders and plugs itself into Core: its routes, timed jobs, its offer for the company's home page and the data it shares with every page. Core's server code doesn't use a module's code, and a test checks this. A few links remain: the sidebar lists both modules' pages, the top bar shows the projects module's notification bell, and the account settings link to its notification settings, so a module can't be switched off yet. CLAUDE.md lists the folders.
+The app has a **Core** (sign-in, companies, users, settings, API clients and the layout) and two **modules**: suppliers (`app/Modules/Srm`, `resources/js/pages/srm`) and projects (`app/Modules/Ppr`, `resources/js/pages/ppr`). Each module keeps its code, database tables, pages and tests in its own folders and plugs itself into Core: its routes, timed jobs, sections on other pages (such as Home), its kinds of notification and the data it shares with every page. A third module, **Sourcing** (`app/Modules/Sourcing`), connects the two: it alone may use both, and neither uses it. Core's server code doesn't use a module's code, and a test checks this. The sidebar still lists both modules' pages, so a module can't be switched off yet. CLAUDE.md lists the folders.
 
 ## Everyday commands
 
