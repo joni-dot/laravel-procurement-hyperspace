@@ -19,7 +19,7 @@ import {
     SidebarMenuItem,
     useSidebar,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
+import { home as companyHome } from '@/routes/company';
 import { index as invitations } from '@/routes/invitations';
 import { edit as accountSettings } from '@/routes/profile';
 
@@ -58,7 +58,9 @@ function initialOf(name: string): string {
                                 >
                                     {{ company.name }}
                                 </span>
-                                <span class="sr-only">, switch company</span>
+                                <span class="sr-only"
+                                    >, {{ $t('switch company') }}</span
+                                >
                             </div>
                         </template>
                         <AppLogo v-else />
@@ -77,7 +79,7 @@ function initialOf(name: string): string {
                         <DropdownMenuLabel
                             class="text-xs text-muted-foreground"
                         >
-                            Companies
+                            {{ $t('Companies') }}
                         </DropdownMenuLabel>
                         <DropdownMenuGroup>
                             <template
@@ -94,14 +96,14 @@ function initialOf(name: string): string {
                                     }}</span>
                                     <span
                                         class="ml-auto text-xs text-muted-foreground"
-                                        >Suspended</span
+                                        >{{ $t('Suspended') }}</span
                                     >
                                 </DropdownMenuItem>
                                 <DropdownMenuItem v-else as-child>
                                     <Link
                                         class="w-full cursor-pointer"
                                         :href="
-                                            dashboard({ company: item.slug })
+                                            companyHome({ company: item.slug })
                                         "
                                         :aria-current="
                                             item.slug === company?.slug
@@ -130,7 +132,7 @@ function initialOf(name: string): string {
                                 :href="invitations()"
                             >
                                 <Mail />
-                                Invitations
+                                {{ $t('Invitations') }}
                                 <Badge
                                     v-if="invitationCount > 0"
                                     variant="secondary"
@@ -145,7 +147,7 @@ function initialOf(name: string): string {
                                 :href="accountSettings()"
                             >
                                 <Settings />
-                                Account settings
+                                {{ $t('Account settings') }}
                             </Link>
                         </DropdownMenuItem>
                     </DropdownMenuGroup>

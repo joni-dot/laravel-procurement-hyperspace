@@ -5,23 +5,28 @@ import {
     Building,
     Building2,
     Code,
-    KeyRound,
     FileText,
+    FolderKanban,
+    KeyRound,
+    LayoutDashboard,
     LayoutGrid,
     Settings,
     Star,
     Tags,
+    TriangleAlert,
     Users,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import ApiClientController from '@/actions/App/Http/Controllers/Admin/ApiClientController';
+import MembershipController from '@/actions/App/Http/Controllers/Admin/MembershipController';
+import PlatformCompanyController from '@/actions/App/Http/Controllers/Platform/CompanyController';
+import RiskWarningsController from '@/actions/App/Modules/Ppr/Http/Controllers/Admin/SettingsController';
+import ProjectController from '@/actions/App/Modules/Ppr/Http/Controllers/Projects/ProjectController';
 import CategoryController from '@/actions/App/Modules/Srm/Http/Controllers/Admin/CategoryController';
 import CertificateTypeController from '@/actions/App/Modules/Srm/Http/Controllers/Admin/CertificateTypeController';
 import ContractTypeController from '@/actions/App/Modules/Srm/Http/Controllers/Admin/ContractTypeController';
 import RatingCriterionController from '@/actions/App/Modules/Srm/Http/Controllers/Admin/RatingCriterionController';
-import SettingsController from '@/actions/App/Modules/Srm/Http/Controllers/Admin/SettingsController';
-import MembershipController from '@/actions/App/Http/Controllers/Admin/MembershipController';
-import PlatformCompanyController from '@/actions/App/Http/Controllers/Platform/CompanyController';
+import SupplierSettingsController from '@/actions/App/Modules/Srm/Http/Controllers/Admin/SettingsController';
 import SupplierController from '@/actions/App/Modules/Srm/Http/Controllers/Suppliers/SupplierController';
 import CompanySwitcher from '@/components/CompanySwitcher.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -35,19 +40,42 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
+import { trans } from '@/lib/i18n';
+import { dashboard as supplierDashboard } from '@/routes';
+import { dashboard as projectDashboard } from '@/routes/projects';
 import type { NavItem } from '@/types';
 
 const page = usePage();
 
 // Links point into the open company (or the person's home company on account pages), so they are
 // worked out again whenever the company changes. Without any company there is nothing to link to.
-const mainNavItems = computed<NavItem[]>(() =>
+const projectNavItems = computed<NavItem[]>(() =>
     page.props.company
         ? [
-              { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
               {
-                  title: 'Suppliers',
+                  title: trans('Project dashboard'),
+                  href: projectDashboard(),
+                  icon: LayoutDashboard,
+              },
+              {
+                  title: trans('Projects'),
+                  href: ProjectController.index(),
+                  icon: FolderKanban,
+              },
+          ]
+        : [],
+);
+
+const supplierNavItems = computed<NavItem[]>(() =>
+    page.props.company
+        ? [
+              {
+                  title: trans('Supplier dashboard'),
+                  href: supplierDashboard(),
+                  icon: LayoutGrid,
+              },
+              {
+                  title: trans('Suppliers'),
                   href: SupplierController.index(),
                   icon: Building2,
               },
@@ -66,7 +94,7 @@ const adminNavItems = computed<NavItem[]>(() => {
         {
             isVisible: can.manageCategories,
             item: {
-                title: 'Categories',
+                title: trans('Categories'),
                 href: CategoryController.index(),
                 icon: Tags,
             },
@@ -74,7 +102,7 @@ const adminNavItems = computed<NavItem[]>(() => {
         {
             isVisible: can.manageCertificateTypes,
             item: {
-                title: 'Certificate types',
+                title: trans('Certificate types'),
                 href: CertificateTypeController.index(),
                 icon: BadgeCheck,
             },
@@ -82,7 +110,7 @@ const adminNavItems = computed<NavItem[]>(() => {
         {
             isVisible: can.manageContractTypes,
             item: {
-                title: 'Contract types',
+                title: trans('Contract types'),
                 href: ContractTypeController.index(),
                 icon: FileText,
             },
@@ -90,7 +118,7 @@ const adminNavItems = computed<NavItem[]>(() => {
         {
             isVisible: can.manageRatingCriteria,
             item: {
-                title: 'Rating criteria',
+                title: trans('Rating criteria'),
                 href: RatingCriterionController.index(),
                 icon: Star,
             },
@@ -98,7 +126,7 @@ const adminNavItems = computed<NavItem[]>(() => {
         {
             isVisible: can.manageUsers,
             item: {
-                title: 'Users',
+                title: trans('Users'),
                 href: MembershipController.index(),
                 icon: Users,
             },
@@ -106,7 +134,7 @@ const adminNavItems = computed<NavItem[]>(() => {
         {
             isVisible: can.manageApiClients,
             item: {
-                title: 'API clients',
+                title: trans('API clients'),
                 href: ApiClientController.index(),
                 icon: KeyRound,
             },
@@ -114,9 +142,17 @@ const adminNavItems = computed<NavItem[]>(() => {
         {
             isVisible: can.manageSettings,
             item: {
-                title: 'Settings',
-                href: SettingsController.edit(),
+                title: trans('Supplier settings'),
+                href: SupplierSettingsController.edit(),
                 icon: Settings,
+            },
+        },
+        {
+            isVisible: can.manageSettings,
+            item: {
+                title: trans('Project risk warnings'),
+                href: RiskWarningsController.edit(),
+                icon: TriangleAlert,
             },
         },
     ];
@@ -129,7 +165,7 @@ const platformNavItems = computed<NavItem[]>(() =>
     page.props.auth.isPlatformAdmin
         ? [
               {
-                  title: 'Companies',
+                  title: trans('Companies'),
                   href: PlatformCompanyController.index(),
                   icon: Building,
               },
@@ -146,18 +182,23 @@ const platformNavItems = computed<NavItem[]>(() =>
 
         <SidebarContent>
             <NavMain
-                v-if="mainNavItems.length > 0"
-                label="Company"
-                :items="mainNavItems"
+                v-if="projectNavItems.length > 0"
+                :label="$t('Projects')"
+                :items="projectNavItems"
+            />
+            <NavMain
+                v-if="supplierNavItems.length > 0"
+                :label="$t('Suppliers')"
+                :items="supplierNavItems"
             />
             <NavMain
                 v-if="adminNavItems.length > 0"
-                label="Administration"
+                :label="$t('Administration')"
                 :items="adminNavItems"
             />
             <NavMain
                 v-if="platformNavItems.length > 0"
-                label="Platform"
+                :label="$t('Platform')"
                 :items="platformNavItems"
             />
         </SidebarContent>
@@ -168,7 +209,7 @@ const platformNavItems = computed<NavItem[]>(() =>
                     <SidebarMenuButton
                         as-child
                         size="sm"
-                        tooltip="Source code"
+                        :tooltip="$t('Source code')"
                         class="text-muted-foreground"
                     >
                         <a
@@ -177,7 +218,7 @@ const platformNavItems = computed<NavItem[]>(() =>
                             rel="noopener noreferrer"
                         >
                             <Code />
-                            <span>Source code</span>
+                            <span>{{ $t('Source code') }}</span>
                         </a>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
