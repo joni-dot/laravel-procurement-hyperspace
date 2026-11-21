@@ -26,7 +26,7 @@ test('a user can sign in and log out', async ({ page }) => {
     await page.getByLabel('Email address').fill(users.viewer);
     await page.getByLabel('Password', { exact: true }).fill(password);
     await page.getByTestId('login-button').click();
-    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page).toHaveURL(new RegExp(`${company}/projects/dashboard$`));
 
     await page.getByRole('button', { name: 'Browser Viewer' }).click();
     await page.getByTestId('logout-button').click();
@@ -41,9 +41,9 @@ test('after signing out, Back does not show the previous pages', async ({
     await page.getByLabel('Email address').fill(users.viewer);
     await page.getByLabel('Password', { exact: true }).fill(password);
     await page.getByTestId('login-button').click();
-    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page).toHaveURL(new RegExp(`${company}/projects/dashboard$`));
     await expect(
-        page.getByRole('heading', { name: 'Needs attention' }),
+        page.getByRole('heading', { name: 'Project dashboard', exact: true }),
     ).toBeVisible();
 
     await page.getByRole('button', { name: 'Browser Viewer' }).click();

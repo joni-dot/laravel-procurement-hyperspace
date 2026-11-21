@@ -1,0 +1,89 @@
+import type { MembershipStatus } from '@/types/users';
+
+export type ProjectRole =
+    | 'project_manager'
+    | 'buyer'
+    | 'package_owner'
+    | 'viewer';
+
+export type ProjectRoleOption = {
+    value: ProjectRole;
+    label: string;
+    description: string;
+};
+
+/**
+ * What every project page receives for its title, breadcrumbs and tabs.
+ */
+export type ProjectHeader = {
+    id: number;
+    name: string;
+    code: string;
+    can: {
+        update: boolean;
+        manageMembers: boolean;
+    };
+};
+
+export type ProjectListItem = {
+    id: number;
+    name: string;
+    code: string;
+    membersCount: number;
+    myRole: string | null;
+};
+
+export type PersonOption = {
+    id: number;
+    name: string;
+    email: string;
+};
+
+export type ProjectMember = {
+    id: number;
+    name: string;
+    email: string;
+    status: Extract<MembershipStatus, 'active' | 'deactivated'>;
+    role: ProjectRole;
+};
+
+export type ProjectCategory = {
+    id: number;
+    code: string;
+    name: string;
+};
+
+export type NumberSeparator =
+    | 'hyphen'
+    | 'dot'
+    | 'slash'
+    | 'underscore'
+    | 'none';
+
+export type SeparatorOption = {
+    value: NumberSeparator;
+    label: string;
+    character: string;
+};
+
+export type NumberingScheme = {
+    prefix: string | null;
+    includesProjectCode: boolean;
+    includesCategory: boolean;
+    separator: NumberSeparator;
+    padding: number;
+    start: number;
+    subSeparator: NumberSeparator;
+    subPadding: number;
+};
+
+/**
+ * A row on the milestone list a project manager edits.
+ */
+export type ManagedMilestone = {
+    id: number;
+    name: string;
+    isNeedDate: boolean;
+    // Packages that lose dates or a lead time if the milestone is removed.
+    packagesWithDatesCount: number;
+};

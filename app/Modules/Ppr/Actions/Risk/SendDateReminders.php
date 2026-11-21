@@ -1,0 +1,163 @@
+<?php
+
+namespace App\Modules\Ppr\Actions\Risk;
+
+use App\Models\User;
+use App\Modules\Ppr\Enums\DateReminderKind;
+use App\Modules\Ppr\Models\Package;
+use App\Modules\Ppr\Models\Project;
+use App\Modules\Ppr\Notifications\DateComingUp;
+use App\Modules\Ppr\Notifications\DateOverdue;
+use App\Modules\Ppr\Notifications\PackageNotification;
+use App\Modules\Ppr\Notifications\ProjectRecipients;
+use App\Modules\Ppr\Scheduling\Days;
+use App\Modules\Ppr\Scheduling\ProjectSchedules;
+use App\Modules\Ppr\Scheduling\ScheduledMilestone;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use stdClass;
+
+/**
+ * Reminds a package's owner and buyer of its milestone dates: when a due date (the forecast, else the
+ * planned date) comes within their own notification period, and when it has passed without the milestone
+ * being marked done. Finished packages (closed or cancelled, or below one), done milestones and milestones
+ * without a due date get none.
+ *
+ * Each reminder is sent once per person, package, milestone, kind and due date (sent_reminders), so
+ * a moved date gets a reminder of its own. A package checked for the first time has its overdue dates
+ * recorded as reminded without telling anyone: its red risk badge already shows them, and the day the
+ * feature goes live mustn't bring a flood of old news.
+ */
+class SendDateReminders
+{
+    /**
+     * @param  Collection<int, stdClass>  $rows  ProjectRisks::packageRows() with notified_risk_level, as read before this run changed anything
+     * @param  bool  $onlyFirstChecks  true after a save: only records the overdue dates of packages checked for the first time,
+     *                                 so people aren't reminded of a date they have just typed, and the next daily run doesn't flood
+     */
+    public function handle(Project $project, Collection $rows, ProjectSchedules $schedules, bool $onlyFirstChecks = false): void
+    {
+        $recipients = ProjectRecipients::of($project);
+        $today = Days::fromDate($schedules->today);
+        $reminders = [];
+
+        foreach ($rows as $row) {
+            $isFirstCheck = $row->notified_risk_level === null;
+
+            if (($onlyFirstChecks && ! $isFirstCheck) || $schedules->isFinished($row->id)) {
+                continue;
+            }
+
+            foreach ($schedules->of($row->id)->milestones() as $milestone) {
+                foreach ($recipients->among([$row->owner_id, $row->buyer_id]) as $person) {
+                    $reminder = $this->reminder($row->id, $milestone, $person, $today, quiet: $isFirstCheck);
+
+                    if ($reminder !== null && ($reminder['quiet'] || ! $onlyFirstChecks)) {
+                        $reminders[$this->key($reminder)] = $reminder;
+                    }
+                }
+            }
+        }
+
+        $this->send($project, $this->recordNew($reminders), $recipients, $schedules);
+    }
+
+    /**
+     * @return array{user_id: int, package_id: int, project_milestone_id: int, kind: string, due_date: string, days_left: int, quiet: bool}|null
+     */
+    private function reminder(int $packageId, ScheduledMilestone $milestone, User $person, int $today, bool $quiet): ?array
+    {
+        $due = $milestone->due();
+
+        if ($milestone->isDone() || $due === null) {
+            return null;
+        }
+
+        $daysLeft = Days::fromDate($due) - $today;
+        $kind = DateReminderKind::forDaysLeft($daysLeft, $person->notification_days);
+
+        if ($kind === null) {
+            return null;
+        }
+
+        return [
+            'user_id' => $person->id,
+            'package_id' => $packageId,
+            'project_milestone_id' => $milestone->milestoneId,
+            'kind' => $kind->value,
+            'due_date' => $due,
+            'days_left' => $daysLeft,
+            // Only overdue dates are kept quiet on a first check; a date coming up is still news.
+            'quiet' => $quiet && $kind === DateReminderKind::Overdue,
+        ];
+    }
+
+    /**
+     * @param  array{user_id: int, package_id: int, project_milestone_id: int, kind: string, due_date: string}|stdClass  $reminder
+     */
+    private function key(array|stdClass $reminder): string
+    {
+        $reminder = (array) $reminder;
+
+        return implode('|', [$reminder['user_id'], $reminder['package_id'], $reminder['project_milestone_id'], $reminder['kind'], $reminder['due_date']]);
+    }
+
+    /**
+     * Records the reminders in one statement. A reminder already recorded, by an earlier run or by one
+     * running at the same moment, isn't returned, so only one run ever sends it.
+     *
+     * @param  array<string, array{user_id: int, package_id: int, project_milestone_id: int, kind: string, due_date: string, days_left: int, quiet: bool}>  $reminders  per key()
+     * @return list<array{user_id: int, package_id: int, project_milestone_id: int, kind: string, due_date: string, days_left: int, quiet: bool}> the ones recorded now
+     */
+    private function recordNew(array $reminders): array
+    {
+        if ($reminders === []) {
+            return [];
+        }
+
+        $recorded = DB::select(<<<'SQL'
+            insert into sent_reminders (user_id, package_id, project_milestone_id, kind, due_date, created_at)
+            select reminders.user_id, reminders.package_id, reminders.project_milestone_id, reminders.kind, reminders.due_date, now()
+            from json_to_recordset(?::json) as reminders(user_id bigint, package_id bigint, project_milestone_id bigint, kind text, due_date date)
+            on conflict (user_id, package_id, project_milestone_id, kind, due_date) do nothing
+            returning user_id, package_id, project_milestone_id, kind, due_date
+            SQL, [json_encode(array_values($reminders), JSON_THROW_ON_ERROR)], useReadPdo: false);
+
+        return array_values(array_map(fn (stdClass $row) => $reminders[$this->key($row)], $recorded));
+    }
+
+    /**
+     * @param  list<array{user_id: int, package_id: int, project_milestone_id: int, kind: string, due_date: string, days_left: int, quiet: bool}>  $recorded
+     */
+    private function send(Project $project, array $recorded, ProjectRecipients $recipients, ProjectSchedules $schedules): void
+    {
+        $toSend = array_filter($recorded, fn (array $reminder) => ! $reminder['quiet']);
+
+        if ($toSend === []) {
+            return;
+        }
+
+        $packages = $project->packages()
+            ->whereKey(array_unique(array_column($toSend, 'package_id')))
+            ->get(['id', 'project_id', 'number', 'title'])
+            ->keyBy('id');
+
+        foreach ($toSend as $reminder) {
+            [$person] = $recipients->among([$reminder['user_id']]);
+            $person->notify($this->notification($packages[$reminder['package_id']], $reminder, $schedules));
+        }
+    }
+
+    /**
+     * @param  array{user_id: int, package_id: int, project_milestone_id: int, kind: string, due_date: string, days_left: int, quiet: bool}  $reminder
+     */
+    private function notification(Package $package, array $reminder, ProjectSchedules $schedules): PackageNotification
+    {
+        $milestoneName = $schedules->milestoneName($reminder['project_milestone_id']);
+
+        return match (DateReminderKind::from($reminder['kind'])) {
+            DateReminderKind::ComingUp => new DateComingUp($package, $milestoneName, $reminder['due_date'], $reminder['days_left']),
+            DateReminderKind::Overdue => new DateOverdue($package, $milestoneName, $reminder['due_date']),
+        };
+    }
+}

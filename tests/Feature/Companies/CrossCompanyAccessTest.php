@@ -9,6 +9,11 @@ use App\Enums\Role;
 use App\Models\Company;
 use App\Models\Membership;
 use App\Models\User;
+use App\Modules\Ppr\Models\Notification;
+use App\Modules\Ppr\Models\Package;
+use App\Modules\Ppr\Models\Project;
+use App\Modules\Ppr\Models\ProjectCategory;
+use App\Modules\Ppr\Models\ProjectMember;
 use App\Modules\Srm\Models\Category;
 use App\Modules\Srm\Models\Certificate;
 use App\Modules\Srm\Models\CertificateType;
@@ -26,6 +31,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route as Router;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
 use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
@@ -59,6 +65,34 @@ class CrossCompanyAccessTest extends TestCase
         'admin.users.invitation.resend',
         'admin.users.reactivate',
         'admin.users.update',
+        'notifications.show',
+        'notifications.update',
+        'projects.categories.destroy',
+        'projects.categories.store',
+        'projects.categories.update',
+        'projects.edit',
+        'projects.members.destroy',
+        'projects.members.index',
+        'projects.members.store',
+        'projects.members.update',
+        'projects.milestones.destroy',
+        'projects.milestones.index',
+        'projects.milestones.move',
+        'projects.milestones.store',
+        'projects.milestones.update',
+        'projects.numbering.edit',
+        'projects.numbering.update',
+        'projects.packages.edit',
+        'projects.packages.index',
+        'projects.packages.risk-flag.destroy',
+        'projects.packages.risk-flag.store',
+        'projects.packages.schedule.edit',
+        'projects.packages.schedule.update',
+        'projects.packages.show',
+        'projects.packages.store',
+        'projects.packages.update',
+        'projects.show',
+        'projects.update',
         'suppliers.archive',
         'suppliers.certificates.destroy',
         'suppliers.certificates.download',
@@ -111,7 +145,7 @@ class CrossCompanyAccessTest extends TestCase
         $member->forceFill(['last_company_id' => $ours->id])->save();
 
         $theirs = Company::factory()->create();
-        $records = $this->recordsOf($theirs);
+        $records = $this->recordsOf($theirs, $member);
         $before = $this->databaseState([$ours, $theirs]);
 
         $this->actingAs($member)->withSession(['auth.password_confirmed_at' => time()]);
@@ -175,14 +209,14 @@ class CrossCompanyAccessTest extends TestCase
 
     /**
      * One record of the company for every kind of record in a route, each belonging to the same
-     * supplier where it has one, so only the company stands in the way. Keys starting with _ are
-     * not route parameters.
+     * supplier or project where it has one, so only the company stands in the way. Keys starting with _
+     * are not route parameters; projectCategory is {category} in the projects' routes (recordKey()).
      *
      * @return array<string, int|string>
      */
-    private function recordsOf(Company $company): array
+    private function recordsOf(Company $company, User $member): array
     {
-        return app(CurrentCompany::class)->runAs($company, function () use ($company) {
+        return app(CurrentCompany::class)->runAs($company, function () use ($company, $member) {
             $supplier = Supplier::factory()->create();
             $contract = Contract::factory()->for($supplier)->create();
             $document = Document::factory()->for($supplier)->create(['file_path' => "companies/{$company->id}/documents/{$supplier->id}/file.pdf"]);
@@ -192,6 +226,8 @@ class CrossCompanyAccessTest extends TestCase
             ]);
             Storage::disk('local')->put($document->file_path, 'their document');
             Storage::disk('local')->put((string) $certificate->file_path, 'their certificate');
+            $project = Project::factory()->withDefaultMilestones()->create();
+            $projectCategory = ProjectCategory::factory()->for($project)->create();
 
             return [
                 'supplier' => $supplier->id,
@@ -208,6 +244,13 @@ class CrossCompanyAccessTest extends TestCase
                 'ratingCriterion' => RatingCriterion::factory()->create()->id,
                 'apiClient' => app(CreateApiClient::class)->handle($company, 'Their integration', [ApiScope::SuppliersRead->value], User::factory()->admin()->create()->id)->id,
                 'membership' => Membership::factory()->invited()->create(['company_id' => $company->id, 'role' => Role::Buyer])->id,
+                'project' => $project->id,
+                'projectCategory' => $projectCategory->id,
+                'member' => ProjectMember::factory()->for($project)->create()->id,
+                'milestone' => $project->milestones()->firstOrFail()->id,
+                'package' => Package::factory()->for($project)->create(['category_id' => $projectCategory->id])->id,
+                // Addressed to our member, so only the company stands between them and it.
+                'notification' => $this->notificationOf($member, $project),
                 '_documentFile' => $document->file_path,
                 '_certificateFile' => (string) $certificate->file_path,
             ];
@@ -222,11 +265,35 @@ class CrossCompanyAccessTest extends TestCase
         $parameters = ['company' => $company->slug];
 
         foreach (array_diff($route->parameterNames(), ['company']) as $name) {
-            $this->assertArrayHasKey($name, $records, "Add a record for {{$name}} to recordsOf().");
-            $parameters[$name] = $records[$name];
+            $key = $this->recordKey($route, $name);
+            $this->assertArrayHasKey($key, $records, "Add a record for {{$name}} to recordsOf().");
+            $parameters[$name] = $records[$key];
         }
 
         return route((string) $route->getName(), $parameters);
+    }
+
+    /**
+     * The modules both call some records {category}: the supplier module's are company-wide, the projects' belong to a project.
+     */
+    private function recordKey(Route $route, string $parameter): string
+    {
+        return $parameter === 'category' && str_starts_with((string) $route->getName(), 'projects.') ? 'projectCategory' : $parameter;
+    }
+
+    private function notificationOf(User $person, Project $project): string
+    {
+        $notification = new Notification;
+        $notification->forceFill([
+            'id' => (string) Str::uuid(),
+            'type' => 'package_assigned',
+            'notifiable_type' => $person->getMorphClass(),
+            'notifiable_id' => $person->id,
+            'project_id' => $project->id,
+            'data' => ['params' => []],
+        ])->save();
+
+        return $notification->id;
     }
 
     /**
