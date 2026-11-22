@@ -19,7 +19,7 @@ final class CompanySlug implements ValidationRule
      */
     public const array RESERVED = [
         // Routes and files of the app.
-        '.well-known', '_inertia', 'api', 'build', 'email', 'forgot-password', 'hot', 'invitation', 'invitations',
+        '.well-known', '_inertia', 'api', 'build', 'email', 'forgot-password', 'health', 'hot', 'invitation', 'invitations',
         'login', 'logout', 'oauth', 'passkeys', 'password', 'platform', 'register', 'reset-password',
         'settings', 'storage', 'two-factor-challenge', 'up', 'user',
         // Kept for later, or easy to mistake for a page of the service.
