@@ -113,8 +113,9 @@ class HomeTest extends TestCase
     public static function people(): array
     {
         return [
-            'admin in a project' => [Role::Admin, true, self::EVERY_SECTION],
-            'admin in no project' => [Role::Admin, false, ['ppr_projects', ...self::SUPPLIER_SECTIONS]],
+            // A new company's admins also get the getting-started checklist first (OnboardingChecklistTest).
+            'admin in a project' => [Role::Admin, true, ['onboarding_checklist', ...self::EVERY_SECTION]],
+            'admin in no project' => [Role::Admin, false, ['onboarding_checklist', 'ppr_projects', ...self::SUPPLIER_SECTIONS]],
             'buyer in a project' => [Role::Buyer, true, self::EVERY_SECTION],
             'buyer in no project' => [Role::Buyer, false, self::SUPPLIER_SECTIONS],
             'viewer in a project' => [Role::Viewer, true, self::EVERY_SECTION],

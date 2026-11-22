@@ -19,6 +19,9 @@ use LogicException;
  * @property string $name
  * @property string $slug the company's part of the address: /{slug}/...
  * @property CarbonImmutable|null $suspended_at
+ * @property bool $is_demo filled with made-up data for demos and trials
+ * @property CarbonImmutable|null $onboarding_hidden_at when an admin hid the getting-started checklist
+ * @property CarbonImmutable|null $onboarding_completed_at when every step of the checklist was first found done
  */
 class Company extends Model
 {
@@ -83,6 +86,9 @@ class Company extends Model
     {
         return [
             'suspended_at' => 'datetime',
+            'is_demo' => 'boolean',
+            'onboarding_hidden_at' => 'datetime',
+            'onboarding_completed_at' => 'datetime',
         ];
     }
 

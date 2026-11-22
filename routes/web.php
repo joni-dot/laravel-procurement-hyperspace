@@ -3,9 +3,12 @@
 use App\Http\Controllers\Auth\AcceptInvitationController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\JoinCompanyController;
+use App\Http\Controllers\Onboarding\HideOnboardingChecklistController;
+use App\Http\Controllers\Onboarding\ShowOnboardingChecklistController;
 use App\Http\Controllers\OpenCompanyController;
 use App\Http\Controllers\OpenCompanyHomeController;
 use App\Models\Company;
+use App\Models\Setting;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', OpenCompanyController::class)->middleware('auth')->name('home');
@@ -42,6 +45,17 @@ Route::prefix('{company}')
     ->middleware('company')
     ->group(function () {
         Route::get('/', OpenCompanyHomeController::class)->middleware('auth')->name('company.home');
+
+        // The getting-started checklist on Home is the company's, so only its admins hide or show it.
+        Route::post('onboarding/hide', HideOnboardingChecklistController::class)
+            ->middleware('auth')
+            ->can('manage', Setting::class)
+            ->name('onboarding.hide');
+
+        Route::post('onboarding/show', ShowOnboardingChecklistController::class)
+            ->middleware('auth')
+            ->can('manage', Setting::class)
+            ->name('onboarding.show');
 
         require __DIR__.'/admin.php';
         require __DIR__.'/notifications.php';

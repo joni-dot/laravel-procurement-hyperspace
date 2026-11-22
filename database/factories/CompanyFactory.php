@@ -24,6 +24,11 @@ class CompanyFactory extends Factory
         ];
     }
 
+    public function demo(): static
+    {
+        return $this->state(fn (array $attributes) => ['is_demo' => true]);
+    }
+
     public function suspended(): static
     {
         return $this->state(fn (array $attributes) => ['suspended_at' => now()]);

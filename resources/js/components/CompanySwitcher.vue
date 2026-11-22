@@ -58,6 +58,11 @@ function initialOf(name: string): string {
                                 >
                                     {{ company.name }}
                                 </span>
+                                <span
+                                    v-if="company.is_demo"
+                                    class="truncate text-xs leading-tight text-muted-foreground"
+                                    >{{ $t('Demo') }}</span
+                                >
                                 <span class="sr-only"
                                     >, {{ $t('switch company') }}</span
                                 >
@@ -94,6 +99,11 @@ function initialOf(name: string): string {
                                     <span class="truncate">{{
                                         item.name
                                     }}</span>
+                                    <Badge
+                                        v-if="item.is_demo"
+                                        variant="outline"
+                                        >{{ $t('Demo') }}</Badge
+                                    >
                                     <span
                                         class="ml-auto text-xs text-muted-foreground"
                                         >{{ $t('Suspended') }}</span
@@ -114,6 +124,11 @@ function initialOf(name: string): string {
                                         <span class="truncate">{{
                                             item.name
                                         }}</span>
+                                        <Badge
+                                            v-if="item.is_demo"
+                                            variant="outline"
+                                            >{{ $t('Demo') }}</Badge
+                                        >
                                         <Check
                                             v-if="item.slug === company?.slug"
                                             class="ml-auto"

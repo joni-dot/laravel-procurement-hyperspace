@@ -2,6 +2,7 @@
 
 namespace App\Modules\Ppr\Notifications;
 
+use App\Companies\CurrentCompany;
 use App\Models\User;
 use App\Modules\Ppr\Enums\ProjectRole;
 use App\Modules\Ppr\Models\Project;
@@ -22,10 +23,20 @@ final readonly class ProjectRecipients
         private array $managerIds,
     ) {}
 
-    public static function of(Project $project): self
+    /**
+     * @param  bool  $withInvited  also people invited to the company who haven't joined yet. Only a demo
+     *                             company's data names them (its first admin); never notify them.
+     */
+    public static function of(Project $project, bool $withInvited = false): self
     {
         $people = User::query()
-            ->activeInCurrentCompany()
+            ->when(
+                $withInvited,
+                fn ($users) => $users->whereNull('users.deactivated_at')->whereHas('memberships', fn ($memberships) => $memberships
+                    ->where('company_id', app(CurrentCompany::class)->id() ?? 0)
+                    ->whereNull('deactivated_at')),
+                fn ($users) => $users->activeInCurrentCompany(),
+            )
             ->join('project_members', 'project_members.user_id', '=', 'users.id')
             ->where('project_members.project_id', $project->id)
             ->get(['users.*', 'project_members.role as project_role'])

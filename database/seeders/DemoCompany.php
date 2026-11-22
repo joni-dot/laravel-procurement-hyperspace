@@ -9,7 +9,7 @@ use App\Models\Membership;
 use App\Models\User;
 
 /**
- * The made-up company the demo seeders fill, with an admin to sign in as
+ * The made-up company the demo seeders fill, marked as a demo, with an admin to sign in as
  * (test@example.com, password "password"). Created the first time a demo seeder runs.
  */
 final class DemoCompany
@@ -19,7 +19,9 @@ final class DemoCompany
     public static function enter(): Company
     {
         $company = Company::query()->where('slug', self::SLUG)->first()
-            ?? Company::factory()->create(['name' => 'Demo Company', 'slug' => self::SLUG]);
+            ?? Company::factory()->demo()->create(['name' => 'Demo Company', 'slug' => self::SLUG]);
+        // Made-up data, so it is marked "Demo" wherever it is named, also in databases seeded before the mark existed.
+        $company->forceFill(['is_demo' => true])->save();
 
         app(CurrentCompany::class)->set($company);
 
