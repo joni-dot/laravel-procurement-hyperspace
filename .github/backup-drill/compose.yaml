@@ -1,0 +1,71 @@
+# Used only by .github/workflows/backups.yml on top of compose.production.yaml (write-env.sh lists both
+# in COMPOSE_FILE). Adds a throwaway S3-compatible server (SeaweedFS, Apache-2.0) with a test
+# certificate from make-certs.sh, and lets the database services trust that certificate.
+services:
+    s3:
+        image: 'chrislusf/seaweedfs:4.54@sha256:4b42c212543a0acd4c0e675215ecdcaf62a186ef98def76c7e12701871222d15'
+        command:
+            - server
+            - -dir=/data
+            - -s3
+            - -s3.port.https=8443
+            - -s3.cert.file=/run/backup-drill/s3.crt
+            - -s3.key.file=/run/backup-drill/s3.key
+            - -s3.config=/run/backup-drill/s3.json
+            - -master.volumeSizeLimitMB=64
+        configs:
+            - source: s3-certificate
+              target: /run/backup-drill/s3.crt
+            - source: s3-key
+              target: /run/backup-drill/s3.key
+            - source: s3-users
+              target: /run/backup-drill/s3.json
+        volumes:
+            - 's3-data:/data'
+
+    pgsql:
+        environment:
+            PGBACKREST_REPO1_STORAGE_CA_FILE: /run/backup-drill/ca.crt
+        configs: &trust-test-certificate
+            - source: test-ca
+              target: /run/backup-drill/ca.crt
+        depends_on:
+            - s3
+    pgsql-backup:
+        environment:
+            PGBACKREST_REPO1_STORAGE_CA_FILE: /run/backup-drill/ca.crt
+        configs: *trust-test-certificate
+    pgsql-restore:
+        environment:
+            PGBACKREST_REPO1_STORAGE_CA_FILE: /run/backup-drill/ca.crt
+        configs: *trust-test-certificate
+    pgsql-drill:
+        environment:
+            PGBACKREST_REPO1_STORAGE_CA_FILE: /run/backup-drill/ca.crt
+        configs: *trust-test-certificate
+
+    # Migrations and the test company run here, with the drill's settings and no Redis. Only the PHP
+    # stage of the app image is built: migrations need no frontend, whose build takes most of the
+    # time. The image workflow (image.yml) tests the whole app image.
+    migrate:
+        build:
+            target: vendor
+        image: 'procurement-hyperspace:backup-drill-migrations'
+        env_file: !override
+            - '${BACKUP_DRILL_ENV_FILE:-.env}'
+
+volumes:
+    s3-data: {}
+
+configs:
+    # Relative to the project folder, where compose.production.yaml is.
+    test-ca:
+        file: ./.github/backup-drill/run/ca.crt
+    s3-certificate:
+        file: ./.github/backup-drill/run/s3.crt
+    s3-key:
+        file: ./.github/backup-drill/run/s3.key
+    # The S3 server's only user: the database's backup keys.
+    s3-users:
+        content: |
+            {"identities": [{"name": "backup", "credentials": [{"accessKey": "${BACKUP_S3_ACCESS_KEY_ID}", "secretKey": "${BACKUP_S3_SECRET_ACCESS_KEY}"}], "actions": ["Admin", "Read", "Write", "List"]}]}

@@ -1,0 +1,29 @@
+# The HTTPS proxy in compose.production.yaml. It gets and renews a certificate for APP_URL's host name
+# by itself (Let's Encrypt, or ZeroSSL as a fallback), sends plain-HTTP visitors on to HTTPS and passes
+# requests to the web service. Port 80 must be reachable from the internet for the certificate checks.
+{
+	admin off
+	email {$ACME_EMAIL}
+}
+
+{$APP_URL} {
+	encode zstd gzip
+
+	# A little above the largest upload (20 MB documents).
+	request_body {
+		max_size 25MB
+	}
+
+	header -Server
+	header -Via
+
+	# Sets X-Forwarded-For to the visitor's real address, X-Forwarded-Proto to https and X-Forwarded-Host,
+	# replacing whatever the visitor sent. The app believes them because TRUSTED_PROXIES covers this
+	# network. Other forwarding headers a visitor might send are removed, so nothing can fake them.
+	reverse_proxy web:8080 {
+		header_up -X-Forwarded-Port
+		header_up -X-Forwarded-Prefix
+		header_up -X-Real-IP
+		header_up -Forwarded
+	}
+}

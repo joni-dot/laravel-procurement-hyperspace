@@ -1,0 +1,305 @@
+# Reference production setup for one server. See docs/hosting.md.
+# Every secret comes from .env (copy .env.production.example); nothing secret is written here.
+
+# --- Settings shared by the app services ---
+# Every role runs the same image; only the command differs. The app's roles get every setting from .env
+# except the database owner's password, which only the migrate service needs (the running app connects
+# as the restricted user, so a break-in through the app can't switch off the companies' row-level
+# security), and the backup keys, which only the database has. A new secret for another service goes
+# into this blank list too.
+x-app: &app
+    image: '${APP_IMAGE:-procurement-hyperspace:local}'
+    build:
+        context: .
+        args:
+            APP_VERSION: '${APP_VERSION:-}'
+    env_file: .env
+    environment: &blanked-secrets
+        DB_OWNER_PASSWORD: ''
+        DB_OWNER_URL: ''
+        BACKUP_S3_ACCESS_KEY_ID: ''
+        BACKUP_S3_SECRET_ACCESS_KEY: ''
+        BACKUP_ENCRYPTION_PASSPHRASE: ''
+    restart: unless-stopped
+    security_opt:
+        - 'no-new-privileges:true'
+    cap_drop:
+        - ALL
+    logging:
+        driver: json-file
+        options:
+            max-size: 10m
+            max-file: '5'
+    volumes:
+        # Only used when UPLOADS_DISK=local; with S3 it stays empty.
+        - 'uploads:/app/storage/app/private'
+        # Keeps the API call log (storage/logs/api-*.log) across updates.
+        - 'app-logs:/app/storage/logs'
+
+x-app-depends-on: &app-depends-on
+    migrate:
+        condition: service_completed_successfully
+    redis:
+        condition: service_healthy
+
+services:
+    # --- App: web, background jobs, scheduler, migrations ---
+
+    # Brings the database up to date, then stops. An update runs it on its own first
+    # (`docker compose run --rm migrate`, see docs/hosting.md), so a failed migration leaves the old
+    # version running; `up -d` runs it again (then with nothing to do) before the other app services.
+    # --isolated takes a lock in Redis, so servers deploying at the same time don't migrate twice.
+    migrate:
+        <<: *app
+        command:
+            - php
+            - artisan
+            - migrate
+            - '--database=owner'
+            - '--force'
+            - '--isolated'
+        environment:
+            <<: *blanked-secrets
+            DB_OWNER_PASSWORD: '${DB_OWNER_PASSWORD:?Set DB_OWNER_PASSWORD in .env}'
+            DB_OWNER_URL: '${DB_OWNER_URL:-}'
+        restart: 'no'
+        healthcheck:
+            disable: true
+        depends_on:
+            pgsql:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+
+    # The web server. It speaks plain HTTP inside the server's private network; the proxy below adds HTTPS.
+    web:
+        <<: *app
+        # Also on the edge network, the only one the proxy is on.
+        networks:
+            - default
+            - edge
+        depends_on: *app-depends-on
+
+    # Background jobs (emails, risk checks). Restarts itself every hour so memory never piles up, and
+    # gets time to finish the job it is working on when stopped.
+    worker:
+        <<: *app
+        command:
+            - php
+            - artisan
+            - queue:work
+            - '--tries=3'
+            - '--backoff=10'
+            # Must stay below the queue's retry_after (REDIS_QUEUE_RETRY_AFTER, 90 seconds), or a slow
+            # job is handed to a second worker while the first is still on it.
+            - '--timeout=60'
+            - '--max-time=3600'
+            - '--sleep=3'
+        stop_grace_period: 75s
+        healthcheck: &process-alive
+            # Only "still running". Whether jobs really get done shows in the app's health check
+            # (docs/monitoring.md).
+            test: ['CMD-SHELL', 'kill -0 1']
+            interval: 30s
+        depends_on: *app-depends-on
+
+    # Timed jobs (reminders, daily checks).
+    scheduler:
+        <<: *app
+        command: ['php', 'artisan', 'schedule:work']
+        # When stopped, schedule:work starts nothing new and waits for the running tasks. Killed halfway,
+        # a daily task would be cut short, and its withoutOverlapping lock would block it for a day.
+        stop_grace_period: 5m
+        healthcheck: *process-alive
+        depends_on: *app-depends-on
+
+    # HTTPS in front of the web service, with free certificates from Let's Encrypt that renew themselves.
+    # The only service reachable from outside: port 80 just sends visitors on to HTTPS.
+    proxy:
+        image: 'caddy:2-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0'
+        restart: unless-stopped
+        environment:
+            APP_URL: '${APP_URL:?Set APP_URL in .env}'
+            ACME_EMAIL: '${ACME_EMAIL:?Set ACME_EMAIL in .env}'
+        ports:
+            - '80:80'
+            - '443:443'
+            - '443:443/udp'
+        volumes:
+            - './docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro'
+            # The certificates; losing them only means fetching new ones.
+            - 'caddy-data:/data'
+            - 'caddy-config:/config'
+        # Only on the edge network: it reaches web, but never the database or Redis.
+        networks:
+            - edge
+        security_opt:
+            - 'no-new-privileges:true'
+        cap_drop:
+            - ALL
+        cap_add:
+            - NET_BIND_SERVICE
+        logging:
+            driver: json-file
+            options:
+                max-size: 10m
+                max-file: '5'
+        # No depends_on on web on purpose: Compose would stop the proxy whenever web is replaced in an
+        # update, which makes the site unreachable for longer. Meanwhile it answers 502 for a few seconds.
+
+    # --- Database and its continuous backups ---
+    # PostgreSQL ships every change to the backup bucket within about a minute; pgsql-backup adds a
+    # backup every night. Restore and drill: docker/postgres/restore.sh and restore-drill.sh.
+    # See docs/backups.md. With a managed database, leave out these services.
+    pgsql:
+        image: '${DB_IMAGE:-hyperspace-postgres:18}'
+        build:
+            context: ./docker
+            dockerfile: postgres/Dockerfile
+        restart: unless-stopped
+        # The POSTGRES_* settings are used once, on the first start with an empty volume, to create
+        # the database and its users.
+        environment: &pgsql-environment
+            POSTGRES_APP_DATABASE: '${DB_DATABASE}'
+            POSTGRES_OWNER_USER: '${DB_OWNER_USERNAME}'
+            POSTGRES_OWNER_PASSWORD: '${DB_OWNER_PASSWORD}'
+            POSTGRES_APP_USER: '${DB_USERNAME}'
+            POSTGRES_APP_PASSWORD: '${DB_PASSWORD}'
+            <<: &backup-environment
+                PGBACKREST_REPO1_S3_ENDPOINT: '${BACKUP_S3_ENDPOINT:-}'
+                PGBACKREST_REPO1_STORAGE_PORT: '${BACKUP_S3_PORT:-443}'
+                PGBACKREST_REPO1_S3_REGION: '${BACKUP_S3_REGION:-}'
+                PGBACKREST_REPO1_S3_BUCKET: '${BACKUP_S3_BUCKET:-}'
+                PGBACKREST_REPO1_S3_URI_STYLE: '${BACKUP_S3_URI_STYLE:-host}'
+                PGBACKREST_REPO1_S3_KEY: '${BACKUP_S3_ACCESS_KEY_ID:-}'
+                PGBACKREST_REPO1_S3_KEY_SECRET: '${BACKUP_S3_SECRET_ACCESS_KEY:-}'
+                PGBACKREST_REPO1_PATH: '${BACKUP_S3_PATH:-/hyperspace}'
+                PGBACKREST_REPO1_CIPHER_PASS: '${BACKUP_ENCRYPTION_PASSPHRASE:-}'
+                PGBACKREST_REPO1_RETENTION_FULL: '${BACKUP_RETENTION_DAYS:-30}'
+        volumes:
+            - 'pgsql-data:/var/lib/postgresql'
+            - 'pgsql-socket:/var/run/postgresql'
+        # PostgreSQL's parallel queries use shared memory; Docker's default of 64 MB is too small.
+        shm_size: 256mb
+        # Time to finish writing to disk on shutdown, so the next start needs no crash recovery.
+        stop_grace_period: 2m
+        # Only what the official entrypoint needs to hand the data folder to the postgres user, and
+        # KILL for tini to pass the stop signal on to PostgreSQL (without it, a stop is a crash).
+        cap_drop: &pgsql-cap-drop
+            - ALL
+        cap_add: &pgsql-cap-add
+            - CHOWN
+            - DAC_OVERRIDE
+            - FOWNER
+            - KILL
+            - SETGID
+            - SETUID
+        security_opt: &pgsql-security-opt
+            - 'no-new-privileges:true'
+        logging: &pgsql-logging
+            driver: json-file
+            options:
+                max-size: 10m
+                max-file: '5'
+        healthcheck:
+            test: ['CMD', 'db-ready']
+            interval: 10s
+            timeout: 5s
+            retries: 3
+            start_period: 10m
+            start_interval: 2s
+    pgsql-backup:
+        image: '${DB_IMAGE:-hyperspace-postgres:18}'
+        command: ['db-backup', 'schedule']
+        restart: unless-stopped
+        environment:
+            <<: *backup-environment
+            BACKUP_TIME: '${BACKUP_TIME:-02:30}'
+            BACKUP_FULL_WEEKDAY: '${BACKUP_FULL_WEEKDAY:-7}'
+        volumes:
+            # Reads the database files and talks to PostgreSQL through its socket, as the same user.
+            - 'pgsql-data:/var/lib/postgresql:ro'
+            - 'pgsql-socket:/var/run/postgresql'
+        cap_drop: *pgsql-cap-drop
+        cap_add: *pgsql-cap-add
+        security_opt: *pgsql-security-opt
+        logging: *pgsql-logging
+        depends_on:
+            pgsql:
+                condition: service_healthy
+    # Used only by docker/postgres/restore.sh and restore-drill.sh; never started by `up`.
+    pgsql-restore:
+        image: '${DB_IMAGE:-hyperspace-postgres:18}'
+        profiles: ['restore']
+        entrypoint: ['db-restore']
+        environment: *backup-environment
+        volumes:
+            - 'restore-target:/var/lib/postgresql'
+    pgsql-drill:
+        image: '${DB_IMAGE:-hyperspace-postgres:18}'
+        profiles: ['restore']
+        environment: *pgsql-environment
+        volumes:
+            - 'restore-target:/var/lib/postgresql'
+        shm_size: 256mb
+
+    # --- Redis ---
+
+    # Queue, cache and sessions. Needs a password, saves its data to disk (so queued emails survive a
+    # restart) and is reachable only by the other services, never from outside.
+    redis:
+        image: 'redis:8-alpine@sha256:7958cfbb9d152f87dadfbc89f1b0b15938f0b81ff8982feb327476f4911935c3'
+        restart: unless-stopped
+        # The image's own user, not root. It needs no special rights at all.
+        user: redis
+        security_opt:
+            - 'no-new-privileges:true'
+        cap_drop:
+            - ALL
+        environment:
+            REDIS_PASSWORD: '${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}'
+        # The password goes into a config file, not the command line, where every process could read it.
+        command:
+            - sh
+            - -c
+            - >-
+                umask 077 &&
+                printf 'requirepass "%s"\nappendonly yes\nappendfsync everysec\nmaxmemory-policy noeviction\n' "$$REDIS_PASSWORD" > /tmp/redis.conf &&
+                unset REDIS_PASSWORD &&
+                exec redis-server /tmp/redis.conf
+        volumes:
+            - 'redis-data:/data'
+        healthcheck:
+            test:
+                - CMD-SHELL
+                - 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG'
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        logging:
+            driver: json-file
+            options:
+                max-size: 10m
+                max-file: '5'
+
+networks:
+    # The app services, Redis and the database share Compose's default network. The proxy is only on
+    # this one, with web. IPv6 on it lets Docker pass IPv6 visitors' own addresses to the proxy, instead
+    # of the network's gateway address for all of them (needs Docker Engine 27 or newer).
+    edge:
+        enable_ipv6: true
+
+volumes:
+    # Uploaded files when UPLOADS_DISK=local (back them up yourself then; see docs/backups.md).
+    uploads: {}
+    app-logs: {}
+    redis-data: {}
+    caddy-data: {}
+    caddy-config: {}
+    # The database's files. restore.sh restores into a new volume; PGSQL_VOLUME in .env picks the one
+    # in use, so the old one stays until you delete it.
+    pgsql-data:
+        name: '${PGSQL_VOLUME:-hyperspace-pgsql-data}'
+    pgsql-socket: {}
+    restore-target:
+        name: '${RESTORE_VOLUME:-hyperspace-pgsql-restore}'

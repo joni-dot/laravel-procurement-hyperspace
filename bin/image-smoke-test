@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+# Checks a running copy of the production setup (compose.production.yaml) from the outside and inside.
+# GitHub runs it on every pull request (.github/workflows/image.yml); you can run it against your own
+# test stack too:
+#
+#   COMPOSE="docker compose -p myproject -f compose.production.yaml" bin/image-smoke-test http://localhost:8080
+#
+# The address must use APP_URL's host name, because the app answers to no other. The image checked is
+# the one the web service runs.
+set -euo pipefail
+shopt -s inherit_errexit
+
+base_url=${1:?Usage: bin/image-smoke-test <address of the web service>}
+compose=${COMPOSE:-docker compose -f compose.production.yaml}
+read -r -a compose_command <<< "$compose"
+
+failures=0
+pass() { echo "ok    $1"; }
+fail() {
+    echo "FAIL  $1" >&2
+    failures=$((failures + 1))
+}
+check() {
+    local description=$1
+    shift
+    if "$@" > /dev/null 2>&1; then pass "$description"; else fail "$description"; fi
+}
+in_service() {
+    local service=$1
+    shift
+    "${compose_command[@]}" exec -T "$service" "$@"
+}
+
+image=$(docker inspect --format '{{.Config.Image}}' "$("${compose_command[@]}" ps -q web)")
+
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+
+# --- From the outside ---
+status=$(curl --silent --output /dev/null --write-out '%{http_code}' "$base_url/up")
+check "/up answers 200 (got $status)" test "$status" = 200
+
+status=$(curl --silent --dump-header "$work/login-headers" --output "$work/login.html" \
+    --write-out '%{http_code}' "$base_url/login")
+check "the sign-in page answers 200 (got $status)" test "$status" = 200
+check 'the sign-in page is the Vue app with its built files' \
+    grep -q -e 'data-page=' -e '/build/assets/' "$work/login.html"
+check 'no X-Powered-By header' bash -c "! grep -qi '^x-powered-by:' '$work/login-headers'"
+check 'no Server header' bash -c "! grep -qi '^server:' '$work/login-headers'"
+check 'the Content Security Policy is set' grep -qi '^content-security-policy:' "$work/login-headers"
+
+status=$(curl --silent --output /dev/null --write-out '%{http_code}' "$base_url/.htaccess")
+check "hidden files are not served (got $status)" test "$status" = 404
+
+status=$(curl --silent --output /dev/null --write-out '%{http_code}' --header 'Host: attacker.example' "$base_url/login")
+check "other host names are refused (got $status)" test "$status" != 200
+
+# --- Inside the running containers ---
+for service in web worker scheduler redis; do
+    uid=$(in_service "$service" id -u || echo missing)
+    check "$service runs as a user other than root (uid $uid)" test "$uid" != 0 -a "$uid" != missing
+done
+check 'the app code is read-only for the app' in_service web sh -c '! touch /app/app/.write-test'
+check 'storage is writable for the app' in_service web sh -c 'touch /app/storage/framework/.write-test && rm /app/storage/framework/.write-test'
+# The variables are read inside the container, not here.
+# shellcheck disable=SC2016
+check 'the app has no database owner password' in_service web sh -c 'test -z "${DB_OWNER_PASSWORD:-}${DB_OWNER_URL:-}"'
+# shellcheck disable=SC2016
+check 'the app has no backup keys' in_service web sh -c 'test -z "${BACKUP_S3_SECRET_ACCESS_KEY:-}${BACKUP_ENCRYPTION_PASSPHRASE:-}"'
+check 'no migrations are waiting' bash -c "! ${compose} exec -T web php artisan migrate:status --pending --no-ansi | grep -q Pending"
+check 'the app connects as a user that can neither bypass row-level security nor own tables' bash -c \
+    "${compose} exec -T web php artisan tinker --no-ansi --execute 'echo DB::selectOne(\"select (rolsuper or rolbypassrls or exists (select 1 from pg_tables where tableowner = current_user))::int as unsafe from pg_roles where rolname = current_user\")->unsafe === 0 ? \"restricted\" : \"UNSAFE\";' | grep -qx restricted"
+check 'the worker and the scheduler are running' bash -c \
+    "test \"\$(${compose} ps --status running --services | grep -cx -e worker -e scheduler)\" = 2"
+
+# --- The image itself ---
+check 'no .env, tests, node_modules, git history or keys in the image' \
+    docker run --rm --entrypoint sh "$image" -c \
+    'cd /app && ! ls -A .env .env.* tests node_modules .git storage/*.key 2> /dev/null | grep -q .'
+check 'no development packages in the image' docker run --rm --entrypoint php "$image" -r \
+    'exit(json_decode(file_get_contents("/app/vendor/composer/installed.json"))->dev || is_dir("/app/vendor/phpunit") ? 1 : 0);'
+refuses_to_start() {
+    ! docker run --rm -e APP_KEY=base64:x -e APP_URL=http://localhost "$@" "$image" > /dev/null 2>&1
+}
+check 'the image refuses to start with APP_DEBUG=true' refuses_to_start -e APP_DEBUG=true
+check 'the image refuses APP_DEBUG=true outside production too' refuses_to_start -e APP_ENV=staging -e APP_DEBUG=true
+check 'the image refuses to start with APP_ENV=local' refuses_to_start -e APP_ENV=local
+check 'the image refuses to start with APP_ENV=testing' refuses_to_start -e APP_ENV=testing
+
+if [ "$failures" -gt 0 ]; then
+    echo "$failures check(s) failed." >&2
+    exit 1
+fi
+echo 'All checks passed.'

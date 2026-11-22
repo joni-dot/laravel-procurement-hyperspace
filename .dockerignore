@@ -1,0 +1,48 @@
+# Only what the production image needs is sent to the build. Everything else (.env files, keys, git
+# history, tests, node_modules, vendor, logs, uploaded files) never reaches it.
+*
+
+!app/
+!bootstrap/app.php
+!bootstrap/providers.php
+!config/
+!database/migrations/
+!docker/app/
+!lang/
+!public/
+!resources/
+!routes/
+!artisan
+!composer.json
+!composer.lock
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!.npmrc
+!tsconfig.json
+!vite.config.ts
+!LICENSE
+!THIRD-PARTY-NOTICES.md
+
+# Built or generated on the developer's computer; the image builds its own.
+public/build
+public/hot
+public/storage
+public/fonts-manifest.dev.json
+resources/js/actions
+resources/js/routes
+resources/js/wayfinder
+
+# Secrets and data must never be copied in, wherever they are.
+**/.env
+**/.env.*
+**/*.key
+**/*.pem
+**/*.crt
+**/*.p12
+**/*.pfx
+**/*.sql
+**/*.sql.gz
+**/*.dump
+**/*.log
+**/.DS_Store

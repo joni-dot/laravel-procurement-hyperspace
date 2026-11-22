@@ -1,0 +1,50 @@
+name: image
+
+# Builds the production image and starts the reference setup (compose.production.yaml) with throwaway
+# settings, then checks it from the outside and inside (bin/image-smoke-test). Nothing is published.
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      COMPOSE: docker compose -f compose.production.yaml -f .github/image-smoke-test/compose.yaml
+      APP_IMAGE: procurement-hyperspace:smoke-test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Write throwaway settings
+        run: .github/image-smoke-test/write-env.sh .env
+
+      - name: Build the image
+        run: APP_VERSION="$GITHUB_SHA" $COMPOSE build web
+
+      - name: Start web, background jobs and scheduler (migrations run first)
+        run: $COMPOSE up --detach --no-build --wait --wait-timeout 300 web worker scheduler
+
+      - name: Smoke test
+        run: bin/image-smoke-test http://localhost:8080
+
+      - name: Image size
+        run: docker image ls "$APP_IMAGE"
+
+      - name: Show the containers' logs
+        if: failure()
+        run: $COMPOSE logs --no-color --timestamps
+
+      - name: Stop and remove everything
+        if: always()
+        run: $COMPOSE down --volumes

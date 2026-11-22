@@ -1,0 +1,66 @@
+#!/bin/sh
+# Checks a database restored by the restore drill (docker/postgres/restore-drill.sh): it has finished
+# replaying changes, has companies, keeps companies apart with row-level security, and the app's
+# restricted user can sign in and sees only the company it opens. Exits non-zero on any failure.
+set -eu
+
+if [ "$(id -u)" = '0' ]; then
+    exec gosu postgres "$0" "$@"
+fi
+
+database="${POSTGRES_APP_DATABASE:?}"
+app_user="${POSTGRES_APP_USER:?}"
+
+fail() {
+    echo "DRILL FAILED: $*" >&2
+    exit 1
+}
+
+waited=0
+until db-ready 2>/dev/null; do
+    [ "$waited" -lt 3600 ] || fail 'the database did not finish replaying changes within an hour'
+    sleep 2
+    waited=$((waited + 2))
+done
+echo "Ready after replaying changes for about $waited seconds."
+
+as_superuser() {
+    psql -h /var/run/postgresql -U postgres -d "$database" -v ON_ERROR_STOP=1 -tAX "$@"
+}
+
+as_app_user() {
+    PGPASSWORD="${POSTGRES_APP_PASSWORD:?}" psql -h 127.0.0.1 -U "$app_user" -d "$database" -v ON_ERROR_STOP=1 -tAX "$@"
+}
+
+companies="$(as_superuser -c 'SELECT count(*) FROM companies')" || fail 'there is no companies table'
+[ "$companies" -gt 0 ] || fail 'the restored database has no companies'
+
+policies="$(as_superuser -c "SELECT count(*) FROM pg_policies WHERE policyname = 'company_isolation'")"
+locked="$(as_superuser -c "SELECT count(*) FROM pg_class WHERE relrowsecurity AND relforcerowsecurity")"
+[ "$policies" -gt 0 ] && [ "$locked" -gt 0 ] || fail 'no row-level security found'
+
+app_role="$(as_superuser -v app_user="$app_user" <<'SQL'
+SELECT rolsuper OR rolbypassrls FROM pg_roles WHERE rolname = :'app_user'
+SQL
+)"
+[ "$app_role" = 'f' ] || fail 'the app user is missing, is a superuser, or may bypass row-level security'
+
+company="$(as_superuser -c 'SELECT min(id) FROM companies')"
+expected="$(as_superuser -c "SELECT count(*) FROM suppliers WHERE company_id = $company")"
+seen_without_company="$(as_app_user -c 'SELECT count(*) FROM suppliers')" || fail 'the app user can not sign in or read'
+seen_in_company="$(as_app_user -q <<SQL
+BEGIN;
+SELECT set_config('app.company_id', '$company', true) \\g /dev/null
+SELECT count(*) FROM suppliers;
+COMMIT;
+SQL
+)"
+[ "$seen_without_company" -eq 0 ] || fail 'the app user sees suppliers without opening a company'
+[ "$seen_in_company" -eq "$expected" ] || fail "the app user sees $seen_in_company suppliers in company $company instead of $expected"
+
+# The moment of the last change replayed from the bucket: how up to date the backups are.
+newest="$(as_superuser -c "SELECT coalesce(to_char(pg_last_xact_replay_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS \"UTC\"'), 'none after the backup')")"
+
+echo "Drill passed: $companies companies, $locked tables locked to their company by $policies policies;"
+echo "the app user signs in, sees no suppliers until it opens a company, then the company's $expected."
+echo "Newest change restored: $newest."

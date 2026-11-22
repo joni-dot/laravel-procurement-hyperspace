@@ -10,3 +10,30 @@ updates:
       github-actions:
         patterns:
           - "*"
+  # The production image's base images and the reference setup's images are pinned to exact versions
+  # (digests); this keeps them up to date with security fixes.
+  - package-ecosystem: "docker"
+    directories:
+      - "/"
+      - "/docker/postgres"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 5
+    groups:
+      docker:
+        patterns:
+          - "*"
+  - package-ecosystem: "docker-compose"
+    directories:
+      - "/"
+      - "/.github/backup-drill"
+      - "/.github/image-smoke-test"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 5
+    groups:
+      docker-compose:
+        patterns:
+          - "*"
