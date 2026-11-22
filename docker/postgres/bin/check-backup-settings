@@ -1,0 +1,34 @@
+#!/bin/sh
+# Stops the database from starting without working backup settings: changes would pile up on the
+# server's disk instead of reaching the backup bucket. Prints only names of settings, never values.
+set -eu
+
+missing=''
+for setting in \
+    BACKUP_S3_ENDPOINT:PGBACKREST_REPO1_S3_ENDPOINT \
+    BACKUP_S3_REGION:PGBACKREST_REPO1_S3_REGION \
+    BACKUP_S3_BUCKET:PGBACKREST_REPO1_S3_BUCKET \
+    BACKUP_S3_ACCESS_KEY_ID:PGBACKREST_REPO1_S3_KEY \
+    BACKUP_S3_SECRET_ACCESS_KEY:PGBACKREST_REPO1_S3_KEY_SECRET \
+    BACKUP_ENCRYPTION_PASSPHRASE:PGBACKREST_REPO1_CIPHER_PASS; do
+    variable="${setting#*:}"
+    eval "value=\${$variable:-}"
+    [ -n "$value" ] || missing="$missing ${setting%%:*}"
+done
+
+if [ -n "$missing" ]; then
+    echo "Database backups are not set up. Fill in these settings in .env:$missing (see docs/backups.md)." >&2
+    exit 1
+fi
+
+case "$PGBACKREST_REPO1_S3_ENDPOINT" in
+    *://* | */*)
+        echo 'BACKUP_S3_ENDPOINT must be a host name only, without https:// or a path (for example s3.eu-central-1.amazonaws.com).' >&2
+        exit 1
+        ;;
+esac
+
+if [ "${#PGBACKREST_REPO1_CIPHER_PASS}" -lt 32 ]; then
+    echo 'BACKUP_ENCRYPTION_PASSPHRASE is too short: use at least 32 characters, for example from: openssl rand -base64 48' >&2
+    exit 1
+fi

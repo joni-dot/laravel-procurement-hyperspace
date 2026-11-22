@@ -1,0 +1,106 @@
+#!/bin/sh
+# Backups of the database, run in the pgsql-backup service (see docs/backups.md).
+#
+#   db-backup schedule              runs for ever: prepares the bucket, makes a first full backup
+#                                   if there is none, then one backup a day at BACKUP_TIME (UTC)
+#   db-backup now [full|diff|incr]  one backup now (full by default)
+#   db-backup info                  lists the backups and the oldest and newest restorable moment
+#   db-backup check                 proves that change files reach the bucket
+#
+# A full backup copies everything; a differential one ("diff") only what changed since the last full
+# one. Changes between backups are shipped continuously by PostgreSQL itself (archive_command).
+# After each backup pgBackRest deletes what is older than the retention (BACKUP_RETENTION_DAYS).
+set -eu
+
+stanza='hyperspace'
+
+if [ "$(id -u)" = '0' ]; then
+    exec gosu postgres "$0" "$@"
+fi
+
+log() {
+    echo "$(date -u '+%Y-%m-%d %H:%M:%S UTC') db-backup: $*"
+}
+
+backup() {
+    log "starting a $1 backup"
+    if pgbackrest --stanza="$stanza" --type="$1" backup; then
+        log "$1 backup finished"
+    else
+        log "ERROR: the $1 backup failed; it will be tried again"
+        return 1
+    fi
+}
+
+has_backup() {
+    ! pgbackrest --stanza="$stanza" --output=json info | grep -q '"backup":\[\]'
+}
+
+wait_for_database() {
+    until db-ready 2>/dev/null; do
+        sleep 5 &
+        wait $!
+    done
+}
+
+schedule() {
+    check-backup-settings
+    backup_time="${BACKUP_TIME:-02:30}"
+    full_weekday="${BACKUP_FULL_WEEKDAY:-7}"
+    case "$backup_time" in
+        [01][0-9]:[0-5][0-9] | 2[0-3]:[0-5][0-9]) ;;
+        *) log "BACKUP_TIME must look like 02:30 (24-hour clock, UTC), not $backup_time" >&2; exit 1 ;;
+    esac
+    case "$full_weekday" in
+        [1-7]) ;;
+        *) log "BACKUP_FULL_WEEKDAY must be 1 (Monday) to 7 (Sunday), not $full_weekday" >&2; exit 1 ;;
+    esac
+
+    trap 'log "stopping"; exit 0' TERM INT
+    wait_for_database
+
+    # Creating the stanza (pgBackRest's name for one database's backups) is harmless when it exists.
+    # It refuses, and keeps refusing, when the bucket holds backups of a different database: a new,
+    # empty database never overwrites the backups of the one it replaces (see docs/backups.md).
+    until pgbackrest --stanza="$stanza" stanza-create; do
+        log 'ERROR: the backup bucket can not be prepared; trying again in 5 minutes'
+        sleep 300 &
+        wait $!
+    done
+
+    log "daily backup at $backup_time UTC, full on weekday $full_weekday, differential otherwise"
+    last_run_day=''
+    next_retry=0
+    while :; do
+        now="$(date -u +%s)"
+        if ! has_backup; then
+            if [ "$now" -ge "$next_retry" ]; then
+                # Prepares the bucket again if its backups were deleted (see docs/backups.md).
+                pgbackrest --stanza="$stanza" stanza-create > /dev/null 2>&1 || true
+                backup full || next_retry=$((now + 900))
+            fi
+        elif [ "$(date -u +%H:%M)" = "$backup_time" ] && [ "$last_run_day" != "$(date -u +%F)" ]; then
+            last_run_day="$(date -u +%F)"
+            if [ "$(date -u +%u)" = "$full_weekday" ]; then
+                backup full || true
+            else
+                backup diff || true
+            fi
+        fi
+        sleep 20 &
+        wait $!
+    done
+}
+
+case "${1:-}" in
+    schedule) schedule ;;
+    now)
+        case "${2:-full}" in
+            full | diff | incr) backup "${2:-full}" ;;
+            *) echo 'The backup type must be full, diff or incr.' >&2; exit 2 ;;
+        esac
+        ;;
+    info) exec pgbackrest --stanza="$stanza" info ;;
+    check) exec pgbackrest --stanza="$stanza" check ;;
+    *) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2 ;;
+esac

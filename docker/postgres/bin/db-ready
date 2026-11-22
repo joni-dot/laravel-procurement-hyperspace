@@ -1,0 +1,13 @@
+#!/bin/sh
+# Health check: true once the real server is up (not the temporary one that the first start uses to
+# create the database, which listens on no network address) and has finished any restore, so the
+# app never starts against a database that is still being set up or still replaying changes.
+set -eu
+
+if [ "$(id -u)" = '0' ]; then
+    exec gosu postgres "$0" "$@"
+fi
+
+state="$(psql -h /var/run/postgresql -U postgres -d postgres -tAXc \
+    "SELECT current_setting('listen_addresses') <> '' AND NOT pg_is_in_recovery()")"
+[ "$state" = 't' ]

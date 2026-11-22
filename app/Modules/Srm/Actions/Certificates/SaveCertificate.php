@@ -3,21 +3,16 @@
 namespace App\Modules\Srm\Actions\Certificates;
 
 use App\Companies\CurrentCompany;
+use App\Files\Uploads;
 use App\Modules\Srm\Actions\Reminders\SyncReminders;
 use App\Modules\Srm\Models\Certificate;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use LogicException;
 use Throwable;
 
 class SaveCertificate
 {
-    /**
-     * Files live on the private disk, which is never served directly by the web server.
-     */
-    public const string DISK = 'local';
-
     public function __construct(
         private readonly SyncReminders $syncReminders,
         private readonly CurrentCompany $currentCompany,
@@ -30,7 +25,7 @@ class SaveCertificate
     public function handle(Certificate $certificate, array $attributes, array $reminderDays, ?UploadedFile $file): Certificate
     {
         $replacedFilePath = $file ? $certificate->file_path : null;
-        $storedFilePath = $file?->store($this->folderFor($certificate), self::DISK);
+        $storedFilePath = $file?->store($this->folderFor($certificate), Uploads::diskName());
 
         try {
             DB::transaction(function () use ($certificate, $attributes, $reminderDays, $file, $storedFilePath) {
@@ -48,14 +43,16 @@ class SaveCertificate
             });
         } catch (Throwable $exception) {
             if ($storedFilePath) {
-                Storage::disk(self::DISK)->delete($storedFilePath);
+                Uploads::disk()->delete($storedFilePath);
             }
 
             throw $exception;
         }
 
         if ($replacedFilePath) {
-            Storage::disk(self::DISK)->delete($replacedFilePath);
+            // The certificate is already saved with its new file, so a storage outage must not fail
+            // the request; rescue() reports it, and the old file left behind is harmless.
+            rescue(fn () => Uploads::disk()->delete($replacedFilePath));
         }
 
         return $certificate;

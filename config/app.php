@@ -70,6 +70,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Trusted Proxies
+    |--------------------------------------------------------------------------
+    |
+    | The addresses of the proxy or load balancer in front of the app, comma
+    | separated, or "*" when only the proxy can reach the app. The app then
+    | believes its X-Forwarded-* headers: the visitor's real address (for
+    | rate limits) and that the connection was HTTPS. Empty trusts nobody.
+    |
+    */
+
+    'trusted_proxies' => env('TRUSTED_PROXIES', ''),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

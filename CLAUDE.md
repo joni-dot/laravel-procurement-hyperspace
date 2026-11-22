@@ -16,6 +16,7 @@ The host has only Docker and git. Run PHP and Node commands through Sail.
 ./vendor/bin/sail composer lint          # fix PHP style
 ./vendor/bin/sail pnpm run check:fix     # fix frontend style and lint
 ./vendor/bin/sail restart queue scheduler  # after changing PHP that runs in the background
+bin/image-smoke-test http://localhost:8080   # checks a running production setup (see docs/hosting.md)
 tests/Browser/run.sh                     # real-browser tests, run from the host; see /browser-test
 ```
 
@@ -98,6 +99,10 @@ The projects module (PPR) uses the same layout under `Ppr`/`ppr`. Core never use
 - **Demo data runs in production.** Fillers registered in `App\Companies\DemoData` use fixed word lists, never `fake()` or factories (`DemoDataSourceTest`), never create user accounts, and name only the demo company's first admin. A job queued from a filler must be queued with `DB::afterCommit` while the company is open (see `DemoProject`), or it runs in no company.
 - **Supplier and contact fields are checked in one place,** `SupplierFields` and `ContactFields`, for the forms and the file import. A new supplier field goes there and into `ImportColumn`. `ImportSuppliers` inserts suppliers and contacts many rows at a time, without model events: a new listener on `Supplier` or `Contact` needs its work done there too (`SupplierImportRowsTest` fails until then).
 - **The getting-started checklist runs its done checks on every admin Home visit** while it is shown, or hidden with steps still open: keep each check one indexed `exists`/`count` query (`OnboardingChecklistTest` counts them).
+- **Production setup (README "Running it for real", docs/).** The image copies only the folders the `Dockerfile` lists, and the app services in `compose.production.yaml` blank every secret they don't need (`x-app` environment): a new top-level folder the app needs goes into the `Dockerfile`, and a new secret for another service goes into that blank list. `bin/image-smoke-test` (workflow `image`) checks that the image starts and that the app never gets those secrets; workflow `backups` checks a real backup and restore.
+    - Uploaded files go through `App\Files\Uploads` only (`UPLOADS_DISK`), never `Storage::disk('local')`.
+    - Error reports leave our servers: `App\Monitoring\ErrorReportPrivacy` keeps only ids, never emails, names, typed text or query values (`ErrorReportsTest`). New context data for reports goes through it.
+    - `/health` answers anyone, so it shows only check names and ok/failing; it must stay a few constant queries (`HealthCheckTest`).
 - **Seeders must refuse to run in production.** `SeedersRefuseProductionTest` covers this, so add any new seeder to it.
 - **Every app page links to the source code** (`SOURCE_CODE_URL`, shared as `sourceCodeUrl`, shown in the sidebar and on the sign-in pages). The AGPL licence needs it; keep it on new Inertia layouts. Laravel's plain error pages don't have it yet.
 - **Generated code:** `resources/js/actions`, `resources/js/routes` and `resources/js/wayfinder` are generated and ignored by git. Don't edit them.

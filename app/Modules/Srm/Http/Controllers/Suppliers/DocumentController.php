@@ -2,13 +2,13 @@
 
 namespace App\Modules\Srm\Http\Controllers\Suppliers;
 
+use App\Files\Uploads;
 use App\Http\Controllers\Controller;
 use App\Modules\Srm\Actions\Documents\StoreDocument;
 use App\Modules\Srm\Http\Requests\Suppliers\DocumentRequest;
 use App\Modules\Srm\Models\Document;
 use App\Modules\Srm\Models\Supplier;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -28,7 +28,7 @@ class DocumentController extends Controller
      */
     public function show(Supplier $supplier, Document $document): StreamedResponse
     {
-        return Storage::disk(StoreDocument::DISK)->download(
+        return Uploads::disk()->download(
             $document->file_path,
             $document->file_name,
             ['Content-Type' => $document->file_mime_type],
@@ -39,7 +39,9 @@ class DocumentController extends Controller
     {
         $document->delete();
 
-        Storage::disk(StoreDocument::DISK)->delete($document->file_path);
+        // The document is already deleted, so a storage outage must not fail the request;
+        // rescue() reports it, and a file left behind is harmless: nothing links to it.
+        rescue(fn () => Uploads::disk()->delete($document->file_path));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Document deleted.')]);
 

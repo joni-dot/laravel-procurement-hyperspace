@@ -1,0 +1,28 @@
+#!/bin/sh
+# After a restore: waits until PostgreSQL has replayed the changes from the bucket, then shows the
+# moment of the newest one. Fails loudly when it replayed none, which usually means the bucket could
+# not be read during the replay. Works until the database is next restarted.
+set -eu
+
+if [ "$(id -u)" = '0' ]; then
+    exec gosu postgres "$0" "$@"
+fi
+
+until db-ready 2> /dev/null; do
+    sleep 2
+done
+
+newest="$(psql -h /var/run/postgresql -U postgres -d postgres -tAXc \
+    "SELECT to_char(pg_last_xact_replay_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS \"UTC\"')")"
+
+if [ -z "$newest" ]; then
+    cat >&2 <<'MESSAGE'
+RESTORE CHECK FAILED: PostgreSQL replayed no changes from the bucket, so the database holds only
+the backup itself and may be hours old. Unless you know nothing changed after that backup, see
+"The whole server is lost" in docs/backups.md: check the bucket settings, delete this volume and
+restore again.
+MESSAGE
+    exit 1
+fi
+
+echo "Restored up to the change made at $newest. Check that this is the moment you expected."

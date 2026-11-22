@@ -1,0 +1,84 @@
+#!/bin/sh
+# Restores the database from the backup bucket into an EMPTY data volume mounted at
+# /var/lib/postgresql. Run it through docker/postgres/restore.sh or restore-drill.sh, not by hand.
+#
+#   db-restore                      up to the newest change in the bucket
+#   db-restore --time '2026-11-22 14:05:00+00'
+#                                   up to that moment (UTC); later changes are left out
+#   db-restore --drill              for the restore drill: the copy never uploads anything
+#   db-restore --bucket-time '2026-11-22 03:00:00+00'
+#                                   reads the bucket as it was at that moment: for a versioned
+#                                   bucket whose backups were deleted or damaged (docs/backups.md)
+#
+# This only copies files. The changes since the backup are replayed when PostgreSQL next starts on
+# the volume; the database then accepts writes and starts a new branch of history (a "timeline").
+set -eu
+
+stanza='hyperspace'
+data='/var/lib/postgresql/18/docker'
+
+if [ "$(id -u)" = '0' ]; then
+    install -d -o postgres -g postgres -m 0700 "$data"
+    exec gosu postgres "$0" "$@"
+fi
+
+target_time=''
+bucket_time=''
+drill=false
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --time)
+            target_time="${2:?--time needs a moment, for example '2026-11-22 14:05:00+00'}"
+            shift 2
+            ;;
+        --bucket-time)
+            bucket_time="${2:?--bucket-time needs a moment, for example '2026-11-22 03:00:00+00'}"
+            shift 2
+            ;;
+        --drill)
+            drill=true
+            shift
+            ;;
+        *)
+            sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//' >&2
+            exit 2
+            ;;
+    esac
+done
+
+check-backup-settings
+
+if [ -n "$(ls -A "$data")" ]; then
+    echo "The target volume is not empty. Restore into a new volume; this script never overwrites a database." >&2
+    exit 1
+fi
+
+is_moment() {
+    echo "$1" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}[ T][0-9]{2}:[0-9]{2}(:[0-9]{2}(\.[0-9]{1,6})?)?(Z|[+-][0-9]{2}(:?[0-9]{2})?)$'
+}
+
+for moment in "$target_time" "$bucket_time"; do
+    if [ -n "$moment" ] && ! is_moment "$moment"; then
+        echo "Give the moment with its time zone, for example '2026-11-22 14:05:00+00' (UTC)." >&2
+        exit 2
+    fi
+done
+
+set -- --stanza="$stanza"
+if [ -n "$target_time" ]; then
+    # pgBackRest picks the newest backup taken before that moment.
+    set -- "$@" --type=time --target="$target_time" --target-action=promote
+fi
+if [ -n "$bucket_time" ]; then
+    # Reads the backup as it was then. pgBackRest also writes this into the restore_command, so the
+    # change files are replayed as they were then too.
+    set -- "$@" --repo=1 --repo-target-time="$bucket_time"
+fi
+if [ "$drill" = true ]; then
+    # The drill copy must never upload change files into the real backups.
+    set -- "$@" --archive-mode=off
+fi
+
+started="$(date +%s)"
+pgbackrest "$@" restore
+echo "Files restored in $(($(date +%s) - started)) seconds. PostgreSQL replays the remaining changes when it starts on this volume."

@@ -1,0 +1,136 @@
+name: backups
+
+# Proves the database backups work (docs/backups.md): builds the database image, backs up to a
+# throwaway S3 server, runs the restore drill, and undoes a mistake with a point-in-time restore.
+# Every setting and secret is made up for this run (.github/backup-drill/write-env.sh); nothing is
+# published.
+on:
+  push:
+    branches:
+      - main
+  # On pull requests only when something it tests changes: the database image and setup, or the
+  # migrations, because the drill checks the companies' row-level security they create.
+  pull_request:
+    paths:
+      - docker/postgres/**
+      - docker/pgsql/app-role.sql
+      - compose.production.yaml
+      - .env.production.example
+      - .github/backup-drill/**
+      - .github/workflows/backups.yml
+      - Dockerfile
+      - database/migrations/**
+      - app/Modules/*/Database/Migrations/**
+      - composer.lock
+
+permissions:
+  contents: read
+
+jobs:
+  backups:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      # The settings file; COMPOSE_FILE and COMPOSE_PROJECT_NAME in it point Compose at the drill's setup.
+      SETTINGS: .env
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Write throwaway settings and test certificates
+        run: |
+          .github/backup-drill/write-env.sh "$SETTINGS"
+          .github/backup-drill/make-certs.sh
+
+      # Only the PHP stage of the app image (.github/backup-drill/compose.yaml): enough for the
+      # migrations, without the frontend build. image.yml tests the whole app image.
+      - name: Build the database image, and the app image's PHP stage for the migrations
+        run: docker compose build pgsql migrate
+
+      - name: Start the test S3 server and make the backup bucket
+        run: |
+          docker compose up --detach s3
+          bucket="$(sed -n 's/^BACKUP_S3_BUCKET=//p' "$SETTINGS")"
+          for attempt in $(seq 60); do
+            if docker compose exec -T s3 sh -c "echo 's3.bucket.create -name $bucket' | weed shell" 2> /dev/null | grep -q 'created bucket'; then
+              exit 0
+            fi
+            echo "S3 server not ready yet (attempt $attempt)"
+            sleep 2
+          done
+          exit 1
+
+      - name: Start the database; its backup service makes the first full backup
+        run: |
+          docker compose up --detach --no-build --wait --wait-timeout 120 pgsql pgsql-backup
+          timeout 120 sh -c 'until docker compose logs pgsql-backup | grep -q "full backup finished"; do sleep 2; done'
+
+      - name: Run the migrations as the owner and add a demo company
+        run: |
+          docker compose run --rm --no-deps migrate
+          # The output holds the admin's invitation link, a secret even here.
+          docker compose run --rm --no-deps migrate php artisan app:create-company 'Backup Drill' backup-drill admin@example.com --demo > /dev/null
+
+      - name: Take a differential backup
+        run: docker compose exec -T pgsql-backup db-backup now diff
+
+      - name: Restore drill
+        run: docker/postgres/restore-drill.sh
+
+      - name: Undo a mistake with a point-in-time restore
+        run: |
+          database="$(sed -n 's/^DB_DATABASE=//p' "$SETTINGS")"
+          restored="$(sed -n 's/^COMPOSE_PROJECT_NAME=//p' "$SETTINGS")-pitr"
+          sql() { docker compose exec -T -u postgres pgsql psql -d "$database" -v ON_ERROR_STOP=1 -tAX "$@"; }
+
+          contacts="$(sql -c 'SELECT count(*) FROM contacts')"
+          test "$contacts" -gt 0
+          sql -c 'CREATE TABLE backup_drill_marker (note text)' -c "INSERT INTO backup_drill_marker VALUES ('before')"
+          sleep 1
+          moment="$(sql -c "SELECT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS.US') || '+00'")"
+          sleep 1
+          sql -c 'DELETE FROM contacts' -c "INSERT INTO backup_drill_marker VALUES ('after')"
+          # Closes the current change file and waits until it is in the bucket.
+          docker compose exec -T pgsql-backup db-backup check > /dev/null
+          echo "Deleted $contacts contacts after $moment; restoring to that moment."
+
+          docker/postgres/restore.sh --time "$moment" --volume "$restored"
+          # restore.sh refuses the volume the running database uses.
+          if docker/postgres/restore.sh --time "$moment"; then
+            echo 'restore.sh overwrote the running database' >&2
+            exit 1
+          fi
+          # The steps restore.sh prints (docs/backups.md). The test S3 server starts again with the database.
+          docker compose down
+          sed -i "s/^PGSQL_VOLUME=.*/PGSQL_VOLUME=$restored/" "$SETTINGS"
+          docker compose up --detach --no-build --wait --wait-timeout 300 pgsql
+
+          docker compose exec -T pgsql db-restore-check
+          test "$(sql -c 'SELECT count(*) FROM contacts')" = "$contacts"
+          test "$(sql -c "SELECT string_agg(note, ',') FROM backup_drill_marker")" = before
+          echo "The $contacts contacts are back, and nothing after $moment is."
+
+          docker compose up --detach --no-build --wait pgsql-backup
+          docker compose exec -T pgsql-backup db-backup check > /dev/null
+          echo 'The restored database sends its changes to the bucket again.'
+
+      - name: Image size
+        run: docker image ls "$(sed -n 's/^DB_IMAGE=//p' "$SETTINGS")"
+
+      - name: Show the containers' logs
+        if: failure()
+        run: docker compose --profile restore logs --no-color --timestamps
+
+      - name: Stop and remove everything
+        if: always()
+        run: |
+          [ -f "$SETTINGS" ] || exit 0
+          project="$(sed -n 's/^COMPOSE_PROJECT_NAME=//p' "$SETTINGS")"
+          docker compose --profile restore down --volumes --remove-orphans
+          # The volumes the restores made, which the settings no longer name.
+          docker volume ls --quiet --filter "label=com.docker.compose.project=$project" | xargs --no-run-if-empty docker volume rm
+          rm -rf .github/backup-drill/run

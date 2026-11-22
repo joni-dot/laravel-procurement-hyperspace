@@ -1,0 +1,45 @@
+# Used only by .github/workflows/image.yml on top of compose.production.yaml. The web service is reachable
+# from the test machine over plain HTTP, and a plain PostgreSQL stands in for the production database,
+# which refuses to start without a backup bucket (its own workflow tests it).
+services:
+    web:
+        ports:
+            - '127.0.0.1:8080:8080'
+    pgsql:
+        image: 'postgres:18-alpine'
+        build: !reset null
+        environment: !override
+            POSTGRES_DB: '${DB_DATABASE}'
+            POSTGRES_USER: '${DB_OWNER_USERNAME}'
+            POSTGRES_PASSWORD: '${DB_OWNER_PASSWORD}'
+            APP_DB_USERNAME: '${DB_USERNAME}'
+            APP_DB_PASSWORD: '${DB_PASSWORD}'
+        volumes: !override
+            - 'smoke-test-pgsql:/var/lib/postgresql'
+        configs:
+            - source: create-app-role
+              target: /docker-entrypoint-initdb.d/20-create-app-role.sh
+              mode: 0755
+            - source: app-role
+              target: /docker-entrypoint-initdb.d/app-role.sql.inc
+        healthcheck: !override
+            test: ['CMD-SHELL', 'pg_isready -q -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+            interval: 2s
+            retries: 30
+
+volumes:
+    smoke-test-pgsql: {}
+
+configs:
+    # The app's restricted user, created the way docker/pgsql/app-role.sql describes.
+    create-app-role:
+        content: |
+            #!/bin/sh
+            set -eu
+            psql -v ON_ERROR_STOP=1 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -v app_user="$$APP_DB_USERNAME" -v app_password="$$APP_DB_PASSWORD" <<'SQL'
+            CREATE ROLE :"app_user" LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS PASSWORD :'app_password';
+            SQL
+            psql -v ON_ERROR_STOP=1 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -v app_user="$$APP_DB_USERNAME" -v owner="$$POSTGRES_USER" -f /docker-entrypoint-initdb.d/app-role.sql.inc
+    app-role:
+        # Relative to the project folder, where compose.production.yaml is.
+        file: ./docker/pgsql/app-role.sql

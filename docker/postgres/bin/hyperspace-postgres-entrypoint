@@ -1,0 +1,15 @@
+#!/bin/sh
+# Checks the backup settings, then hands over to the official PostgreSQL entrypoint.
+set -eu
+
+if [ "${1:-}" = 'postgres' ]; then
+    check-backup-settings
+    # The superuser signs in only through the socket inside the container (pg_hba.conf), so its
+    # password is never used. A random one satisfies the official entrypoint without storing a secret.
+    if [ -z "${POSTGRES_PASSWORD:-}" ]; then
+        POSTGRES_PASSWORD="$(head -c 32 /dev/urandom | base64)"
+        export POSTGRES_PASSWORD
+    fi
+fi
+
+exec docker-entrypoint.sh "$@"

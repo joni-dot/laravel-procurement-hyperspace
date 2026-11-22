@@ -15,7 +15,9 @@ use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\AuthenticateSession;
+use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use Sentry\Laravel\Integration;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -26,9 +28,15 @@ return Application::configure(basePath: dirname(__DIR__))
         apiPrefix: 'api',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
+        // The health check for uptime monitors; registered apart so it gets no web middleware.
+        then: fn () => Route::group([], __DIR__.'/../routes/health.php'),
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append([AddSecurityHeaders::class, AddContentSecurityPolicy::class]);
+
+        // The health check reports on the parts, maintenance or not (docs/monitoring.md). It must also
+        // answer when Redis, where production keeps the maintenance flag, is down.
+        $middleware->preventRequestsDuringMaintenance(except: ['health']);
 
         // Links in emails are built from the request's host name, so only APP_URL's own host may
         // reach the app. Laravel skips this check locally and in tests.
@@ -67,6 +75,14 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Error reports go to Sentry or GlitchTip only when SENTRY_LARAVEL_DSN is set (docs/monitoring.md).
+        // Checked at report time, so nothing is sent without a DSN, whatever else is configured.
+        $exceptions->reportable(function (Throwable $e): void {
+            if (filled(config('sentry.dsn'))) {
+                Integration::captureUnhandledException($e);
+            }
+        });
+
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );

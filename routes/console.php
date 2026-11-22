@@ -1,5 +1,7 @@
 <?php
 
+use App\Jobs\RecordQueueHeartbeat;
+use App\Monitoring\Heartbeats;
 use Illuminate\Support\Facades\Schedule;
 
 // Expired and revoked API tokens are useless; removing them keeps the token table small.
@@ -14,3 +16,10 @@ Schedule::command('notifications:send-summaries')
     ->timezone('UTC')
     ->withoutOverlapping()
     ->onOneServer();
+
+// Proves to the health check (/health) that the scheduler runs and, through a tiny queued job, that
+// a queue worker does. Outside every company; recording twice (two schedulers) does no harm.
+Schedule::call(function (Heartbeats $heartbeats): void {
+    $heartbeats->recordScheduler();
+    RecordQueueHeartbeat::dispatch();
+})->everyMinute()->name('health-heartbeats');

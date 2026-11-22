@@ -12,9 +12,9 @@ This repository continues the [laravel-srm](https://github.com/joni-dot/laravel-
 1. One repository, with the supplier features as a module _(done)_
 2. Companies: one account per person, invitations to several companies and a company switcher, each company's data kept apart _(done)_
 3. The project procurement register joins as a module _(done)_
-4. The modules work together: packages linked to suppliers, one dashboard and one set of notifications
-5. Getting started: a setup checklist, supplier import and a demo company
-6. Production: Docker image, hosting guide, backups and monitoring
+4. The modules work together: packages linked to suppliers, one dashboard and one set of notifications _(done)_
+5. Getting started: a setup checklist, supplier import and a demo company _(done)_
+6. Production: Docker image, hosting guide, backups and monitoring _(in progress: an internal security test follows)_
 
 ## Tech stack
 
@@ -70,6 +70,18 @@ The `scheduler` container runs timed jobs. Every morning at 06:00 (UTC) it email
 At 04:00 (UTC) it also checks every project's risk levels and sends date reminders as in-app notifications (`sail artisan packages:check-risks`, see "Notifications").
 
 After changing PHP code that runs in the background, restart the workers with `./vendor/bin/sail restart queue scheduler`.
+
+## Running it for real
+
+One Docker image (`Dockerfile`) runs every part: the web server, background jobs, the scheduler and the database migrations. `compose.production.yaml` is a ready setup for one Linux server, with automatic HTTPS. It works with any hosting provider, and each part can be swapped for a managed service (PostgreSQL, Redis, S3-compatible storage). Copy `.env.production.example` to `.env` and follow the guides:
+
+- [docs/hosting.md](docs/hosting.md): the first install, updates, running behind a load balancer, managed services and a security checklist.
+- [docs/backups.md](docs/backups.md): the database sends every change to a separate, encrypted backup bucket within about a minute, and makes a backup every night, kept for 30 days. Any moment of those 30 days can be restored, and a monthly restore drill (`docker/postgres/restore-drill.sh`) proves the backups work. The backup bucket can be set up so that even someone who takes over the server can't delete old backups. Uploaded files are kept in S3-compatible storage (`UPLOADS_DISK=s3`) with versioning switched on. With a managed database, use the provider's point-in-time restore instead.
+- [docs/monitoring.md](docs/monitoring.md): `/health` tells an uptime monitor whether the database, its backups, Redis, background jobs and the scheduler work (200 or 503, with check names only); `/up` only says that the app answers, for Docker and load balancers. Error reports to Sentry or GlitchTip are off unless `SENTRY_LARAVEL_DSN` is set; they name people and companies by id only and never include form data, cookies or query values. Logs are JSON lines on the containers' output.
+
+Behind a proxy or load balancer, list its addresses in `TRUSTED_PROXIES`. Only then does the app see visitors' real addresses (for rate limits) and know that the connection was HTTPS; anyone else could fake those headers, so nobody is trusted by default.
+
+GitHub checks every pull request three ways: the tests (workflow `tests`), the production image, started and checked from outside and inside by `bin/image-smoke-test` (workflow `image`), and the backups, with a real backup, restore drill and point-in-time restore (workflow `backups`).
 
 ## Companies
 
