@@ -13,7 +13,9 @@
         "laravel/passport": "^13.10",
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14",
+        "league/flysystem-aws-s3-v3": "^3.0",
         "openspout/openspout": "^5.15",
+        "sentry/sentry-laravel": "^4",
         "symfony/intl": "^8.1"
     },
     "require-dev": {
