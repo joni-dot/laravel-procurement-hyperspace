@@ -54,8 +54,8 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'sourceCodeUrl' => config('app.source_code_url'),
             // Closures run when the page renders, after EnterCompany has opened the company.
-            'company' => fn (): ?array => $this->navigationCompany->for($request->user())?->only(['name', 'slug']),
-            // For the company switcher: every company the person may open, and suspended ones marked.
+            'company' => fn (): ?array => $this->companyNamed($this->navigationCompany->for($request->user())),
+            // For the company switcher: every company the person may open, suspended and demo ones marked.
             'companies' => fn (): array => $this->memberCompanies($request),
             // Menu permissions as they are in the navigation company, so account pages show the same
             // menu as the company pages. Only the person's own role is read, never company data.
@@ -107,9 +107,23 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
+     * The open company as pages name it. A demo company is marked, so every page can say its data is made up.
+     *
+     * @return array{name: string, slug: string, is_demo: bool}|null
+     */
+    private function companyNamed(?Company $company): ?array
+    {
+        return $company === null ? null : [
+            'name' => $company->name,
+            'slug' => $company->slug,
+            'is_demo' => (bool) $company->is_demo,
+        ];
+    }
+
+    /**
      * One query, only names and addresses: nothing from inside the companies.
      *
-     * @return list<array{name: string, slug: string, suspended: bool}>
+     * @return list<array{name: string, slug: string, suspended: bool, is_demo: bool}>
      */
     private function memberCompanies(Request $request): array
     {
@@ -122,11 +136,12 @@ class HandleInertiaRequests extends Middleware
         return array_values(Company::query()
             ->whereHas('memberships', fn (Builder $memberships) => $memberships->where('user_id', $user->id)->active())
             ->orderBy('name')
-            ->get(['name', 'slug', 'suspended_at'])
+            ->get(['name', 'slug', 'suspended_at', 'is_demo'])
             ->map(fn (Company $company): array => [
                 'name' => $company->name,
                 'slug' => $company->slug,
                 'suspended' => $company->isSuspended(),
+                'is_demo' => $company->is_demo,
             ])
             ->all());
     }

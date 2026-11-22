@@ -38,6 +38,7 @@ class SendDateReminders
     public function handle(Project $project, Collection $rows, ProjectSchedules $schedules, bool $onlyFirstChecks = false): void
     {
         $recipients = ProjectRecipients::of($project);
+        $withInvited = null;
         $today = Days::fromDate($schedules->today);
         $reminders = [];
 
@@ -48,13 +49,20 @@ class SendDateReminders
                 continue;
             }
 
-            foreach ($schedules->of($row->id)->milestones() as $milestone) {
-                foreach ($recipients->among([$row->owner_id, $row->buyer_id]) as $person) {
-                    $reminder = $this->reminder($row->id, $milestone, $person, $today, quiet: $isFirstCheck);
+            // A first check also records the overdue dates of someone invited but not yet joined (a demo
+            // company's first admin), so joining doesn't bring a flood of old news either.
+            $people = $isFirstCheck ? ($withInvited ??= ProjectRecipients::of($project, withInvited: true)) : $recipients;
 
-                    if ($reminder !== null && ($reminder['quiet'] || ! $onlyFirstChecks)) {
-                        $reminders[$this->key($reminder)] = $reminder;
+            foreach ($schedules->of($row->id)->milestones() as $milestone) {
+                foreach ($people->among([$row->owner_id, $row->buyer_id]) as $person) {
+                    $reminder = $this->reminder($row->id, $milestone, $person, $today, quiet: $isFirstCheck);
+                    $isNews = $reminder !== null && ! $reminder['quiet'];
+
+                    if ($reminder === null || ($isNews && ($onlyFirstChecks || $recipients->among([$person->id]) === []))) {
+                        continue;
                     }
+
+                    $reminders[$this->key($reminder)] = $reminder;
                 }
             }
         }

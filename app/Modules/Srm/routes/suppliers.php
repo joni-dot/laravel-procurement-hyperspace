@@ -6,11 +6,14 @@ use App\Modules\Srm\Http\Controllers\Suppliers\CommentController;
 use App\Modules\Srm\Http\Controllers\Suppliers\ContactController;
 use App\Modules\Srm\Http\Controllers\Suppliers\ContractController;
 use App\Modules\Srm\Http\Controllers\Suppliers\DocumentController;
+use App\Modules\Srm\Http\Controllers\Suppliers\DownloadSupplierImportTemplateController;
+use App\Modules\Srm\Http\Controllers\Suppliers\PreviewSupplierImportController;
 use App\Modules\Srm\Http\Controllers\Suppliers\RatingController;
 use App\Modules\Srm\Http\Controllers\Suppliers\RestoreSupplierController;
 use App\Modules\Srm\Http\Controllers\Suppliers\RiskOverrideController;
 use App\Modules\Srm\Http\Controllers\Suppliers\SpendController;
 use App\Modules\Srm\Http\Controllers\Suppliers\SupplierController;
+use App\Modules\Srm\Http\Controllers\Suppliers\SupplierImportController;
 use App\Modules\Srm\Http\Controllers\Suppliers\UploadContractDocumentController;
 use App\Modules\Srm\Models\Comment;
 use App\Modules\Srm\Models\Contract;
@@ -25,6 +28,25 @@ Route::middleware('auth')->group(function () {
     Route::get('suppliers/create', [SupplierController::class, 'create'])
         ->can('create', Supplier::class)
         ->name('suppliers.create');
+
+    Route::get('suppliers/import', [SupplierImportController::class, 'create'])
+        ->can('create', Supplier::class)
+        ->name('suppliers.import.create');
+
+    Route::post('suppliers/import/preview', PreviewSupplierImportController::class)
+        ->can('create', Supplier::class)
+        ->middleware('throttle:supplier-import')
+        ->name('suppliers.import.preview');
+
+    Route::post('suppliers/import', [SupplierImportController::class, 'store'])
+        ->can('create', Supplier::class)
+        ->middleware('throttle:supplier-import')
+        ->name('suppliers.import.store');
+
+    // ?format=xlsx for Excel, CSV otherwise.
+    Route::get('suppliers/import/template', DownloadSupplierImportTemplateController::class)
+        ->can('create', Supplier::class)
+        ->name('suppliers.import.template');
 
     Route::post('suppliers', [SupplierController::class, 'store'])
         ->can('create', Supplier::class)

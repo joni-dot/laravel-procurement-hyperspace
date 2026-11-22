@@ -4,6 +4,8 @@ export type PlatformCompanyRow = {
     name: string;
     slug: string;
     is_suspended: boolean;
+    /** Filled with made-up data; marked "Demo". */
+    is_demo: boolean;
     active_members_count: number;
     pending_invitations_count: number;
     /** YYYY-MM-DD */

@@ -50,6 +50,7 @@ class CompanyManagementTest extends TestCase
                     'name' => 'Acme',
                     'slug' => $this->company->slug,
                     'is_suspended' => false,
+                    'is_demo' => false,
                     'active_members_count' => 2,
                     'pending_invitations_count' => 1,
                     'created_at' => today()->toDateString(),

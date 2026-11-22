@@ -2,6 +2,7 @@
 import { Form } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
 import CompanyController from '@/actions/App/Http/Controllers/Platform/CompanyController';
+import CreateDemoCompanyController from '@/actions/App/Http/Controllers/Platform/CreateDemoCompanyController';
 import FormField from '@/components/FormField.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,6 +20,8 @@ import type { PlatformCompanyRow } from '@/types';
 
 const props = defineProps<{
     company?: PlatformCompanyRow;
+    /** A new company filled with made-up data. */
+    demo?: boolean;
 }>();
 
 const isOpen = defineModel<boolean>('open', { required: true });
@@ -46,9 +49,17 @@ function toSlug(text: string): string {
         .replace(/-+$/, '');
 }
 
-const action = props.company
-    ? CompanyController.update.form({ company: props.company.id })
-    : CompanyController.store.form();
+function formAction() {
+    if (props.company) {
+        return CompanyController.update.form({ company: props.company.id });
+    }
+
+    return props.demo
+        ? CreateDemoCompanyController.form()
+        : CompanyController.store.form();
+}
+
+const action = formAction();
 </script>
 
 <template>
@@ -66,7 +77,9 @@ const action = props.company
                         {{
                             company
                                 ? $t('Edit :name', { name: company.name })
-                                : $t('Add company')
+                                : demo
+                                  ? $t('Create demo company')
+                                  : $t('Add company')
                         }}
                     </DialogTitle>
                     <DialogDescription>
@@ -75,9 +88,13 @@ const action = props.company
                                 ? $t(
                                       'Old links keep working when the address changes: they forward to the new address. An old address is never given to another company.',
                                   )
-                                : $t(
-                                      'The company gets its own address, and the person you name here is invited to be its first admin.',
-                                  )
+                                : demo
+                                  ? $t(
+                                        'The company is filled with made-up suppliers and a project, and marked "Demo". The person you name here is invited to be its first admin.',
+                                    )
+                                  : $t(
+                                        'The company gets its own address, and the person you name here is invited to be its first admin.',
+                                    )
                         }}
                     </DialogDescription>
                 </DialogHeader>

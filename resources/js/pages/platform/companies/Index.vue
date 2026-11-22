@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { useDebounceFn } from '@vueuse/core';
-import { Pause, Pencil, Play, Plus, Search, UserPlus } from '@lucide/vue';
+import {
+    FlaskConical,
+    Pause,
+    Pencil,
+    Play,
+    Plus,
+    Search,
+    UserPlus,
+} from '@lucide/vue';
 import { ref, watch } from 'vue';
 import CompanyController from '@/actions/App/Http/Controllers/Platform/CompanyController';
 import ReopenCompanyController from '@/actions/App/Http/Controllers/Platform/ReopenCompanyController';
@@ -32,6 +40,7 @@ const props = defineProps<{
 }>();
 
 const isAdding = ref(false);
+const isAddingDemo = ref(false);
 const companyBeingEdited = ref<PlatformCompanyRow | null>(null);
 const companyBeingSuspended = ref<PlatformCompanyRow | null>(null);
 const companyBeingReopened = ref<PlatformCompanyRow | null>(null);
@@ -84,9 +93,14 @@ function memberSummary(company: PlatformCompanyRow): string {
                 "
                 class="mb-0"
             />
-            <Button @click="isAdding = true">
-                <Plus /> {{ $t('Add company') }}
-            </Button>
+            <div class="flex flex-wrap gap-2">
+                <Button variant="outline" @click="isAddingDemo = true">
+                    <FlaskConical /> {{ $t('Create demo company') }}
+                </Button>
+                <Button @click="isAdding = true">
+                    <Plus /> {{ $t('Add company') }}
+                </Button>
+            </div>
         </div>
 
         <div class="relative max-w-sm">
@@ -130,6 +144,12 @@ function memberSummary(company: PlatformCompanyRow): string {
                     <tr v-for="company in companies.data" :key="company.id">
                         <td class="px-4 py-3 font-medium">
                             {{ company.name }}
+                            <Badge
+                                v-if="company.is_demo"
+                                variant="outline"
+                                class="ml-2"
+                                >{{ $t('Demo') }}</Badge
+                            >
                         </td>
                         <td class="px-4 py-3 font-mono text-xs">
                             /{{ company.slug }}
@@ -220,6 +240,13 @@ function memberSummary(company: PlatformCompanyRow): string {
         v-if="isAdding"
         :open="true"
         @update:open="isAdding = false"
+    />
+
+    <CompanyDialog
+        v-if="isAddingDemo"
+        demo
+        :open="true"
+        @update:open="isAddingDemo = false"
     />
 
     <CompanyDialog

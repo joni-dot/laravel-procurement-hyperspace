@@ -21,9 +21,15 @@ declare module '@inertiajs/core' {
             name: string;
             sourceCodeUrl: string;
             /** The open company, or on account pages the one the menu links into. */
-            company: { name: string; slug: string } | null;
+            company: { name: string; slug: string; is_demo: boolean } | null;
             /** Every company the person belongs to, for the company switcher. */
-            companies: { name: string; slug: string; suspended: boolean }[];
+            companies: {
+                name: string;
+                slug: string;
+                suspended: boolean;
+                /** Filled with made-up data; marked "Demo". */
+                is_demo: boolean;
+            }[];
             auth: Auth;
             /** Invitations to join a company that the person can still accept. */
             invitationCount: number;

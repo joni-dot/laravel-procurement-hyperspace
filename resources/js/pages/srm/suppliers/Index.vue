@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { useDebounceFn } from '@vueuse/core';
-import { Plus, Search, TriangleAlert } from '@lucide/vue';
+import { FileUp, Plus, Search, TriangleAlert } from '@lucide/vue';
 import { reactive, watch } from 'vue';
 import SupplierController from '@/actions/App/Modules/Srm/Http/Controllers/Suppliers/SupplierController';
+import SupplierImportController from '@/actions/App/Modules/Srm/Http/Controllers/Suppliers/SupplierImportController';
 import Heading from '@/components/Heading.vue';
 import Pagination from '@/components/Pagination.vue';
 import RiskLevelBadge from '@/components/srm/risk/RiskLevelBadge.vue';
@@ -119,11 +120,18 @@ watch(
                 "
                 class="mb-0"
             />
-            <Button v-if="can.create" as-child>
-                <Link :href="SupplierController.create()">
-                    <Plus /> {{ $t('New supplier') }}
-                </Link>
-            </Button>
+            <div v-if="can.create" class="flex flex-wrap gap-2">
+                <Button variant="outline" as-child>
+                    <Link :href="SupplierImportController.create()">
+                        <FileUp /> {{ $t('Import') }}
+                    </Link>
+                </Button>
+                <Button as-child>
+                    <Link :href="SupplierController.create()">
+                        <Plus /> {{ $t('New supplier') }}
+                    </Link>
+                </Button>
+            </div>
         </div>
 
         <div class="flex flex-wrap items-center gap-3">

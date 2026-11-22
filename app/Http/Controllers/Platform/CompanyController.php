@@ -26,7 +26,7 @@ class CompanyController extends Controller
         $search = $request->string('search')->trim()->limit(100, '')->toString();
 
         $companies = Company::query()
-            ->select(['id', 'name', 'slug', 'suspended_at', 'created_at'])
+            ->select(['id', 'name', 'slug', 'suspended_at', 'is_demo', 'created_at'])
             ->withCount([
                 'memberships as active_members_count' => fn ($memberships) => $memberships->active(),
                 'memberships as pending_invitations_count' => fn ($memberships) => $memberships->pendingInvitation(),
@@ -43,6 +43,7 @@ class CompanyController extends Controller
                 'name' => $company->name,
                 'slug' => $company->slug,
                 'is_suspended' => $company->isSuspended(),
+                'is_demo' => $company->is_demo,
                 'active_members_count' => $company->getAttribute('active_members_count'),
                 'pending_invitations_count' => $company->getAttribute('pending_invitations_count'),
                 'created_at' => $company->created_at?->toDateString(),

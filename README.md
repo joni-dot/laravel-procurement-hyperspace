@@ -80,6 +80,7 @@ The service holds many companies, and each company's data is kept apart. A perso
 - **Home page:** `/{company}` opens the company's **Home** page. Each module adds its own sections, and each section is shown only to the people it is useful for:
     - Projects: **My next actions** (the 10 most urgent, for project members) and **My projects** (one row of numbers per project, for project members and admins; an admin in no project gets a link to Projects).
     - Suppliers: the attention tiles and the soonest dates, for everyone. Contract tiles and dates appear only for buyers and admins.
+    - **Getting started** (company admins, at the top): a short checklist: add suppliers, choose the certificates you track, choose where reminders go, create the first project, invite colleagues. Each step ticks itself from the company's data, and the list disappears for good once an admin's Home finds every step done (`companies.onboarding_completed_at`), even if a step later looks open again. Any admin can hide it for the whole company; while steps are still open, "Show the getting-started checklist" at the bottom of Home brings it back. Demo companies don't show it. Modules add steps through `App\Onboarding\OnboardingSteps`; a step belongs there only if one cheap query can tell whether it is done.
     - Each section links to its module's full dashboard, which stays where it was. The sections arrive just after the page, with grey placeholders meanwhile.
 - **Account and company:** name, email, password and two-factor sign-in belong to the account and work everywhere. Roles, settings (such as the reminder email) and API clients belong to one company.
 
@@ -114,6 +115,7 @@ Platform admins run the service at `/platform/companies`. They never see a compa
 - **Creating a company:** a name, an address (lowercase letters, digits and dashes, at most 40 characters) and the first admin's name and email. That person gets an invitation to be the company's admin. Self-hosters can do the same with `sail artisan app:create-company "Acme Oy" acme anna@example.com --admin-name="Anna"`; the command also prints the invitation link, to pass on if email isn't set up yet (treat it like a password). Addresses the app uses itself (`platform`, `settings`, `login`, `api` and so on) are reserved.
 - **A company without an admin:** if the first admin's invitation expires or went to a mistyped address, nobody in the company can invite people. While a company has no active admin, a platform admin can send the invitation again or to a corrected address (the person button on the company's row); a link sent earlier to another address stops working. Once the company has an admin, its own admins invite people.
 - **Changing an address:** old links keep working; they forward the company's members to the new address. An address that a company has ever had is never given to another company.
+- **Demo companies:** "Create demo company" makes a company filled with made-up data for demos and trials: about 150 suppliers with contacts, certificates, ratings, spend and a few contracts, and one project of about 50 packages with dates around today, some with suppliers chosen. It is named and gets its first admin like any company, and the platform admin still sees none of its data. Self-hosters can run `app:create-company … --demo`. A demo company is marked "Demo" in the company switcher and on the platform list, and every page in it says "Demo company: the data is made up." The data names nobody but the first admin, so a declined invitation to a demo company is withdrawn rather than deleted, and the platform can invite only that same address again (for someone else, create a new demo company). Overdue dates in the made-up project are recorded as already reminded, so joining brings no flood of old reminders. Each module adds its part through `App\Companies\DemoData`; because this runs in production, the data comes from fixed word lists, never Faker.
 - **Suspending** a company stops its members (and its API clients) from opening it but keeps all its data; reopening gives everything back.
 
 ### Behind the scenes
@@ -127,6 +129,18 @@ Platform admins run the service at `/platform/companies`. They never see a compa
 - **A test tries every company page** that takes a record with another company's records and expects "not found" (`CrossCompanyAccessTest`); a new page of that kind fails the test until it is added there.
 
 Suppliers are archived, never deleted, and can be restored. Contacts are people, so they are truly deleted when removed.
+
+## Importing suppliers
+
+Buyers and admins add many suppliers at once under **Suppliers → Import**:
+
+- **The file:** CSV (comma, semicolon or tab; UTF-8, or the Windows encoding Excel uses) or an Excel workbook (.xlsx, first sheet only), up to 5 MB and 5,000 suppliers. The page offers templates with the header row and explains each column.
+- **Check first:** the page shows what the file would do before anything is saved: how many suppliers would be added, skipped or have errors, each problem with its row and column, and the first suppliers to be added. The file is never stored: **Import** sends it again and it is checked again.
+- **Same rules as the forms:** rows are tidied and checked exactly like the New supplier and contact forms. Rows with errors are left out; the rest are saved together, all or nothing.
+- **Never overwrites:** a row is skipped when the company already has its supplier number, or its country and business ID (archived suppliers count too), and when it repeats an earlier row of the file.
+- **Categories and people:** unknown category names are created when an admin imports; a buyer gets a warning and the category is left off. The responsible buyer is given by email and must be an active buyer or admin, otherwise it is left empty with a warning. A contact name creates the primary contact.
+- **Speed:** a file of 5,000 suppliers takes about 5 to 10 seconds to check, and as long again to import (the import checks it again). Each person may check or import 20 files a minute.
+- **Limits that protect the server:** besides 5 MB and 5,000 suppliers, a file may have at most 20,000 rows counting empty ones, and 200 columns; a workbook may unpack to at most 50 MB, counted as it is really unpacked, not as the file claims. An admin's file may create at most 100 new categories.
 
 ## Ratings, risk and spend
 

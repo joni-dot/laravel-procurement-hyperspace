@@ -3,18 +3,28 @@
 namespace App\Modules\Srm;
 
 use App\Companies\CurrentCompany;
+use App\Companies\DemoData;
 use App\Models\Company;
+use App\Models\Setting;
 use App\Models\User;
 use App\Modules\Srm\Actions\AddStartingLists;
 use App\Modules\Srm\Console\Commands\RenewContracts;
 use App\Modules\Srm\Console\Commands\SendCertificateReminders;
 use App\Modules\Srm\Console\Commands\SendContractReminders;
 use App\Modules\Srm\Dashboard\SupplierAttention;
+use App\Modules\Srm\Demo\DemoSuppliers;
+use App\Modules\Srm\Enums\SettingKey;
+use App\Modules\Srm\Models\CertificateType;
+use App\Modules\Srm\Models\Supplier;
 use App\Modules\Srm\Notifications\CertificateExpiringNotifications;
 use App\Modules\Srm\Notifications\ContractNeedsActionNotifications;
 use App\Notifications\NotificationKinds;
+use App\Onboarding\OnboardingSteps;
 use App\Pages\PageSections;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
@@ -28,9 +38,12 @@ class SrmServiceProvider extends ServiceProvider
     {
         $this->loadMigrationsFrom(__DIR__.'/Database/Migrations');
         $this->startNewCompanies();
+        $this->addDemoData();
         $this->addHomeSections();
+        $this->addOnboardingSteps();
         $this->registerNotificationKinds();
         $this->registerRoutes();
+        $this->limitSupplierImports();
         $this->registerCommands();
     }
 
@@ -41,6 +54,14 @@ class SrmServiceProvider extends ServiceProvider
                 $company,
                 fn () => $this->app->make(AddStartingLists::class)->handle(),
             );
+        });
+    }
+
+    /** Made-up suppliers for a new demo company, before the modules that use them. */
+    private function addDemoData(): void
+    {
+        $this->callAfterResolving(DemoData::class, function (DemoData $demoData): void {
+            $demoData->add('srm_suppliers', 10, fn (Company $company, User $admin) => $this->app->make(DemoSuppliers::class)->fill($admin));
         });
     }
 
@@ -69,6 +90,34 @@ class SrmServiceProvider extends ServiceProvider
             deferred: true);
     }
 
+    /** The supplier module's part of the getting-started checklist on Home. */
+    private function addOnboardingSteps(): void
+    {
+        $this->callAfterResolving(OnboardingSteps::class, function (OnboardingSteps $steps): void {
+            // Archived suppliers count: the company has started.
+            $steps->add('add_suppliers', 10,
+                title: fn (): string => __('Add your suppliers'),
+                description: fn (): string => __('Import them from a spreadsheet, or add them one by one.'),
+                link: fn (): string => route('suppliers.import.create', absolute: false),
+                done: fn (): bool => Supplier::query()->exists());
+            // Without certificate types no certificates can be recorded, so certificate dates and risk stay empty.
+            $steps->add('choose_certificates', 20,
+                title: fn (): string => __('Choose the certificates you track'),
+                description: fn (): string => __('List the certificates you ask suppliers for, and mark the ones every supplier must have.'),
+                link: fn (): string => route('admin.certificate-types.index', absolute: false),
+                done: fn (): bool => CertificateType::query()->exists());
+            $steps->add('choose_reminder_email', 30,
+                title: fn (): string => __('Choose where reminders go'),
+                description: fn (): string => __('Certificate reminders for suppliers without a responsible buyer go to this address.'),
+                link: fn (): string => route('admin.settings.edit', absolute: false),
+                done: fn (): bool => Setting::query()
+                    ->whereKey(SettingKey::ReminderEmail->value)
+                    ->whereNotNull('value')
+                    ->where('value', '!=', '')
+                    ->exists());
+        });
+    }
+
     private function registerRoutes(): void
     {
         if ($this->app->routesAreCached()) {
@@ -80,6 +129,12 @@ class SrmServiceProvider extends ServiceProvider
             ->where(['company' => Company::routePattern()])
             ->group(__DIR__.'/routes/web.php');
         Route::middleware('api')->prefix('api')->group(__DIR__.'/routes/api.php');
+    }
+
+    /** Reading a file of thousands of rows is heavy work, so each person may preview or import 20 files a minute. */
+    private function limitSupplierImports(): void
+    {
+        RateLimiter::for('supplier-import', fn (Request $request) => Limit::perMinute(20)->by((string) $request->user()?->id));
     }
 
     private function registerCommands(): void

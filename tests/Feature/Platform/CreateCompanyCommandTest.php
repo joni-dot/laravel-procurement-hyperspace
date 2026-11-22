@@ -2,10 +2,12 @@
 
 namespace Tests\Feature\Platform;
 
+use App\Companies\CurrentCompany;
 use App\Enums\Role;
 use App\Models\Company;
 use App\Models\Membership;
 use App\Models\User;
+use App\Modules\Srm\Models\Supplier;
 use App\Notifications\UserInvitation;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Notification;
@@ -53,6 +55,30 @@ class CreateCompanyCommandTest extends TestCase
         $this->assertNotNull($link);
         $this->get($link)->assertOk();
         $this->assertSame('anna', User::query()->where('email', 'anna@example.com')->sole()->name);
+    }
+
+    public function test_the_demo_option_fills_the_company_with_made_up_data_and_marks_it()
+    {
+        $this->artisan('app:create-company', ['name' => 'Demo Oy', 'slug' => 'demo-oy', 'admin-email' => 'anna@example.com', '--demo' => true])
+            ->expectsOutputToContain('Demo company Demo Oy created')
+            ->expectsOutputToContain($this->invitationLinkStart())
+            ->assertSuccessful();
+
+        $company = Company::query()->where('slug', 'demo-oy')->sole();
+
+        $this->assertTrue($company->is_demo);
+        $this->assertGreaterThan(0, app(CurrentCompany::class)->runAs($company, fn () => Supplier::query()->count()));
+        Notification::assertSentTo(User::query()->where('email', 'anna@example.com')->sole(), UserInvitation::class);
+    }
+
+    public function test_without_the_demo_option_the_company_starts_empty()
+    {
+        $this->artisan('app:create-company', ['name' => 'Acme Oy', 'slug' => 'acme', 'admin-email' => 'anna@example.com'])->assertSuccessful();
+
+        $company = Company::query()->where('slug', 'acme')->sole();
+
+        $this->assertFalse($company->is_demo);
+        $this->assertSame(0, app(CurrentCompany::class)->runAs($company, fn () => Supplier::query()->count()));
     }
 
     public function test_it_validates_like_the_form()

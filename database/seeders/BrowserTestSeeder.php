@@ -72,6 +72,24 @@ class BrowserTestSeeder extends Seeder
         $this->inviteToAnotherCompany($viewer);
         $this->addOtherCompanyOf($buyer, $company);
         $this->addSupplierNotification($admin, $supplier);
+        $this->addOnboardingCompanies();
+    }
+
+    /**
+     * Two companies of their own for the onboarding tests, so importing suppliers and ticking off the
+     * getting-started checklist can't change what the other tests see (importCompany and
+     * onboardingCompany in test-data.ts). Each has a single admin who belongs to no other company.
+     */
+    private function addOnboardingCompanies(): void
+    {
+        foreach ([
+            ['Browser Import Company', 'browser-import', 'Browser Importer', 'importer@browser-test.example'],
+            ['Browser Onboarding Company', 'browser-onboarding', 'Browser Newcomer', 'newcomer@browser-test.example'],
+        ] as [$companyName, $slug, $adminName, $email]) {
+            $company = Company::factory()->create(['name' => $companyName, 'slug' => $slug]);
+            $admin = User::factory()->withoutCompany()->create(['name' => $adminName, 'email' => $email]);
+            Membership::factory()->create(['company_id' => $company->id, 'user_id' => $admin->id, 'role' => Role::Admin]);
+        }
     }
 
     /**

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import AppContent from '@/components/AppContent.vue';
 import AppShell from '@/components/AppShell.vue';
 import AppSidebar from '@/components/AppSidebar.vue';
@@ -16,6 +18,8 @@ withDefaults(defineProps<Props>(), {
 });
 
 const { isSlow } = useNavigationState();
+const page = usePage();
+const isDemoCompany = computed(() => page.props.company?.is_demo === true);
 </script>
 
 <template>
@@ -23,6 +27,13 @@ const { isSlow } = useNavigationState();
         <AppSidebar />
         <AppContent variant="sidebar" class="min-w-0 overflow-x-clip">
             <AppSidebarHeader :breadcrumbs="breadcrumbs" />
+            <p
+                v-if="isDemoCompany"
+                class="border-b border-sidebar-border/70 bg-muted/60 px-4 py-1.5 text-center text-xs text-muted-foreground"
+                data-test="demo-notice"
+            >
+                {{ $t('Demo company: the data is made up.') }}
+            </p>
             <!--
                 The header stays usable while a page loads, so the sidebar toggle and notifications still work.
                 Each new page's top element is created afresh, so the fade-in on the direct children plays once

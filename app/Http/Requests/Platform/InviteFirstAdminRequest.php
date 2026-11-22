@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Platform;
 
 use App\Concerns\CompanyValidationRules;
+use App\Enums\Role;
 use App\Models\Company;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -32,8 +33,24 @@ class InviteFirstAdminRequest extends FormRequest
                 if ($company instanceof Company && $company->hasActiveAdmin()) {
                     $validator->errors()->add('admin_email', __('This company already has an admin, who invites people.'));
                 }
+
+                if ($company instanceof Company && $company->is_demo && ! $this->isDemoFirstAdmin($company)) {
+                    $validator->errors()->add('admin_email', __("A demo company's made-up data names its first admin, so only they can be invited again. Create a new demo company for someone else."));
+                }
             },
         ];
+    }
+
+    /**
+     * Whether the address is the one the demo company was made for: its data names that person as project
+     * manager, package owner and so on, so another first admin would find it naming a stranger.
+     */
+    private function isDemoFirstAdmin(Company $company): bool
+    {
+        $firstAdmin = $company->memberships()->where('role', Role::Admin)->oldest('id')->first();
+
+        return $firstAdmin !== null
+            && mb_strtolower((string) ($firstAdmin->known_email ?? $firstAdmin->user?->email)) === $this->input('admin_email');
     }
 
     /**

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Platform\CompanyController;
+use App\Http\Controllers\Platform\CreateDemoCompanyController;
 use App\Http\Controllers\Platform\InviteFirstAdminController;
 use App\Http\Controllers\Platform\ReopenCompanyController;
 use App\Http\Controllers\Platform\SuspendCompanyController;
@@ -17,6 +18,11 @@ Route::middleware(['auth', 'platform', RequirePassword::class])->prefix('platfor
     Route::post('companies', [CompanyController::class, 'store'])
         ->middleware('throttle:20,1')
         ->name('companies.store');
+
+    // A company filled with made-up data. Filling it takes about a second, so fewer per minute.
+    Route::post('companies/demo', CreateDemoCompanyController::class)
+        ->middleware('throttle:10,1')
+        ->name('companies.demo.store');
 
     Route::put('companies/{company}', [CompanyController::class, 'update'])
         ->whereNumber('company')

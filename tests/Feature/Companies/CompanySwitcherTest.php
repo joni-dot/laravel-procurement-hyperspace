@@ -23,6 +23,7 @@ class CompanySwitcherTest extends TestCase
         $this->company->update(['name' => 'Beta Company']);
         $user = User::factory()->create();
         $alpha = $this->joinedCompany($user, 'Alpha Company');
+        $alpha->forceFill(['is_demo' => true])->save();
         $suspended = $this->joinedCompany($user, 'Gamma Company');
         $suspended->forceFill(['suspended_at' => now()])->save();
         Membership::factory()->invited()->create(['user_id' => $user->id, 'company_id' => Company::factory()->create(['name' => 'Invited Company'])->id]);
@@ -32,10 +33,22 @@ class CompanySwitcherTest extends TestCase
         $this->actingAs($user)
             ->get(route('dashboard'))
             ->assertInertia(fn (AssertableInertia $page) => $page->where('companies', [
-                ['name' => 'Alpha Company', 'slug' => $alpha->slug, 'suspended' => false],
-                ['name' => 'Beta Company', 'slug' => $this->company->slug, 'suspended' => false],
-                ['name' => 'Gamma Company', 'slug' => $suspended->slug, 'suspended' => true],
+                ['name' => 'Alpha Company', 'slug' => $alpha->slug, 'suspended' => false, 'is_demo' => true],
+                ['name' => 'Beta Company', 'slug' => $this->company->slug, 'suspended' => false, 'is_demo' => false],
+                ['name' => 'Gamma Company', 'slug' => $suspended->slug, 'suspended' => true, 'is_demo' => false],
             ]));
+    }
+
+    public function test_pages_say_whether_the_open_company_is_a_demo()
+    {
+        $user = User::factory()->create();
+        $demo = $this->joinedCompany($user, 'Demo Company');
+        $demo->forceFill(['is_demo' => true])->save();
+
+        $this->actingAs($user)->get("/{$demo->slug}/dashboard")
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('company', ['name' => 'Demo Company', 'slug' => $demo->slug, 'is_demo' => true]));
+        $this->get("/{$this->company->slug}/dashboard")
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('company.is_demo', false));
     }
 
     public function test_the_list_is_also_there_on_account_pages_and_empty_for_guests()

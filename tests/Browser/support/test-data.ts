@@ -30,6 +30,20 @@ export const inviteCompany = {
     url: '/browser-invite',
 } as const;
 
+// Companies of their own for the onboarding tests, each with one admin and nothing done yet.
+// Their admins have no saved sign-in; a test that needs them signs in itself.
+export const importCompany = {
+    name: 'Browser Import Company',
+    url: '/browser-import',
+    admin: 'importer@browser-test.example',
+} as const;
+
+export const onboardingCompany = {
+    name: 'Browser Onboarding Company',
+    url: '/browser-onboarding',
+    admin: 'newcomer@browser-test.example',
+} as const;
+
 export const seeded = {
     supplierUrl: `${company}/suppliers/1`,
     supplierName: 'Browser Test Supplier',

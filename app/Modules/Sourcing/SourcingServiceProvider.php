@@ -2,12 +2,14 @@
 
 namespace App\Modules\Sourcing;
 
+use App\Companies\DemoData;
 use App\Models\Company;
 use App\Models\User;
 use App\Modules\Ppr\Models\Package;
 use App\Modules\Ppr\Risk\OutsideRiskReasons;
 use App\Modules\Ppr\Risk\RiskReason;
 use App\Modules\Sourcing\Actions\CheckPackagesChoosingSuppliers;
+use App\Modules\Sourcing\Demo\DemoSourcing;
 use App\Modules\Sourcing\Enums\QuoteStatus;
 use App\Modules\Sourcing\Models\PackageSupplier;
 use App\Modules\Sourcing\Sections\PackageSuppliers;
@@ -39,6 +41,7 @@ class SourcingServiceProvider extends ServiceProvider
         $this->addSupplierRiskToPackages();
         $this->checkPackagesWhenSuppliersChange();
         $this->addPageSections();
+        $this->addDemoData();
         $this->registerRoutes();
     }
 
@@ -153,6 +156,14 @@ class SourcingServiceProvider extends ServiceProvider
         $sections->add('srm.supplier', 'sourcing_packages', 10, 'sourcing/SupplierPackages',
             fn (User $user, array $context): bool => $user->can('view', $context['supplier']),
             fn (User $user, array $context): array => $this->app->make(SupplierPackages::class)->for($user, $context['supplier']));
+    }
+
+    /** Suppliers on the demo project's packages: after the suppliers and the project exist. */
+    private function addDemoData(): void
+    {
+        $this->callAfterResolving(DemoData::class, function (DemoData $demoData): void {
+            $demoData->add('sourcing_package_suppliers', 30, fn (Company $company) => $this->app->make(DemoSourcing::class)->fill($company));
+        });
     }
 
     private function registerRoutes(): void

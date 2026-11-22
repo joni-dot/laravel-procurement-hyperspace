@@ -2,6 +2,7 @@
 
 namespace App\Modules\Ppr;
 
+use App\Companies\DemoData;
 use App\Events\MembershipDeactivated;
 use App\Events\MembershipReactivated;
 use App\Models\Company;
@@ -9,11 +10,14 @@ use App\Models\User;
 use App\Modules\Ppr\Access\ProjectRoles;
 use App\Modules\Ppr\Console\Commands\CheckPackageRisks;
 use App\Modules\Ppr\Dashboard\HomeSections;
+use App\Modules\Ppr\Demo\DemoProject;
 use App\Modules\Ppr\Http\Requests\Settings\NotificationDaysUpdateRequest;
 use App\Modules\Ppr\Jobs\CheckProjectRisks;
+use App\Modules\Ppr\Models\Project;
 use App\Modules\Ppr\Notifications\ProjectNotificationKinds;
 use App\Modules\Ppr\Risk\OutsideRiskReasons;
 use App\Notifications\NotificationKinds;
+use App\Onboarding\OnboardingSteps;
 use App\Pages\PageSections;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Http\Events\RequestHandled;
@@ -50,6 +54,8 @@ class PprServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__.'/Database/Migrations');
         $this->forgetProjectRolesAfterEachRequest();
         $this->addHomeSections();
+        $this->addDemoData();
+        $this->addOnboardingSteps();
         $this->checkRisksWhenMembershipsChange();
         $this->plugInNotifications();
         $this->registerRoutes();
@@ -71,6 +77,27 @@ class PprServiceProvider extends ServiceProvider
             fn (User $user): bool => $home()->showsProjects($user),
             fn (User $user): array => $home()->projects($user),
             deferred: true);
+    }
+
+    /** The project module's part of the getting-started checklist on Home. */
+    private function addOnboardingSteps(): void
+    {
+        $this->callAfterResolving(OnboardingSteps::class, function (OnboardingSteps $steps): void {
+            // The Projects page, where "New project" opens the form.
+            $steps->add('create_project', 40,
+                title: fn (): string => __('Create your first project'),
+                description: fn (): string => __('Plan a project’s procurement packages and follow their dates and risks.'),
+                link: fn (): string => route('projects.index', absolute: false),
+                done: fn (): bool => Project::query()->exists());
+        });
+    }
+
+    /** A made-up project for a new demo company, after its suppliers. */
+    private function addDemoData(): void
+    {
+        $this->callAfterResolving(DemoData::class, function (DemoData $demoData): void {
+            $demoData->add('ppr_project', 20, fn (Company $company, User $admin) => $this->app->make(DemoProject::class)->fill($company, $admin));
+        });
     }
 
     /** A package whose owner or buyer left the company is at risk, and becomes safe again when they return. */
