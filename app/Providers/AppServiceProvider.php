@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Companies\DemoData;
+use App\Http\TrustedProxies;
 use App\Models\Company;
 use App\Models\User;
 use App\Notifications\NotificationKinds;
@@ -39,6 +40,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        TrustedProxies::applyConfiguration();
         $this->addOnboardingChecklist();
     }
 

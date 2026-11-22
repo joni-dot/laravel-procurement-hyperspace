@@ -2,9 +2,8 @@
 
 namespace App\Modules\Srm\Actions\Contracts;
 
-use App\Modules\Srm\Actions\Documents\StoreDocument;
+use App\Files\Uploads;
 use App\Modules\Srm\Models\Contract;
-use Illuminate\Support\Facades\Storage;
 
 class DeleteContract
 {
@@ -14,6 +13,8 @@ class DeleteContract
 
         $contract->delete();
 
-        Storage::disk(StoreDocument::DISK)->delete($filePaths);
+        // The contract and its documents are already deleted, so a storage outage must not fail the
+        // request; rescue() reports it, and files left behind are harmless: nothing links to them.
+        rescue(fn () => Uploads::disk()->delete($filePaths));
     }
 }

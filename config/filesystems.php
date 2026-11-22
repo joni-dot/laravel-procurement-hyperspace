@@ -28,6 +28,19 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Uploaded Files
+    |--------------------------------------------------------------------------
+    |
+    | The disk for certificates and documents (App\Files\Uploads). In production use "s3"
+    | with any S3-compatible storage, versioning switched on, so files survive the server.
+    | Both disks are private: files reach people only through the app's download routes.
+    |
+    */
+
+    'uploads' => env('UPLOADS_DISK', 'local'),
+
     'disks' => [
 
         'local' => [
@@ -56,7 +69,8 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'throw' => false,
+            // A failed upload must stop the save instead of leaving a record without its file.
+            'throw' => true,
             'report' => false,
         ],
 

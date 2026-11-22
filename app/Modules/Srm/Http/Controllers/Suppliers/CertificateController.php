@@ -2,13 +2,13 @@
 
 namespace App\Modules\Srm\Http\Controllers\Suppliers;
 
+use App\Files\Uploads;
 use App\Http\Controllers\Controller;
 use App\Modules\Srm\Actions\Certificates\SaveCertificate;
 use App\Modules\Srm\Http\Requests\Suppliers\CertificateRequest;
 use App\Modules\Srm\Models\Certificate;
 use App\Modules\Srm\Models\Supplier;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -47,7 +47,9 @@ class CertificateController extends Controller
         $certificate->delete();
 
         if ($certificate->file_path) {
-            Storage::disk(SaveCertificate::DISK)->delete($certificate->file_path);
+            // The certificate is already deleted, so a storage outage must not fail the request;
+            // rescue() reports it, and a file left behind is harmless: nothing links to it.
+            rescue(fn () => Uploads::disk()->delete((string) $certificate->file_path));
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Certificate deleted.')]);
@@ -62,7 +64,7 @@ class CertificateController extends Controller
     {
         abort_unless($certificate->file_path && $certificate->file_name, 404);
 
-        return Storage::disk(SaveCertificate::DISK)->download(
+        return Uploads::disk()->download(
             $certificate->file_path,
             $certificate->file_name,
             ['Content-Type' => $certificate->file_mime_type ?? 'application/octet-stream'],
