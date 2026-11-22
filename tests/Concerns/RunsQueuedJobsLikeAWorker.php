@@ -24,7 +24,9 @@ trait RunsQueuedJobsLikeAWorker
     {
         app(CurrentCompany::class)->clear();
 
-        $this->artisan('queue:work', ['--sleep' => 0, ...($onlyOne ? ['--once' => true] : ['--stop-when-empty' => true])])->assertSuccessful();
+        // The worker runs inside the test process, so its memory limit would count everything the whole
+        // test run holds (tests with big import files included) and stop it with exit code 12.
+        $this->artisan('queue:work', ['--sleep' => 0, '--memory' => 4096, ...($onlyOne ? ['--once' => true] : ['--stop-when-empty' => true])])->assertSuccessful();
 
         $this->enterCompany($this->company);
     }
