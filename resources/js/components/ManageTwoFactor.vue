@@ -13,12 +13,15 @@ export type Props = {
     canManageTwoFactor?: boolean;
     requiresConfirmation?: boolean;
     twoFactorEnabled?: boolean;
+    // This session signed in without the two-factor code (for example with "remember me").
+    needsTwoFactorSignIn?: boolean;
 };
 
 withDefaults(defineProps<Props>(), {
     canManageTwoFactor: false,
     requiresConfirmation: false,
     twoFactorEnabled: false,
+    needsTwoFactorSignIn: false,
 });
 
 const { hasSetupData, clearTwoFactorAuthData } = useTwoFactorAuth();
@@ -85,7 +88,18 @@ onUnmounted(() => clearTwoFactorAuthData());
                 </Form>
             </div>
 
-            <TwoFactorRecoveryCodes />
+            <p
+                v-if="needsTwoFactorSignIn"
+                class="text-sm text-muted-foreground"
+                data-test="needs-two-factor-sign-in"
+            >
+                {{
+                    $t(
+                        'To see your recovery codes or change how you sign in, sign out and sign in again with your two-factor code.',
+                    )
+                }}
+            </p>
+            <TwoFactorRecoveryCodes v-else />
         </div>
 
         <TwoFactorSetupModal

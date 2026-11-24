@@ -1,13 +1,21 @@
 <?php
 
 use App\Http\Middleware\AddContentSecurityPolicy;
+use App\Http\Middleware\AddRequestContext;
 use App\Http\Middleware\AddSecurityHeaders;
+use App\Http\Middleware\EndOutdatedSessions;
 use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\EnterCompany;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\HideConfirmedTwoFactorSecret;
+use App\Http\Middleware\KeepCredentialsText;
+use App\Http\Middleware\LimitPasswordConfirmations;
 use App\Http\Middleware\LimitPasswordResetAttempts;
+use App\Http\Middleware\RefuseInvalidText;
+use App\Http\Middleware\RequireSecondFactorForSignInChanges;
+use App\Monitoring\SecurityEvents;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -32,7 +40,9 @@ return Application::configure(basePath: dirname(__DIR__))
         then: fn () => Route::group([], __DIR__.'/../routes/health.php'),
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->append([AddSecurityHeaders::class, AddContentSecurityPolicy::class]);
+        $middleware->append([AddSecurityHeaders::class, AddContentSecurityPolicy::class, RefuseInvalidText::class]);
+        // After TrustProxies, so the logged address is the visitor's (docs/monitoring.md).
+        $middleware->append(AddRequestContext::class);
 
         // The health check reports on the parts, maintenance or not (docs/monitoring.md). It must also
         // answer when Redis, where production keeps the maintenance flag, is down.
@@ -67,8 +77,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             // Signs out every other session once the password changes.
             AuthenticateSession::class,
+            // Signs out every other session once two-factor sign-in or a passkey changes.
+            EndOutdatedSessions::class,
             EnsureUserIsActive::class,
+            KeepCredentialsText::class,
             LimitPasswordResetAttempts::class,
+            LimitPasswordConfirmations::class,
+            HideConfirmedTwoFactorSecret::class,
+            RequireSecondFactorForSignInChanges::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
@@ -82,6 +98,9 @@ return Application::configure(basePath: dirname(__DIR__))
                 Integration::captureUnhandledException($e);
             }
         });
+
+        // Refused requests go to the security event log; the usual answer still goes out.
+        $exceptions->render(SecurityEvents::recordRefusedRequest(...));
 
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),

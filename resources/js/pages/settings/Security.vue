@@ -133,6 +133,7 @@ defineOptions({
         :canManageTwoFactor="canManageTwoFactor"
         :requiresConfirmation="requiresConfirmation"
         :twoFactorEnabled="twoFactorEnabled"
+        :needsTwoFactorSignIn="needsTwoFactorSignIn"
     />
 
     <ManagePasskeys

@@ -78,6 +78,21 @@ class SecurityTest extends TestCase
             );
     }
 
+    public function test_a_password_longer_than_the_hash_reads_is_refused()
+    {
+        $user = User::factory()->create();
+        $tooLong = str_repeat('ä', 36).'x';
+
+        $this->actingAs($user)
+            ->put(route('user-password.update'), ['current_password' => 'password', 'password' => $tooLong, 'password_confirmation' => $tooLong])
+            ->assertSessionHasErrors('password');
+
+        $longest = str_repeat('a', 72);
+        $this->actingAs($user)
+            ->put(route('user-password.update'), ['current_password' => 'password', 'password' => $longest, 'password_confirmation' => $longest])
+            ->assertSessionHasNoErrors();
+    }
+
     public function test_password_can_be_updated()
     {
         $user = User::factory()->create();

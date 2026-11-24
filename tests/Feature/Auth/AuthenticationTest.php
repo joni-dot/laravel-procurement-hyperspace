@@ -90,4 +90,15 @@ class AuthenticationTest extends TestCase
 
         $response->assertTooManyRequests();
     }
+
+    public function test_remember_me_lasts_thirty_days()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->post(route('login.store'), ['email' => $user->email, 'password' => 'password', 'remember' => 'on']);
+
+        $cookie = collect($response->headers->getCookies())->first(fn ($cookie) => str_starts_with($cookie->getName(), 'remember_web_'));
+        $this->assertNotNull($cookie);
+        $this->assertEqualsWithDelta(now()->addDays(30)->getTimestamp(), $cookie->getExpiresTime(), 120);
+    }
 }

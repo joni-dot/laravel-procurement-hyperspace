@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Http\VisitorAddress;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -25,7 +26,7 @@ class LimitPasswordResetAttempts
             return $next($request);
         }
 
-        $key = 'password-reset|'.$request->route()->getName().'|'.$request->ip();
+        $key = 'password-reset|'.$request->route()->getName().'|'.VisitorAddress::forLimits($request);
 
         if (RateLimiter::tooManyAttempts($key, self::ATTEMPTS_PER_MINUTE)) {
             throw ValidationException::withMessages([

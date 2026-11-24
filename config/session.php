@@ -127,9 +127,12 @@ return [
     |
     */
 
+    // With secure cookies (production) and no cookie domain, the name starts with __Host-: browsers then
+    // accept the cookie only over HTTPS, for this exact host and path /, so a neighbouring subdomain
+    // can't plant one. (Browsers refuse a __Host- cookie that names a domain.)
     'cookie' => env(
         'SESSION_COOKIE',
-        Str::slug((string) env('APP_NAME', 'laravel')).'-session',
+        (env('SESSION_SECURE_COOKIE') && ! env('SESSION_DOMAIN') ? '__Host-' : '').Str::slug((string) env('APP_NAME', 'laravel')).'-session',
     ),
 
     /*

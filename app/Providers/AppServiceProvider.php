@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Companies\DemoData;
+use App\Http\CheckRouteIds;
 use App\Http\TrustedProxies;
 use App\Models\Company;
 use App\Models\User;
@@ -14,6 +15,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Mail\Markdown;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -41,6 +43,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         TrustedProxies::applyConfiguration();
+        Route::substituteImplicitBindingsUsing(new CheckRouteIds);
         $this->addOnboardingChecklist();
     }
 
@@ -86,14 +89,14 @@ class AppServiceProvider extends ServiceProvider
             app()->isProduction(),
         );
 
-        Password::defaults(fn (): ?Password => app()->isProduction()
-            ? Password::min(12)
-                ->mixedCase()
-                ->letters()
-                ->numbers()
-                ->symbols()
-                ->uncompromised()
-            : null,
+        // Length and a check against known password leaks, as OWASP ASVS and NIST advise. Demands for
+        // capitals, digits and symbols are left out on purpose: they push people to predictable
+        // passwords ("Summer2026!") without making them harder to guess.
+        // Every server people use gets the same rule, a staging server too; only local development and
+        // the automated tests keep Laravel's shorter default, so their fixed test passwords keep working.
+        Password::defaults(fn (): ?Password => app()->environment('local', 'testing')
+            ? null
+            : Password::min(12)->uncompromised(),
         );
     }
 }
