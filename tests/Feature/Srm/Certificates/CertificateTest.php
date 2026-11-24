@@ -88,6 +88,27 @@ class CertificateTest extends TestCase
         ])->assertSessionHasErrors('file');
     }
 
+    public function test_the_file_name_must_end_in_an_allowed_extension_too()
+    {
+        // The file is later downloaded under its name, so the name must match an allowed type, not only the content.
+        $this->post(route('suppliers.certificates.store', $this->supplier), [
+            ...$this->validInput(),
+            'file' => UploadedFile::fake()->create('certificate.html', 10, 'application/pdf'),
+        ])->assertSessionHasErrors('file');
+
+        $this->assertSame(0, Certificate::count());
+    }
+
+    public function test_the_file_name_is_kept_readable_and_keeps_its_extension()
+    {
+        $this->post(route('suppliers.certificates.store', $this->supplier), [
+            ...$this->validInput(),
+            'file' => UploadedFile::fake()->create("iso\u{202E}9001\u{0007}.pdf", 10, 'application/pdf'),
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame('iso9001.pdf', Certificate::sole()->file_name);
+    }
+
     public function test_input_is_validated()
     {
         $this->post(route('suppliers.certificates.store', $this->supplier), [

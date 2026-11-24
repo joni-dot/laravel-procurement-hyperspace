@@ -3,6 +3,7 @@
 namespace App\Modules\Srm\Http\Controllers\Suppliers;
 
 use App\Http\Controllers\Controller;
+use App\Http\ListFilters;
 use App\Models\User;
 use App\Modules\Srm\Comments\CommentFeed;
 use App\Modules\Srm\Compliance\SupplierRisk;
@@ -36,9 +37,9 @@ class SupplierController extends Controller
         $canViewContracts = $request->user()->can('viewDetails', Contract::class);
 
         $filters = [
-            'search' => $request->string('search')->trim()->limit(100, '')->toString(),
-            'status' => $request->enum('status', SupplierStatus::class),
-            'risk' => $request->enum('risk', RiskLevel::class),
+            'search' => ListFilters::search($request),
+            'status' => ListFilters::choice($request, 'status', SupplierStatus::class),
+            'risk' => ListFilters::choice($request, 'risk', RiskLevel::class),
             'category' => $request->integer('category') ?: null,
             'archived' => $request->boolean('archived'),
             'missing_certificates' => $request->boolean('missing_certificates'),

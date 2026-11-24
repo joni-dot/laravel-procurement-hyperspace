@@ -3,6 +3,7 @@
 namespace App\Modules\Sourcing;
 
 use App\Companies\DemoData;
+use App\Http\ListFilters;
 use App\Models\Company;
 use App\Models\User;
 use App\Modules\Ppr\Models\Package;
@@ -149,7 +150,7 @@ class SourcingServiceProvider extends ServiceProvider
                 $user,
                 $context['project'],
                 $context['package'],
-                request()->string('supplier_search')->trim()->limit(PackageSuppliers::MAX_SEARCH_LENGTH, '')->toString(),
+                ListFilters::search(request(), 'supplier_search'),
             ));
 
         // Everyone may see suppliers; the packages listed are only those in projects the person can see.

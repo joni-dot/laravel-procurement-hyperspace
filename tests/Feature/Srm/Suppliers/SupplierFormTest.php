@@ -96,7 +96,7 @@ class SupplierFormTest extends TestCase
             'delivery_term' => 'ABC',
             'category_ids' => [999],
             'phone' => '<script>',
-        ])->assertSessionHasErrors(['status', 'country_code', 'currency_code', 'delivery_term', 'category_ids.0', 'phone']);
+        ])->assertSessionHasErrors(['status', 'country_code', 'currency_code', 'delivery_term', 'category_ids', 'phone']);
     }
 
     public function test_a_buyer_can_update_a_supplier_and_its_categories()

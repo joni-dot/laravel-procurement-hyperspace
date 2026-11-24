@@ -86,12 +86,16 @@ Route::middleware('auth')->group(function () {
             ->can('update', 'supplier')
             ->name('suppliers.contacts.destroy');
 
+        // Every route that takes a file shares one limit per person; "uploads" gives it a counter apart
+        // from the other limits.
         Route::post('suppliers/{supplier}/certificates', [CertificateController::class, 'store'])
             ->can('update', 'supplier')
+            ->middleware('throttle:30,1,uploads')
             ->name('suppliers.certificates.store');
 
         Route::put('suppliers/{supplier}/certificates/{certificate}', [CertificateController::class, 'update'])
             ->can('update', 'supplier')
+            ->middleware('throttle:30,1,uploads')
             ->name('suppliers.certificates.update');
 
         Route::delete('suppliers/{supplier}/certificates/{certificate}', [CertificateController::class, 'destroy'])
@@ -129,10 +133,12 @@ Route::middleware('auth')->group(function () {
 
         Route::post('suppliers/{supplier}/contracts/{contract}/documents', UploadContractDocumentController::class)
             ->can('update', 'supplier')
+            ->middleware('throttle:30,1,uploads')
             ->name('suppliers.contracts.documents.store');
 
         Route::post('suppliers/{supplier}/documents', [DocumentController::class, 'store'])
             ->can('update', 'supplier')
+            ->middleware('throttle:30,1,uploads')
             ->name('suppliers.documents.store');
 
         Route::get('suppliers/{supplier}/documents/{document}/file', [DocumentController::class, 'show'])
@@ -169,7 +175,7 @@ Route::middleware('auth')->group(function () {
 
         Route::post('suppliers/{supplier}/comments', [CommentController::class, 'store'])
             ->can('create', [Comment::class, 'supplier'])
-            ->middleware('throttle:30,1')
+            ->middleware('throttle:30,1,comments')
             ->name('suppliers.comments.store');
 
         Route::put('suppliers/{supplier}/comments/{comment}', [CommentController::class, 'update'])

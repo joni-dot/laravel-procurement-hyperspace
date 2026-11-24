@@ -2,12 +2,15 @@
 
 namespace App\Modules\Srm\Http\Requests\Suppliers;
 
+use App\Concerns\DateValidationRules;
 use App\Modules\Srm\Models\RatingCriterion;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class RatingRequest extends FormRequest
 {
+    use DateValidationRules;
+
     /**
      * Every criterion in use must get a score, so overall scores stay comparable.
      *
@@ -18,7 +21,7 @@ class RatingRequest extends FormRequest
         $criterionIds = RatingCriterion::query()->inUse()->pluck('id');
 
         $rules = [
-            'rated_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
+            'rated_on' => ['required', ...$this->dateRules(), 'before_or_equal:today'],
             'comment' => ['nullable', 'string', 'max:5000'],
             'scores' => ['required', 'array', 'min:1', 'required_array_keys:'.$criterionIds->implode(',')],
         ];
@@ -56,5 +59,10 @@ class RatingRequest extends FormRequest
         }
 
         return $scores;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->keepDatesText('rated_on');
     }
 }

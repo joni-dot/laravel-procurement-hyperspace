@@ -2,6 +2,8 @@
 
 namespace App\Modules\Srm\Http\Requests\Suppliers;
 
+use App\Concerns\DateValidationRules;
+use App\Concerns\ShortensLongLists;
 use App\Modules\Srm\Enums\ContractStatus;
 use App\Modules\Srm\Enums\ContractValuePeriod;
 use App\Modules\Srm\Enums\Currency;
@@ -14,6 +16,9 @@ use Illuminate\Validation\Rule;
 
 class ContractRequest extends FormRequest
 {
+    use DateValidationRules;
+    use ShortensLongLists;
+
     public const int MAX_REMINDERS = 5;
 
     /**
@@ -32,8 +37,8 @@ class ContractRequest extends FormRequest
                 'nullable', 'integer',
                 new ActiveBuyerOrAdmin,
             ],
-            'starts_on' => ['nullable', 'date_format:Y-m-d'],
-            'ends_on' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:starts_on', 'required_if_accepted:auto_renews'],
+            'starts_on' => ['nullable', ...$this->dateRules()],
+            'ends_on' => ['nullable', ...$this->dateRules(), 'after_or_equal:starts_on', 'required_if_accepted:auto_renews'],
             'auto_renews' => ['boolean'],
             'renewal_term_months' => ['nullable', 'integer', 'between:1,120', 'required_if_accepted:auto_renews'],
             'notice_period_days' => ['nullable', 'integer', 'between:0,730'],
@@ -66,6 +71,9 @@ class ContractRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $this->shortenLongLists(['reminder_days' => self::MAX_REMINDERS]);
+        $this->keepDatesText('starts_on', 'ends_on');
+
         $autoRenews = $this->boolean('auto_renews');
 
         $this->merge([

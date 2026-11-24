@@ -21,7 +21,19 @@ class SettingsRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'reminder_email' => $this->filled('reminder_email') ? Str::lower((string) $this->input('reminder_email')) : null,
+            'reminder_email' => $this->tidyEmail($this->input('reminder_email')),
         ]);
+    }
+
+    /**
+     * Anything other than text is left as it is, for the rules to refuse.
+     */
+    private function tidyEmail(mixed $email): mixed
+    {
+        if (! is_string($email)) {
+            return $email;
+        }
+
+        return trim($email) === '' ? null : Str::lower($email);
     }
 }

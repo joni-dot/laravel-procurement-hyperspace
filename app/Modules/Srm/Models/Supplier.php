@@ -3,6 +3,7 @@
 namespace App\Modules\Srm\Models;
 
 use App\Companies\BelongsToCompany;
+use App\Database\Like;
 use App\Models\User;
 use App\Modules\Srm\Database\Factories\SupplierFactory;
 use App\Modules\Srm\Enums\Currency;
@@ -274,6 +275,6 @@ class Supplier extends Model
     #[Scope]
     protected function search(Builder $query, string $term): void
     {
-        $query->where('search_text', 'ilike', '%'.addcslashes($term, '%_\\').'%');
+        $query->where('search_text', 'ilike', Like::containing($term));
     }
 }

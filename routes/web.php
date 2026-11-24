@@ -15,11 +15,11 @@ Route::get('/', OpenCompanyController::class)->middleware('auth')->name('home');
 
 // The link in an invitation email, for guests and signed-in people alike.
 Route::get('invitation/{token}', [AcceptInvitationController::class, 'show'])
-    ->middleware('throttle:20,1')
+    ->middleware('throttle:20,1,invitation-link')
     ->name('invitation.show');
 
 Route::post('invitation', [AcceptInvitationController::class, 'store'])
-    ->middleware('throttle:6,1')
+    ->middleware('throttle:6,1,invitation-accept')
     ->name('invitation.store');
 
 // The signed-in person's own invitations, outside any company.
@@ -28,12 +28,12 @@ Route::middleware('auth')->group(function () {
 
     Route::post('invitations/{invitation}/accept', JoinCompanyController::class)
         ->whereNumber('invitation')
-        ->middleware('throttle:20,1')
+        ->middleware('throttle:20,1,join-company')
         ->name('invitations.accept');
 
     Route::post('invitations/{invitation}/decline', [InvitationController::class, 'destroy'])
         ->whereNumber('invitation')
-        ->middleware('throttle:20,1')
+        ->middleware('throttle:20,1,decline-invitation')
         ->name('invitations.decline');
 });
 
