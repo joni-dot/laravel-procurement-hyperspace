@@ -14,7 +14,9 @@ class ActiveBuyerOrAdmin implements ValidationRule
 {
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        if (! is_numeric($value) || ! User::query()->activeBuyersAndAdmins()->whereKey((int) $value)->exists()) {
+        $id = filter_var($value, FILTER_VALIDATE_INT);
+
+        if ($id === false || ! User::query()->activeBuyersAndAdmins()->whereKey($id)->exists()) {
             $fail('validation.exists')->translate();
         }
     }

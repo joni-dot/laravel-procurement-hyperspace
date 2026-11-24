@@ -2,6 +2,7 @@
 
 namespace App\Modules\Srm\Http\Controllers\Suppliers;
 
+use App\Companies\DailyLimits;
 use App\Files\Uploads;
 use App\Http\Controllers\Controller;
 use App\Modules\Srm\Actions\Documents\StoreDocument;
@@ -14,9 +15,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentController extends Controller
 {
-    public function store(DocumentRequest $request, Supplier $supplier, StoreDocument $storeDocument): RedirectResponse
+    public function store(DocumentRequest $request, Supplier $supplier, StoreDocument $storeDocument, DailyLimits $dailyLimits): RedirectResponse
     {
-        $storeDocument->handle($supplier, null, $request->uploadedFile(), $request->user());
+        $file = $request->uploadedFile();
+        $dailyLimits->storingUpload($file, fn () => $storeDocument->handle($supplier, null, $file, $request->user()));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Document uploaded.')]);
 

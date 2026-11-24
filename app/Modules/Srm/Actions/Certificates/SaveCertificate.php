@@ -3,6 +3,7 @@
 namespace App\Modules\Srm\Actions\Certificates;
 
 use App\Companies\CurrentCompany;
+use App\Files\UploadedFileName;
 use App\Files\Uploads;
 use App\Modules\Srm\Actions\Reminders\SyncReminders;
 use App\Modules\Srm\Models\Certificate;
@@ -33,7 +34,7 @@ class SaveCertificate
 
                 if ($file && $storedFilePath) {
                     $certificate->file_path = $storedFilePath;
-                    $certificate->file_name = mb_substr($file->getClientOriginalName(), 0, 255);
+                    $certificate->file_name = UploadedFileName::of($file);
                     $certificate->file_mime_type = $file->getMimeType();
                     $certificate->file_size = $file->getSize() ?: null;
                 }

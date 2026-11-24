@@ -2,6 +2,7 @@
 
 namespace App\Modules\Srm\Http\Controllers\Suppliers;
 
+use App\Companies\DailyLimits;
 use App\Files\Uploads;
 use App\Http\Controllers\Controller;
 use App\Modules\Srm\Actions\Certificates\SaveCertificate;
@@ -14,28 +15,30 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CertificateController extends Controller
 {
-    public function store(CertificateRequest $request, Supplier $supplier, SaveCertificate $saveCertificate): RedirectResponse
+    public function store(CertificateRequest $request, Supplier $supplier, SaveCertificate $saveCertificate, DailyLimits $dailyLimits): RedirectResponse
     {
-        $saveCertificate->handle(
+        $file = $request->uploadedFile();
+        $dailyLimits->storingUpload($file, fn () => $saveCertificate->handle(
             $supplier->certificates()->make(),
             $request->certificateAttributes(),
             $request->reminderDays(),
-            $request->uploadedFile(),
-        );
+            $file,
+        ));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Certificate added.')]);
 
         return back();
     }
 
-    public function update(CertificateRequest $request, Supplier $supplier, Certificate $certificate, SaveCertificate $saveCertificate): RedirectResponse
+    public function update(CertificateRequest $request, Supplier $supplier, Certificate $certificate, SaveCertificate $saveCertificate, DailyLimits $dailyLimits): RedirectResponse
     {
-        $saveCertificate->handle(
+        $file = $request->uploadedFile();
+        $dailyLimits->storingUpload($file, fn () => $saveCertificate->handle(
             $certificate,
             $request->certificateAttributes(),
             $request->reminderDays(),
-            $request->uploadedFile(),
-        );
+            $file,
+        ));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Certificate updated.')]);
 

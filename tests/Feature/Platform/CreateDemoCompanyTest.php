@@ -3,6 +3,7 @@
 namespace Tests\Feature\Platform;
 
 use App\Actions\Companies\CreateDemoCompany;
+use App\Auth\StrongSignIn;
 use App\Companies\CurrentCompany;
 use App\Enums\Role;
 use App\Models\Company;
@@ -34,7 +35,7 @@ class CreateDemoCompanyTest extends TestCase
 
         $this->platformAdmin = User::factory()->platformAdmin()->withTwoFactor()->create();
         // Platform pages ask for the password again unless it was entered recently.
-        $this->withSession(['auth.password_confirmed_at' => time()]);
+        $this->withSession(['auth.password_confirmed_at' => time(), StrongSignIn::SESSION_KEY => $this->platformAdmin->id]);
         Notification::fake();
         Mail::fake();
     }

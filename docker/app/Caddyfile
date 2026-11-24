@@ -5,6 +5,17 @@
 	auto_https off
 	persist_config off
 
+	# The same limits as the proxy in docker/caddy/Caddyfile, for when a hosting provider's load balancer
+	# passes requests straight to this server: 10 seconds for the headers, 5 minutes for the whole
+	# request, enough for a 20 MB document at about 0.6 Mbit/s. PHP itself waits at most
+	# max_input_time (docker/app/php.ini) for a request's body.
+	servers {
+		timeouts {
+			read_header 10s
+			read_body 5m
+		}
+	}
+
 	frankenphp {
 		{$FRANKENPHP_CONFIG}
 	}
@@ -22,6 +33,14 @@
 	# Don't tell visitors which server software runs here.
 	header -Server
 
+	# For static files and this server's own answers too, not only the app's pages. The values are the
+	# app's own (AddSecurityHeaders), and "?" adds a header only where the app hasn't. Browsers obey
+	# Strict-Transport-Security only over HTTPS, which here means the proxy or load balancer in front
+	# said so.
+	@forwarded_https header X-Forwarded-Proto https
+	header ?X-Content-Type-Options nosniff
+	header @forwarded_https ?Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
 	# Files such as .htaccess are never served.
 	@hidden path */.*
 	respond @hidden 404
@@ -31,4 +50,12 @@
 	header @build Cache-Control "public, max-age=31536000, immutable"
 
 	php_server
+
+	# This server's own error answers, such as a body over 25 MB.
+	handle_errors {
+		header -Server
+		header ?X-Content-Type-Options nosniff
+		header @forwarded_https ?Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		respond "{err.status_code} {err.status_text}"
+	}
 }

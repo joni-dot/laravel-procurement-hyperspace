@@ -41,6 +41,9 @@ return [
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
+            // "Remember me" keeps a person signed in on that browser for 30 days (in minutes) instead of
+            // Laravel's 400, so a forgotten shared computer stays signed in for a month at most.
+            'remember' => 60 * 24 * 30,
         ],
     ],
 

@@ -86,7 +86,7 @@ class ErrorReportsTest extends TestCase
             throw new RuntimeException('Could not invite '.$this->email);
         });
 
-        $this->actingAs($user)
+        $response = $this->actingAs($user)
             ->withUnencryptedCookie('hyperspace_session', $cookie)
             ->withHeader('Authorization', 'Bearer '.$header)
             ->post('_test/fail?token='.$query, ['password' => $body])
@@ -98,7 +98,8 @@ class ErrorReportsTest extends TestCase
         $this->assertSame((string) $user->id, (string) $event->getUser()?->getId());
         $this->assertNull($event->getUser()->getEmail());
         $this->assertNull($event->getUser()->getIpAddress());
-        $this->assertSame(['company_id' => (string) $this->company->id], $event->getTags());
+        // The request id is the one in the X-Request-Id header and on the request's log lines.
+        $this->assertSame(['company_id' => (string) $this->company->id, 'request_id' => $response->headers->get('X-Request-Id')], $event->getTags());
         $this->assertSame(['method' => 'POST', 'url' => rtrim((string) config('app.url'), '/').'/_test/fail'], $event->getRequest());
         $this->assertSame('Could not invite [email]', $event->getExceptions()[0]->getValue());
         $this->assertSame('testing', $event->getEnvironment());
@@ -120,6 +121,28 @@ class ErrorReportsTest extends TestCase
             ['SQLSTATE[22P02] in: select ?::integer as number', 'SQLSTATE[22P02]'],
             array_map(fn ($exception) => $exception->getValue(), $event->getExceptions()),
         );
+    }
+
+    public function test_values_an_error_message_quotes_are_cut_out_but_the_code_it_names_stays()
+    {
+        [$quoted, $doubleQuoted, $backticked, $bracketed] = $this->secrets(4);
+        $phone = '+358 40 '.random_int(1_000_000, 9_999_999);
+        Route::get('_test/fail', fn () => throw new RuntimeException(
+            "Could not parse '{$quoted}' for App\\Foo::bar(): value \"{$doubleQuoted}\" in `{$backticked}` ({$bracketed}), "
+            ."phone {$phone}; class \"App\\Models\\Supplier\" can't be found on line 12, argument #1 (\$id) [route.name]",
+        ));
+
+        $this->get('_test/fail')->assertServerError();
+
+        $event = $this->onlyReport();
+        $this->assertReportLeaves($event, [$quoted, $doubleQuoted, $backticked, $bracketed, $phone, substr($phone, -7)]);
+        $this->assertSame(
+            "Could not parse '[value]' for App\\Foo::bar(): value \"[value]\" in `[value]` ([value]), "
+            ."phone +[number]; class \"App\\Models\\Supplier\" can't be found on line 12, argument #1 (\$id) [route.name]",
+            $event->getExceptions()[0]->getValue(),
+        );
+        $this->assertSame(RuntimeException::class, $event->getExceptions()[0]->getType());
+        $this->assertNotEmpty($event->getExceptions()[0]->getStacktrace()?->getFrames());
     }
 
     public function test_a_failed_background_job_names_its_company_and_nothing_from_its_payload()
@@ -154,13 +177,13 @@ class ErrorReportsTest extends TestCase
         $admin = User::factory()->admin()->create(['email' => $this->email]);
         $this->company->update(['slug' => 'acme-'.Str::lower(Str::random(8))]);
 
-        $this->actingAs($admin)->get(route('company.home', ['company' => $this->company->slug]))->assertOk();
+        $response = $this->actingAs($admin)->get(route('company.home', ['company' => $this->company->slug]))->assertOk();
 
         $trace = $this->onlyTrace();
         $this->assertReportLeaves($trace, [$this->company->slug, $this->email]);
         $this->assertSame('/{company}', $trace->getTransaction());
         $this->assertSame((string) $admin->id, (string) $trace->getUser()?->getId());
-        $this->assertSame(['company_id' => (string) $this->company->id], $trace->getTags());
+        $this->assertSame(['company_id' => (string) $this->company->id, 'request_id' => $response->headers->get('X-Request-Id')], $trace->getTags());
     }
 
     public function test_a_slow_report_server_holds_nothing_up_for_long()

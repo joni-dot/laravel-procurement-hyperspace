@@ -20,6 +20,8 @@ export type Member = {
     role: Role;
     status: MembershipStatus;
     isYou: boolean;
+    /** Runs the service; marked so the company notices one among its members. */
+    isPlatformAdmin: boolean;
     can: {
         update: boolean;
         deactivate: boolean;

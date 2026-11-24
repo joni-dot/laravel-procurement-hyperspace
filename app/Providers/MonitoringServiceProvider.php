@@ -3,14 +3,18 @@
 namespace App\Providers;
 
 use App\Monitoring\ReportedCompany;
+use App\Monitoring\SecurityEvents;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
+use Illuminate\Routing\Events\RouteMatched;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
 /**
- * Error reports (docs/monitoring.md). Sending them is wired up in bootstrap/app.php; this only keeps
- * track of which company a queued job ran for, and only when reports are switched on.
+ * Logs and error reports (docs/monitoring.md): the security event log, the route on every log line
+ * (the rest of a request's context comes from AddRequestContext), and which company a queued job ran
+ * for, for error reports when they are switched on. Sending reports is wired up in bootstrap/app.php.
  */
 class MonitoringServiceProvider extends ServiceProvider
 {
@@ -21,6 +25,14 @@ class MonitoringServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Event::subscribe(SecurityEvents::class);
+
+        // The route's name, or its pattern (/{company}/...) when it has none: never the values in the address.
+        Event::listen(RouteMatched::class, fn (RouteMatched $event) => Context::add(
+            'route',
+            $event->route->getName() ?? '/'.ltrim($event->route->uri(), '/'),
+        ));
+
         if (blank(config('sentry.dsn'))) {
             return;
         }

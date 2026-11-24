@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Ppr\Notifications;
 
+use App\Auth\StrongSignIn;
 use App\Companies\CurrentCompany;
 use App\Companies\NavigationCompany;
 use App\Enums\Role;
@@ -129,7 +130,7 @@ class NotificationCompanyTest extends TestCase
         });
 
         $this->actingAs($platformAdmin)
-            ->withSession(['auth.password_confirmed_at' => time()])
+            ->withSession(['auth.password_confirmed_at' => time(), StrongSignIn::SESSION_KEY => $platformAdmin->id])
             ->get(route('platform.companies.index'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page->where('unreadNotificationCount', 0));

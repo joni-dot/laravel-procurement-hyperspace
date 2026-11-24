@@ -1,3 +1,4 @@
+import { companyWithoutAdmin, otherCompany, users } from '../support/test-data';
 import { expect, test } from '../support/test';
 
 test('a platform admin creates a company, changes its address, suspends and reopens it', async ({
@@ -95,4 +96,61 @@ test('a platform admin starts on the platform pages, which are in the menu', asy
     await expect(
         page.locator('a[href="/platform/companies"]', { hasText: 'Companies' }),
     ).toBeVisible();
+});
+
+test('a company whose admins have all left is offered one of its own members as admin', async ({
+    page,
+}) => {
+    // The seeded other company has one member (the buyer) and no admin. The dialog is only opened
+    // here: making the buyer its admin would change what other tests see.
+    await page.goto('/platform/companies?search=browser-other');
+    await page
+        .getByRole('button', {
+            name: `Choose a new admin for ${otherCompany.name}`,
+        })
+        .click();
+
+    const dialog = page.getByRole('dialog');
+    await expect(
+        dialog.getByRole('heading', { name: 'Choose a new admin' }),
+    ).toBeVisible();
+    await expect(dialog.getByLabel('Member', { exact: true })).toContainText(
+        users.buyer,
+    );
+    await expect(dialog.getByLabel("Admin's email")).toHaveCount(0);
+    await dialog.getByRole('button', { name: 'Cancel' }).click();
+});
+
+test('a platform admin makes a member the admin of a company whose admins have all left', async ({
+    page,
+}) => {
+    const { name, member, memberEmail } = companyWithoutAdmin;
+
+    await page.goto(`/platform/companies?search=${companyWithoutAdmin.search}`);
+    await page
+        .getByRole('button', { name: `Choose a new admin for ${name}` })
+        .click();
+
+    // The members are searched on the server; only the matching one is offered.
+    const dialog = page.getByRole('dialog');
+    const members = dialog.getByLabel('Member', { exact: true });
+    await expect(members.locator('option')).toHaveCount(2);
+    await dialog.getByLabel('Search members').fill(memberEmail);
+    await expect(members.locator('option')).toHaveCount(1);
+    await expect(members).toContainText(member);
+
+    await dialog.getByRole('button', { name: 'Make admin' }).click();
+
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(
+        page.getByText(`${member} is now the admin of ${name}.`),
+    ).toBeVisible();
+    const row = page.getByRole('row', { name: new RegExp(name) });
+    await expect(row.getByText('2 members')).toBeVisible();
+    await expect(
+        row.getByRole('button', { name: `Choose a new admin for ${name}` }),
+    ).toHaveCount(0);
+    await expect(
+        row.getByRole('button', { name: `Invite the first admin of ${name}` }),
+    ).toHaveCount(0);
 });

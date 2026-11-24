@@ -37,3 +37,28 @@ updates:
       docker-compose:
         patterns:
           - "*"
+  # The app's PHP and JavaScript packages. Minor and patch updates come as one pull request per
+  # ecosystem, major ones each on their own. Security fixes are proposed at once, without the cooldown.
+  - package-ecosystem: "composer"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 5
+    groups:
+      composer:
+        update-types:
+          - "minor"
+          - "patch"
+  # pnpm (pnpm-lock.yaml) is covered by the npm ecosystem.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 5
+    groups:
+      npm:
+        update-types:
+          - "minor"
+          - "patch"

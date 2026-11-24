@@ -28,6 +28,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property int $id
  * @property string $name
  * @property string $email
+ * @property string|null $pending_email a new address waiting for its owner to open the link sent to it
  * @property-read Role|null $role the role in the current company; null outside a company or without an active membership there
  * @property bool $is_platform_admin
  * @property int|null $last_company_id
@@ -37,6 +38,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string|null $two_factor_recovery_codes
  * @property Carbon|null $two_factor_confirmed_at
  * @property string|null $remember_token
+ * @property int $sign_in_version goes up when the ways to sign in change; older sessions end
  * @property CarbonImmutable|null $deactivated_at
  * @property NotificationEmail $notification_email whether their notifications also come by email
  * @property Carbon|null $created_at
@@ -75,6 +77,7 @@ class User extends Authenticatable implements PasskeyUser
     {
         return [
             'email_verified_at' => 'datetime',
+            'sign_in_version' => 'integer',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
             'is_platform_admin' => 'boolean',

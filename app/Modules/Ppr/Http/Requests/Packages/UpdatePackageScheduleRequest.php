@@ -2,6 +2,7 @@
 
 namespace App\Modules\Ppr\Http\Requests\Packages;
 
+use App\Concerns\ShortensLongLists;
 use App\Modules\Ppr\Models\Package;
 use App\Modules\Ppr\Models\Project;
 use App\Modules\Ppr\Scheduling\Days;
@@ -12,6 +13,8 @@ use Illuminate\Validation\Validator;
 
 class UpdatePackageScheduleRequest extends FormRequest
 {
+    use ShortensLongLists;
+
     /**
      * The project's milestone ids in order, read once for the whole request.
      *
@@ -59,6 +62,20 @@ class UpdatePackageScheduleRequest extends FormRequest
             'milestones.*.lead_days.integer' => __('Enter the lead time as whole days.'),
             'milestones.*.lead_days.between' => __('Enter a lead time between 0 and 3650 days.'),
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->shortenLongLists(['milestones' => count($this->projectMilestoneIds())]);
+
+        // Dates arrive as text; a number would reach the date checks as something they can't read.
+        $milestones = $this->input('milestones');
+
+        if (is_array($milestones)) {
+            $this->merge(['milestones' => array_map(fn (mixed $milestone) => is_array($milestone)
+                ? array_map(fn (mixed $value) => is_int($value) || is_float($value) ? (string) $value : $value, $milestone)
+                : $milestone, $milestones)]);
+        }
     }
 
     /**

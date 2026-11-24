@@ -8,6 +8,7 @@ use App\Models\Membership;
 use App\Models\User;
 use App\Notifications\UserInvitation;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Support\SessionKey;
 use Inertia\Testing\AssertableInertia;
@@ -148,6 +149,30 @@ class UserManagementTest extends TestCase
             ->get(route('admin.users.index'))
             ->assertSee('Real Account Name')
             ->assertDontSee('Name The Admin Typed');
+    }
+
+    public function test_a_platform_admin_who_joined_is_marked()
+    {
+        $admin = User::factory()->admin()->create();
+        $platformAdmin = User::factory()->platformAdmin()->create(['name' => 'Aaron Platform']);
+        Membership::factory()->create(['company_id' => $this->company->id, 'user_id' => $platformAdmin->id, 'role' => Role::Admin]);
+        Membership::factory()->invited()->create([
+            'company_id' => $this->company->id,
+            'user_id' => User::factory()->platformAdmin()->withoutCompany()->create()->id,
+            'known_name' => 'Aaron Invited',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.users.index', ['search' => 'Aaron']))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('users.data.0.name', 'Aaron Invited')
+                ->where('users.data.0.isPlatformAdmin', false)
+                ->where('users.data.1.name', 'Aaron Platform')
+                ->where('users.data.1.isPlatformAdmin', true));
+
+        $this->actingAs($admin)
+            ->get(route('admin.users.index', ['search' => $admin->name]))
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('users.data.0.isPlatformAdmin', false));
     }
 
     public function test_admin_can_search_by_name_or_email()
@@ -361,6 +386,38 @@ class UserManagementTest extends TestCase
         // The one admin left can't remove themselves, and nobody else can.
         $this->actingAs($first)->patch(route('admin.users.update', $first->memberships()->sole()), ['role' => 'viewer'])->assertForbidden();
         $this->assertSame(1, Membership::query()->where('company_id', $this->company->id)->where('role', Role::Admin)->active()->count());
+    }
+
+    /**
+     * @return array<string, array{string, array<string, string>}>
+     */
+    public static function changesThatCostAnAdmin(): array
+    {
+        return [
+            'demote' => ['admin.users.update', ['role' => 'viewer']],
+            'deactivate' => ['admin.users.deactivate', []],
+        ];
+    }
+
+    #[DataProvider('changesThatCostAnAdmin')]
+    public function test_two_admins_removing_each_other_at_the_same_moment_leave_one_admin(string $route, array $data)
+    {
+        $first = User::factory()->admin()->create();
+        $second = User::factory()->admin()->create();
+        $firstMembership = $first->memberships()->sole();
+
+        // The second admin's own request, demoting the first, finishes between this request's
+        // permission check and its save.
+        Gate::after(function () use ($firstMembership): void {
+            Membership::query()->whereKey($firstMembership->id)->update(['role' => Role::Viewer]);
+        });
+
+        $method = $route === 'admin.users.update' ? 'patch' : 'post';
+        $this->actingAs($first)->{$method}(route($route, $second->memberships()->sole()), $data)->assertForbidden();
+
+        $secondMembership = $second->memberships()->sole();
+        $this->assertSame(Role::Admin, $secondMembership->role);
+        $this->assertNull($secondMembership->deactivated_at);
     }
 
     public function test_deactivating_takes_the_person_out_of_this_company_only()

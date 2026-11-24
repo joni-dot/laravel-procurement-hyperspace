@@ -2,6 +2,7 @@
 
 namespace App\Modules\Srm\Actions\Documents;
 
+use App\Files\UploadedFileName;
 use App\Files\Uploads;
 use App\Models\User;
 use App\Modules\Srm\Models\Contract;
@@ -27,7 +28,7 @@ class StoreDocument
         $document->contract_id = $contract?->id;
         $document->uploaded_by_user_id = $uploadedBy->id;
         $document->file_path = $filePath;
-        $document->file_name = mb_substr($file->getClientOriginalName(), 0, 255);
+        $document->file_name = UploadedFileName::of($file);
         $document->file_mime_type = (string) $file->getMimeType();
         $document->file_size = (int) $file->getSize();
 

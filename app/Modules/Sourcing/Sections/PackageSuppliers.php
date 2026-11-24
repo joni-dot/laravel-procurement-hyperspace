@@ -22,8 +22,6 @@ class PackageSuppliers
 {
     public const int MOST_SEARCH_MATCHES = 20;
 
-    public const int MAX_SEARCH_LENGTH = 100;
-
     public function __construct(private readonly SupplierRisk $supplierRisk) {}
 
     /**

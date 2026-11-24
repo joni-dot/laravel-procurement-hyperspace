@@ -3,9 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Actions\Companies\InviteMember;
+use App\Companies\AdminLock;
 use App\Companies\CurrentCompany;
+use App\Companies\DailyLimits;
+use App\Database\Like;
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
+use App\Http\ListFilters;
 use App\Http\Requests\Admin\InviteMemberRequest;
 use App\Http\Requests\Admin\UpdateMembershipRequest;
 use App\Models\Membership;
@@ -40,7 +44,7 @@ class MembershipController extends Controller
     {
         /** @var User $actor */
         $actor = $request->user();
-        $search = $request->string('search')->trim()->limit(100, '')->toString();
+        $search = ListFilters::search($request);
 
         $members = Membership::query()
             ->join('users', 'users.id', '=', 'memberships.user_id')
@@ -48,13 +52,13 @@ class MembershipController extends Controller
             ->select([
                 'memberships.id', 'memberships.company_id', 'memberships.user_id', 'memberships.role',
                 'memberships.invitation_token', 'memberships.invitation_sent_at',
-                'memberships.joined_at', 'memberships.deactivated_at',
+                'memberships.joined_at', 'memberships.deactivated_at', 'users.is_platform_admin',
             ])
             ->selectRaw(self::NAME.' AS display_name')
             ->selectRaw(self::EMAIL.' AS display_email')
             ->when($search !== '', fn (Builder $query) => $query->where(fn (Builder $query) => $query
-                ->whereRaw(self::NAME.' ILIKE ?', ["%{$search}%"])
-                ->orWhereRaw(self::EMAIL.' ILIKE ?', ["%{$search}%"])))
+                ->whereRaw(self::NAME.' ILIKE ?', [Like::containing($search)])
+                ->orWhereRaw(self::EMAIL.' ILIKE ?', [Like::containing($search)])))
             ->orderByRaw(self::NAME)
             ->orderBy('memberships.id')
             ->paginate(self::MEMBERS_PER_PAGE)
@@ -66,6 +70,9 @@ class MembershipController extends Controller
                 'role' => $membership->role,
                 'status' => $membership->status(),
                 'isYou' => $membership->user_id === $actor->id,
+                // The people who run the service never need to be in a company. One who joined is
+                // marked, so the company notices and can take them out (deactivate).
+                'isPlatformAdmin' => $membership->joined_at !== null && (bool) $membership->getAttribute('is_platform_admin'),
                 'can' => [
                     'update' => $actor->can('update', $membership),
                     'deactivate' => $actor->can('deactivate', $membership),
@@ -81,16 +88,16 @@ class MembershipController extends Controller
         ]);
     }
 
-    public function store(InviteMemberRequest $request, InviteMember $inviteMember): RedirectResponse
+    public function store(InviteMemberRequest $request, InviteMember $inviteMember, DailyLimits $dailyLimits): RedirectResponse
     {
         $email = $request->validated('email');
-        $inviteMember->handle(
+        $dailyLimits->sendingInvitation(fn () => $inviteMember->handle(
             $this->currentCompany->get() ?? abort(404),
             $request->validated('name'),
             $email,
             $request->enum('role', Role::class) ?? Role::Viewer,
             $request->user(),
-        );
+        ));
 
         // The same answer whether or not the address had an account, or already had an invitation.
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Invitation sent to :email.', ['email' => $email])]);
@@ -98,9 +105,9 @@ class MembershipController extends Controller
         return to_route('admin.users.index');
     }
 
-    public function update(UpdateMembershipRequest $request, Membership $membership): RedirectResponse
+    public function update(UpdateMembershipRequest $request, Membership $membership, AdminLock $adminLock): RedirectResponse
     {
-        $membership->update(['role' => $request->enum('role', Role::class)]);
+        $adminLock->run($request->user(), fn () => $membership->update(['role' => $request->enum('role', Role::class)]));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Role changed.')]);
 

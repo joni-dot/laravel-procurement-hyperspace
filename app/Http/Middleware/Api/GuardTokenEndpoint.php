@@ -50,10 +50,18 @@ class GuardTokenEndpoint
     private function log(string $level, string $message, Request $request, int $status): void
     {
         Log::channel('api')->log($level, $message, [
-            'client_id' => Str::limit((string) ($request->getUser() ?? $request->input('client_id')), 64),
-            'grant_type' => Str::limit((string) $request->input('grant_type'), 64),
+            'client_id' => self::loggable($request->getUser() ?? $request->input('client_id')),
+            'grant_type' => self::loggable($request->input('grant_type')),
             'status' => $status,
             'ip' => $request->ip(),
         ]);
+    }
+
+    /**
+     * Anyone can send this endpoint anything, so only text is logged, and only the start of it.
+     */
+    private static function loggable(mixed $value): string
+    {
+        return is_string($value) ? Str::limit($value, 64) : '';
     }
 }

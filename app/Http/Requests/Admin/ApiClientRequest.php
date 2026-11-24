@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Concerns\ShortensLongLists;
 use App\Enums\ApiScope;
 use App\Rules\ActiveBuyerOrAdmin;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -10,6 +11,8 @@ use Illuminate\Validation\Rule;
 
 class ApiClientRequest extends FormRequest
 {
+    use ShortensLongLists;
+
     /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */
@@ -17,7 +20,7 @@ class ApiClientRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:100'],
-            'scopes' => ['required', 'array', 'min:1'],
+            'scopes' => ['required', 'array', 'min:1', 'max:'.count(ApiScope::cases())],
             'scopes.*' => ['required', 'distinct', Rule::enum(ApiScope::class)],
             'responsible_user_id' => [
                 'required', 'integer',
@@ -35,6 +38,11 @@ class ApiClientRequest extends FormRequest
             'scopes' => __('access'),
             'responsible_user_id' => __('responsible person'),
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->shortenLongLists(['scopes' => count(ApiScope::cases())]);
     }
 
     /**

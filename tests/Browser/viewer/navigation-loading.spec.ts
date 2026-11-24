@@ -63,6 +63,30 @@ test('a slow page dims the old page, blocks it and shows the progress bar until 
 });
 
 test('a fast page never marks the old page as busy', async ({ page }) => {
+    // "Fast" must not depend on how quickly the test server answers, which varies with the other tests
+    // running at the same time. So the page's answer is fetched once and then given back at once.
+    await page.goto(`${company}/projects`);
+    const [fetched] = await Promise.all([
+        page.waitForResponse(
+            (response) =>
+                new URL(response.url()).pathname === projectPath &&
+                response.request().headers()['x-inertia'] !== undefined,
+        ),
+        page.getByRole('link', { name: projects.visible.name }).click(),
+    ]);
+    const answer = {
+        status: fetched.status(),
+        headers: fetched.headers(),
+        body: await fetched.body(),
+    };
+    await page.route(
+        (url) => url.pathname === projectPath,
+        (route) =>
+            route.request().headers()['x-inertia']
+                ? route.fulfill(answer)
+                : route.continue(),
+    );
+
     await page.goto(`${company}/projects`);
     await page.getByTestId('page-content').evaluate((content) => {
         const seen = window as unknown as { sawBusyPage: boolean };

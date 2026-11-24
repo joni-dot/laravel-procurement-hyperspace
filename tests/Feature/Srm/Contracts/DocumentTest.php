@@ -222,6 +222,22 @@ class DocumentTest extends TestCase
             ->assertInertia(fn ($page) => $page->has('supplier.documents', 0));
     }
 
+    public function test_the_file_name_is_kept_readable_and_a_long_one_keeps_its_extension()
+    {
+        $this->post(route('suppliers.documents.store', $this->supplier), [
+            'file' => UploadedFile::fake()->create("price\u{202E}fdp.exe\u{200B}.pdf", 10, 'application/pdf'),
+        ])->assertSessionHasNoErrors();
+
+        $this->post(route('suppliers.documents.store', $this->supplier), [
+            'file' => UploadedFile::fake()->create(str_repeat('ä', 300).'.pdf', 10, 'application/pdf'),
+        ])->assertSessionHasNoErrors();
+
+        $names = Document::query()->orderBy('id')->pluck('file_name');
+
+        $this->assertSame('pricefdp.exe.pdf', $names[0]);
+        $this->assertSame(str_repeat('ä', 251).'.pdf', $names[1]);
+    }
+
     private function storedDocument(?Contract $contract = null, ?string $fileName = null): Document
     {
         $document = Document::factory()->create([

@@ -3,8 +3,10 @@
 namespace App\Modules\Srm\Http\Requests\Api\V1;
 
 use App\Modules\Srm\Enums\SupplierStatus;
+use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Pagination\Cursor;
 use Illuminate\Validation\Rule;
 
 class ListSuppliersRequest extends FormRequest
@@ -23,8 +25,21 @@ class ListSuppliersRequest extends FormRequest
             'include_archived' => ['nullable', Rule::in(['0', '1', 'true', 'false'])],
             'updated_since' => ['nullable', 'date'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:'.self::MAX_PER_PAGE],
-            'cursor' => ['nullable', 'string', 'max:500'],
+            'cursor' => ['nullable', 'string', 'max:500', $this->madeByThisList(...)],
         ];
+    }
+
+    /**
+     * The list pages by supplier id, so a cursor it made holds a whole-number id. Anything else would
+     * reach the database as is.
+     */
+    private function madeByThisList(string $attribute, mixed $value, Closure $fail): void
+    {
+        $cursor = Cursor::fromEncoded($value);
+
+        if (! is_int($cursor?->toArray()['id'] ?? null)) {
+            $fail(__('Use the next_cursor of the previous page.'));
+        }
     }
 
     public function perPage(): int

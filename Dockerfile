@@ -61,7 +61,19 @@ RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
     # Only the ports above 1024 are used, so the web server needs no extra rights.
     && setcap -r /usr/local/bin/frankenphp \
     && mkdir -p /config/psysh \
-    && chown -R app:app /data/caddy /config/caddy /config/psysh
+    && chown -R app:app /data/caddy /config/caddy /config/psysh \
+    # The base image keeps the compilers that PHP extensions are built with. The extensions are built by
+    # now (stage php), so remove every package that PHP, FrankenPHP and the extensions don't load, the
+    # way the official PHP image does after its own build. Kept as well: certificates, curl (the health
+    # check), file types (static files) and time zones.
+    && apt-mark showmanual | xargs apt-mark auto > /dev/null \
+    && apt-mark manual ca-certificates curl mailcap tzdata > /dev/null \
+    && find /usr/local -type f \( -executable -o -name '*.so' \) -exec ldd '{}' ';' 2> /dev/null \
+        | awk '/=>/ { so = $(NF-1); if (index(so, "/usr/local/") == 1) { next }; gsub("^/(usr/)?", "", so); print "*/" so }' \
+        | sort -u | xargs -r dpkg-query --search | awk -F: '!/^diversion/ { print $1 }' | sort -u \
+        | xargs -r apt-mark manual > /dev/null \
+    && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
+    && rm -rf /var/lib/apt/lists/* /usr/local/bin/install-php-extensions
 
 COPY docker/app/php.ini "$PHP_INI_DIR/conf.d/zz-hyperspace.ini"
 COPY docker/app/Caddyfile /etc/frankenphp/Caddyfile

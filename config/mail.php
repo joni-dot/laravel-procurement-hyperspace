@@ -47,6 +47,10 @@ return [
             'password' => env('MAIL_PASSWORD'),
             'timeout' => null,
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+            // Refuse to send unless the connection is encrypted (port 465, or STARTTLS on 587), so a mail
+            // server that stops offering encryption can't make emails with sign-in links travel in plain
+            // text. Off only on a developer's computer, where Mailpit has no encryption.
+            'require_tls' => (bool) env('MAIL_REQUIRE_TLS', env('APP_ENV', 'production') !== 'local'),
         ],
 
         'ses' => [

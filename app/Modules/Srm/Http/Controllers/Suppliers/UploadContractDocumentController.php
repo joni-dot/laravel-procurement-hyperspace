@@ -2,6 +2,7 @@
 
 namespace App\Modules\Srm\Http\Controllers\Suppliers;
 
+use App\Companies\DailyLimits;
 use App\Http\Controllers\Controller;
 use App\Modules\Srm\Actions\Documents\StoreDocument;
 use App\Modules\Srm\Http\Requests\Suppliers\DocumentRequest;
@@ -12,9 +13,10 @@ use Inertia\Inertia;
 
 class UploadContractDocumentController extends Controller
 {
-    public function __invoke(DocumentRequest $request, Supplier $supplier, Contract $contract, StoreDocument $storeDocument): RedirectResponse
+    public function __invoke(DocumentRequest $request, Supplier $supplier, Contract $contract, StoreDocument $storeDocument, DailyLimits $dailyLimits): RedirectResponse
     {
-        $storeDocument->handle($supplier, $contract, $request->uploadedFile(), $request->user());
+        $file = $request->uploadedFile();
+        $dailyLimits->storingUpload($file, fn () => $storeDocument->handle($supplier, $contract, $file, $request->user()));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Document uploaded.')]);
 

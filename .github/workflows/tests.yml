@@ -67,6 +67,13 @@ jobs:
           node-version: '24'
           cache: pnpm
 
+      # Fails when a locked package has a known security problem, so a new advisory stops the next pull
+      # request. JavaScript build tools are left out: only the code built from them reaches browsers.
+      - name: Check Packages for Known Vulnerabilities
+        run: |
+          composer audit --locked --no-interaction
+          pnpm audit --prod
+
       # Same split as in docker/pgsql: the owner runs migrations, the app connects as a restricted
       # user, so the companies' row-level security applies to the tests.
       - name: Create the app's restricted database user

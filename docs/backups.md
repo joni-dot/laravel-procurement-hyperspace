@@ -85,6 +85,43 @@ aws s3api put-bucket-lifecycle-configuration --bucket YOUR-UPLOADS-BUCKET \
 To get a file back, show the bucket's versions in the provider's console and restore (or download)
 the version from before the change.
 
+**Keys that can't undo that.** Versioning helps only if the keys on the server can't remove the old
+versions. The app's uploads keys (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`) may list, read, write
+and delete files, but **not** delete versions or change the bucket's settings, the same protection as
+the backup keys below. A deletion with them, by the app or by someone who takes over the server, then
+only hides a file, and its old version stays for the 30 days. On AWS, give them only this policy
+(other providers have similar key settings; choose read and write without "delete versions" and
+without bucket administration):
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": ["s3:ListBucket", "s3:GetBucketLocation"],
+            "Resource": "arn:aws:s3:::YOUR-UPLOADS-BUCKET"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:PutObjectAcl",
+                "s3:DeleteObject"
+            ],
+            "Resource": "arn:aws:s3:::YOUR-UPLOADS-BUCKET/*"
+        }
+    ]
+}
+```
+
+`s3:PutObjectAcl` is there because the app marks every file it stores as private; with the bucket's
+"Block public access" switched on, no file can be made public. Everything not listed, such as
+`s3:DeleteObjectVersion`, `s3:PutBucketVersioning`, `s3:PutLifecycleConfiguration`,
+`s3:PutBucketPolicy` and `s3:DeleteBucket`, is refused. Restoring an old version is done with the
+third key, not from the server.
+
 ### 3. The backup bucket: safe even from the server
 
 pgBackRest deletes old backups itself after `BACKUP_RETENTION_DAYS`, so the backup keys on the
@@ -331,7 +368,7 @@ If your provider runs PostgreSQL for you (a "managed database"), you don't need 
   restoring works (usually into a new database you then point the app at).
 - Run the provider's restore into a new database once a month, as your drill.
 
-The uploads bucket needs versioning and the lifecycle rule either way.
+The uploads bucket needs versioning, the lifecycle rule and the restricted keys either way.
 
 ## Privacy: deleted data stays in backups for a while
 

@@ -15,4 +15,16 @@ export type PlatformCompanyRow = {
         name: string | null;
         email: string | null;
     } | null;
+    /**
+     * Only for a company without an admin: how many of its active members (not counting you) could be
+     * made its admin. When there are any, one of them is chosen instead of inviting someone.
+     */
+    members_to_promote_count: number;
+};
+
+/** A member who can be made the admin of a company without one, as the member search returns them. */
+export type MemberToPromote = {
+    id: number;
+    name: string;
+    email: string;
 };

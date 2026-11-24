@@ -3,12 +3,13 @@
 namespace App\Http\Requests\Platform;
 
 use App\Concerns\CompanyValidationRules;
+use App\Concerns\LowercasesInput;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreCompanyRequest extends FormRequest
 {
-    use CompanyValidationRules;
+    use CompanyValidationRules, LowercasesInput;
 
     /**
      * @return array<string, array<int, ValidationRule|string>>
@@ -28,9 +29,6 @@ class StoreCompanyRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->merge([
-            'slug' => mb_strtolower(trim((string) $this->input('slug'))),
-            'admin_email' => mb_strtolower(trim((string) $this->input('admin_email'))),
-        ]);
+        $this->lowercaseInput('slug', 'admin_email');
     }
 }

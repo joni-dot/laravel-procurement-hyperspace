@@ -2,7 +2,9 @@
 
 namespace App\Modules\Ppr\Http\Controllers\Projects;
 
+use App\Database\Like;
 use App\Http\Controllers\Controller;
+use App\Http\ListFilters;
 use App\Models\User;
 use App\Modules\Ppr\Actions\Projects\CreateProject;
 use App\Modules\Ppr\Enums\ProjectRole;
@@ -27,7 +29,7 @@ class ProjectController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $search = $request->string('search')->trim()->limit(100, '')->toString();
+        $search = ListFilters::search($request);
 
         $projects = Project::query()
             ->visibleTo($user)
@@ -37,7 +39,7 @@ class ProjectController extends Controller
                 ->whereColumn('project_id', 'projects.id')
                 ->where('user_id', $user->id)])
             ->withCount('members')
-            ->when($search !== '', fn ($query) => $query->whereAny(['name', 'code'], 'ilike', "%{$search}%"))
+            ->when($search !== '', fn ($query) => $query->whereAny(['name', 'code'], 'ilike', Like::containing($search)))
             ->orderBy('name')
             ->paginate(self::PROJECTS_PER_PAGE)
             ->withQueryString()

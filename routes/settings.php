@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\ConfirmEmailChangeController;
 use App\Http\Controllers\Settings\NotificationSettingsController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
@@ -13,13 +14,16 @@ Route::middleware('auth')->group(function () {
     Route::patch('settings/profile', [ProfileController::class, 'update'])
         ->middleware('throttle:6,1,profile')
         ->name('profile.update');
+    Route::get('settings/profile/email', ConfirmEmailChangeController::class)
+        ->middleware(['signed:relative', 'throttle:6,1,profile'])
+        ->name('profile.email.confirm');
 
     Route::get('settings/security', [SecurityController::class, 'edit'])
         ->middleware(RequirePassword::class)
         ->name('security.edit');
 
     Route::put('settings/password', [SecurityController::class, 'update'])
-        ->middleware('throttle:6,1')
+        ->middleware('throttle:6,1,password-update')
         ->name('user-password.update');
 
     Route::inertia('settings/appearance', 'settings/Appearance')->name('appearance.edit');
