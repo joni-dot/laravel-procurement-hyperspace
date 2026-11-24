@@ -5,8 +5,10 @@
 #
 #   COMPOSE="docker compose -p myproject -f compose.production.yaml" bin/image-smoke-test http://localhost:8080
 #
-# The address must use APP_URL's host name, because the app answers to no other. The image checked is
-# the one the web service runs.
+# The address must use APP_URL's host name, because the app answers to no other. It may be the web
+# service itself (as on GitHub) or the HTTPS proxy in front of it; for a proxy with a self-signed
+# certificate, point CURL_CA_BUNDLE at its certificate authority. The image checked is the one the web
+# service runs.
 set -euo pipefail
 shopt -s inherit_errexit
 
@@ -52,8 +54,24 @@ check 'the Content Security Policy is set' grep -qi '^content-security-policy:' 
 status=$(curl --silent --output /dev/null --write-out '%{http_code}' "$base_url/.htaccess")
 check "hidden files are not served (got $status)" test "$status" = 404
 
-status=$(curl --silent --output /dev/null --write-out '%{http_code}' --header 'Host: attacker.example' "$base_url/login")
-check "other host names are refused (got $status)" test "$status" != 200
+# The app refuses other host names; the HTTPS proxy answers them with an empty page.
+status=$(curl --silent --output "$work/other-host.html" --write-out '%{http_code}' --header 'Host: attacker.example' "$base_url/login")
+check "other host names are refused (got $status)" bash -c "test '$status' != 200 || ! test -s '$work/other-host.html'"
+
+status=$(curl --silent --output /dev/null --write-out '%{http_code}' "$base_url/storage/x")
+check "stored files have no address of their own (got $status)" test "$status" = 404
+
+# Static files and the web server's own answers carry the same security headers as the app's pages.
+# Behind HTTPS (the proxy, or a load balancer that says so) they also get Strict-Transport-Security.
+curl --silent --output /dev/null --dump-header "$work/static-headers" \
+    --header 'X-Forwarded-Proto: https' "$base_url/build/manifest.json"
+check 'static files are sent with nosniff' grep -qi '^x-content-type-options: nosniff' "$work/static-headers"
+check 'static files are sent with Strict-Transport-Security over HTTPS' \
+    grep -qi '^strict-transport-security: max-age=31536000; includeSubDomains' "$work/static-headers"
+status=$(head -c 26000000 /dev/zero | curl --silent --output /dev/null --dump-header "$work/too-large-headers" \
+    --write-out '%{http_code}' --data-binary @- "$base_url/login")
+check "a body over 25 MB is refused (got $status)" test "$status" = 413
+check 'the refusal is sent with nosniff' grep -qi '^x-content-type-options: nosniff' "$work/too-large-headers"
 
 # --- Inside the running containers ---
 for service in web worker scheduler redis; do
@@ -79,6 +97,8 @@ check 'no .env, tests, node_modules, git history or keys in the image' \
     'cd /app && ! ls -A .env .env.* tests node_modules .git storage/*.key 2> /dev/null | grep -q .'
 check 'no development packages in the image' docker run --rm --entrypoint php "$image" -r \
     'exit(json_decode(file_get_contents("/app/vendor/composer/installed.json"))->dev || is_dir("/app/vendor/phpunit") ? 1 : 0);'
+check 'no compiler or other build tools in the image' docker run --rm --entrypoint sh "$image" -c \
+    'for tool in cc gcc g++ cpp as ld make autoconf patch re2c pkg-config install-php-extensions; do if command -v "$tool"; then exit 1; fi; done'
 refuses_to_start() {
     ! docker run --rm -e APP_KEY=base64:x -e APP_URL=http://localhost "$@" "$image" > /dev/null 2>&1
 }

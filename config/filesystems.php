@@ -46,7 +46,9 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // No /storage/{path} address for these files: they go out only through the app's own
+            // download pages, which check who is asking.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

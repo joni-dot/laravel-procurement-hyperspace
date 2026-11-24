@@ -97,6 +97,8 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // The CA certificate that sslmode=verify-full checks the database server against.
+            'sslrootcert' => env('DB_SSLROOTCERT') ?: null,
         ],
 
         // Runs the migrations: it owns the tables. The app itself connects through 'pgsql' as a
@@ -114,6 +116,8 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // The CA certificate that sslmode=verify-full checks the database server against.
+            'sslrootcert' => env('DB_SSLROOTCERT') ?: null,
         ],
 
         'sqlsrv' => [

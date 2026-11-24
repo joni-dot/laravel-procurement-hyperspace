@@ -4,6 +4,30 @@
 {
 	admin off
 	email {$ACME_EMAIL}
+
+	servers {
+		# HTTP/1.1 and HTTP/2 only. HTTP/3 runs over UDP, which the per-visitor connection limit in
+		# docs/hosting.md doesn't cover, and gains little for an app used from offices.
+		protocols h1 h2
+
+		# How long a visitor may take to send a request. The headers are small: 10 seconds is plenty even
+		# on a poor mobile connection. The whole request, body included, may take 5 minutes: enough for
+		# the largest upload (a 20 MB document) at about 0.6 Mbit/s, slower than almost any connection
+		# people work from. A connection that sends slower than that is closed.
+		timeouts {
+			read_header 10s
+			read_body 5m
+		}
+	}
+}
+
+# Headers for every answer, also for static files and the proxy's own answers (such as "too large").
+# The app sets the same values on its pages; "?" adds a header only where it is still missing, so no
+# answer gets two different values. Strict-Transport-Security is sent only over HTTPS (@https, defined
+# in the site below), the only place browsers obey it.
+(security_headers) {
+	header ?X-Content-Type-Options nosniff
+	header @https ?Strict-Transport-Security "max-age=31536000; includeSubDomains"
 }
 
 {$APP_URL} {
@@ -16,14 +40,43 @@
 
 	header -Server
 	header -Via
+	@https protocol https
+	import security_headers
+
+	# One JSON line per request on the container's output (docker compose logs proxy). Query strings,
+	# the secret part of password reset and invitation links, and all request and response headers
+	# (cookies, Authorization, CSRF tokens) are left out.
+	log {
+		output stdout
+		format filter {
+			wrap json
+			fields {
+				request>uri regexp "^(/(?:reset-password|invitation)/)[^?]*|([?]).*$" "${1}${2}"
+				request>headers delete
+				resp_headers delete
+			}
+		}
+	}
 
 	# Sets X-Forwarded-For to the visitor's real address, X-Forwarded-Proto to https and X-Forwarded-Host,
 	# replacing whatever the visitor sent. The app believes them because TRUSTED_PROXIES covers this
 	# network. Other forwarding headers a visitor might send are removed, so nothing can fake them.
 	reverse_proxy web:8080 {
+		# The proxy waits for the whole request body (at most 25 MB, see request_body) before passing it
+		# on. The app then gets it at once over the server's own network, so a slow upload occupies only
+		# the proxy, never one of the app's few PHP workers.
+		request_buffers 25MB
+
 		header_up -X-Forwarded-Port
 		header_up -X-Forwarded-Prefix
 		header_up -X-Real-IP
 		header_up -Forwarded
+	}
+
+	# The proxy's own error answers (a body over 25 MB, the app briefly away during an update).
+	handle_errors {
+		header -Server
+		import security_headers
+		respond "{err.status_code} {err.status_text}"
 	}
 }
