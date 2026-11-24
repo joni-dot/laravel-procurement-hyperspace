@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Companies\CurrentCompany;
+use App\Concerns\LowercasesInput;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\Role;
 use App\Models\Membership;
@@ -13,7 +14,7 @@ use Illuminate\Validation\Rule;
 
 class InviteMemberRequest extends FormRequest
 {
-    use ProfileValidationRules;
+    use LowercasesInput, ProfileValidationRules;
 
     /**
      * Whether the address has an account is never checked: inviting someone with an account and
@@ -32,7 +33,7 @@ class InviteMemberRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->merge(['email' => mb_strtolower(trim((string) $this->input('email')))]);
+        $this->lowercaseInput('email');
     }
 
     /**

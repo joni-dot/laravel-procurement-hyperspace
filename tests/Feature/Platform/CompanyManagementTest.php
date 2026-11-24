@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Platform;
 
+use App\Auth\StrongSignIn;
 use App\Enums\Role;
 use App\Models\Company;
 use App\Models\Membership;
@@ -27,7 +28,7 @@ class CompanyManagementTest extends TestCase
 
         $this->platformAdmin = User::factory()->platformAdmin()->withTwoFactor()->create();
         // Platform pages ask for the password again unless it was entered recently.
-        $this->withSession(['auth.password_confirmed_at' => time()]);
+        $this->withSession(['auth.password_confirmed_at' => time(), StrongSignIn::SESSION_KEY => $this->platformAdmin->id]);
         Notification::fake();
     }
 
@@ -37,6 +38,8 @@ class CompanyManagementTest extends TestCase
         User::factory()->count(2)->create();
         User::factory()->invited()->create();
         User::factory()->create()->memberships()->update(['deactivated_at' => now()]);
+        // An active membership, but the account can't sign in: not a member who can work there.
+        User::factory()->deactivated()->create();
         $suspended = Company::factory()->suspended()->create(['name' => 'Bolt']);
 
         $this->actingAs($this->platformAdmin)
@@ -56,6 +59,8 @@ class CompanyManagementTest extends TestCase
                     'created_at' => today()->toDateString(),
                     // Members but no admin: nobody there can invite people, so the platform may.
                     'first_admin_invitation' => ['name' => null, 'email' => null],
+                    // ...and one of these members can be made its admin. The list names none of them.
+                    'members_to_promote_count' => 2,
                 ])
                 ->where('companies.data.1.id', $suspended->id)
                 ->where('companies.data.1.is_suspended', true)
@@ -93,7 +98,9 @@ class CompanyManagementTest extends TestCase
 
     public function test_the_number_of_queries_does_not_grow_with_the_companies()
     {
-        Company::factory()->count(2)->create();
+        foreach (Company::factory()->count(2)->create() as $company) {
+            Membership::factory()->create(['company_id' => $company->id]);
+        }
         $few = $this->countQueriesOfTheList();
 
         foreach (Company::factory()->count(10)->create() as $company) {

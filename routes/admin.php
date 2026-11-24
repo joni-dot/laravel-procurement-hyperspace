@@ -19,7 +19,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
     Route::post('users', [MembershipController::class, 'store'])
         ->can('create', Membership::class)
-        ->middleware('throttle:20,1')
+        ->middleware('throttle:20,1,invite-member')
         ->name('users.store');
 
     // {membership} only ever finds a membership of the open company (Membership::resolveRouteBinding).
@@ -41,7 +41,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('users/{membership}/invitation', ResendInvitationController::class)
         ->whereNumber('membership')
         ->can('resendInvitation', 'membership')
-        ->middleware('throttle:6,1')
+        ->middleware('throttle:6,1,resend-invitation')
         ->name('users.invitation.resend');
 
     // Clients give other systems access to supplier data, so the admin must have entered their password recently.

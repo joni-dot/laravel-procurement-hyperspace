@@ -73,6 +73,21 @@ class BrowserTestSeeder extends Seeder
         $this->addOtherCompanyOf($buyer, $company);
         $this->addSupplierNotification($admin, $supplier);
         $this->addOnboardingCompanies();
+        $this->addCompanyWithoutAdmin();
+    }
+
+    /**
+     * A company whose admins have all left, with two members, for the platform test that makes one of
+     * them its admin (companyWithoutAdmin in test-data.ts). Its own, so the other tests see no change.
+     */
+    private function addCompanyWithoutAdmin(): void
+    {
+        $company = Company::factory()->create(['name' => 'Browser Rescue Company', 'slug' => 'browser-rescue']);
+
+        foreach ([['Browser Rescue Member', 'rescue-member@browser-test.example'], ['Browser Rescue Other', 'rescue-other@browser-test.example']] as [$name, $email]) {
+            $member = User::factory()->withoutCompany()->create(['name' => $name, 'email' => $email]);
+            Membership::factory()->create(['company_id' => $company->id, 'user_id' => $member->id, 'role' => Role::Buyer]);
+        }
     }
 
     /**

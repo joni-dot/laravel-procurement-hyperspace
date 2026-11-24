@@ -3,13 +3,14 @@
 namespace App\Http\Requests\Platform;
 
 use App\Concerns\CompanyValidationRules;
+use App\Concerns\LowercasesInput;
 use App\Models\Company;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateCompanyRequest extends FormRequest
 {
-    use CompanyValidationRules;
+    use CompanyValidationRules, LowercasesInput;
 
     /**
      * @return array<string, array<int, ValidationRule|string>>
@@ -32,6 +33,6 @@ class UpdateCompanyRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->merge(['slug' => mb_strtolower(trim((string) $this->input('slug')))]);
+        $this->lowercaseInput('slug');
     }
 }

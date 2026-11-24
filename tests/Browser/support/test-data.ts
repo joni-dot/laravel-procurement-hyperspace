@@ -44,6 +44,14 @@ export const onboardingCompany = {
     admin: 'newcomer@browser-test.example',
 } as const;
 
+// A company whose admins have all left, with two members, for the platform test that makes one its admin.
+export const companyWithoutAdmin = {
+    name: 'Browser Rescue Company',
+    search: 'browser-rescue',
+    member: 'Browser Rescue Member',
+    memberEmail: 'rescue-member@browser-test.example',
+} as const;
+
 export const seeded = {
     supplierUrl: `${company}/suppliers/1`,
     supplierName: 'Browser Test Supplier',

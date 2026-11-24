@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import ChangeRoleDialog from '@/components/users/ChangeRoleDialog.vue';
 import InviteUserDialog from '@/components/users/InviteUserDialog.vue';
 import MembershipStatusBadge from '@/components/users/MembershipStatusBadge.vue';
+import { Badge } from '@/components/ui/badge';
 import type { Member, Paginated, RoleOption } from '@/types';
 import { trans } from '@/lib/i18n';
 
@@ -145,6 +146,17 @@ function resendInvitation(member: Member): void {
                                 v-if="member.isYou"
                                 class="font-normal text-muted-foreground"
                                 >{{ $t('(you)') }}</span
+                            >
+                            <Badge
+                                v-if="member.isPlatformAdmin"
+                                variant="outline"
+                                class="ml-2"
+                                :title="
+                                    $t(
+                                        'Runs this service. Platform admins never need to be in a company: deactivate them if you didn\'t invite them.',
+                                    )
+                                "
+                                >{{ $t('Platform admin') }}</Badge
                             >
                         </td>
                         <td class="px-4 py-3">{{ member.email }}</td>

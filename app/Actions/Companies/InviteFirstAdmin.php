@@ -14,8 +14,9 @@ use LogicException;
  * to a mistyped address. The invitation is sent again, or to the corrected address, and any other
  * admin invitation still waiting is withdrawn, so a mistyped address's link stops working.
  *
- * Only while the company has no active admin: after that its own admins invite people, and the
- * platform stays out of the company.
+ * Only while the company has nobody who could be made its admin instead (PromoteMemberToAdmin): no
+ * active member apart from the platform admin sending the invitation. After that its own admins invite
+ * people, and the platform stays out of the company.
  */
 class InviteFirstAdmin
 {
@@ -29,6 +30,12 @@ class InviteFirstAdmin
 
             if ($company->hasActiveAdmin()) {
                 throw new LogicException('The company already has an admin.');
+            }
+
+            // Whoever joined would see the members' data; the members get one of their own instead
+            // (PromoteMemberToAdmin).
+            if ($company->hasActiveMembers(apartFrom: $invitedBy)) {
+                throw new LogicException('The company has members; one of them becomes its admin.');
             }
 
             $invitation = $this->inviteMember->handle($company, $name, $email, Role::Admin, $invitedBy);

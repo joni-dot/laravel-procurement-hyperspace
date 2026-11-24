@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Companies\ActiveMembers;
 use App\Enums\Role;
 use App\Rules\CompanySlug as CompanySlugRule;
 use Carbon\CarbonImmutable;
@@ -113,9 +114,20 @@ class Company extends Model
         );
     }
 
+    /**
+     * Whether someone can run the company: an admin whose membership and account are both active.
+     */
     public function hasActiveAdmin(): bool
     {
-        return $this->memberships()->active()->where('role', Role::Admin)->exists();
+        return ActiveMembers::only($this->memberships()->getQuery())->where('role', Role::Admin)->exists();
+    }
+
+    /**
+     * Whether anyone can work in the company now, apart from the given person.
+     */
+    public function hasActiveMembers(?User $apartFrom = null): bool
+    {
+        return ActiveMembers::only($this->memberships()->getQuery(), $apartFrom)->exists();
     }
 
     public function isSuspended(): bool

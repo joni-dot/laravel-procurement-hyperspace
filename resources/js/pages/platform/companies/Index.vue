@@ -10,7 +10,7 @@ import {
     Search,
     UserPlus,
 } from '@lucide/vue';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import CompanyController from '@/actions/App/Http/Controllers/Platform/CompanyController';
 import ReopenCompanyController from '@/actions/App/Http/Controllers/Platform/ReopenCompanyController';
 import SuspendCompanyController from '@/actions/App/Http/Controllers/Platform/SuspendCompanyController';
@@ -44,7 +44,16 @@ const isAddingDemo = ref(false);
 const companyBeingEdited = ref<PlatformCompanyRow | null>(null);
 const companyBeingSuspended = ref<PlatformCompanyRow | null>(null);
 const companyBeingReopened = ref<PlatformCompanyRow | null>(null);
-const companyNeedingAdmin = ref<PlatformCompanyRow | null>(null);
+// Kept by id so the dialog follows the row through reloads, and closes once the company has an admin.
+const companyNeedingAdminId = ref<number | null>(null);
+const companyNeedingAdmin = computed(
+    () =>
+        props.companies.data.find(
+            (company) =>
+                company.id === companyNeedingAdminId.value &&
+                company.first_admin_invitation !== null,
+        ) ?? null,
+);
 
 const search = ref(props.filters.search);
 
@@ -179,11 +188,16 @@ function memberSummary(company: PlatformCompanyRow): string {
                                 variant="ghost"
                                 size="icon-sm"
                                 :aria-label="
-                                    $t('Invite the first admin of :name', {
-                                        name: company.name,
-                                    })
+                                    company.members_to_promote_count > 0
+                                        ? $t('Choose a new admin for :name', {
+                                              name: company.name,
+                                          })
+                                        : $t(
+                                              'Invite the first admin of :name',
+                                              { name: company.name },
+                                          )
                                 "
-                                @click="companyNeedingAdmin = company"
+                                @click="companyNeedingAdminId = company.id"
                             >
                                 <UserPlus />
                             </Button>
@@ -260,7 +274,7 @@ function memberSummary(company: PlatformCompanyRow): string {
         v-if="companyNeedingAdmin"
         :company="companyNeedingAdmin"
         :open="true"
-        @update:open="companyNeedingAdmin = null"
+        @update:open="companyNeedingAdminId = null"
     />
 
     <ConfirmActionDialog

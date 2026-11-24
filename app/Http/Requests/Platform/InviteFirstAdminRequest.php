@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Platform;
 
 use App\Concerns\CompanyValidationRules;
+use App\Concerns\LowercasesInput;
 use App\Enums\Role;
 use App\Models\Company;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -11,7 +12,7 @@ use Illuminate\Validation\Validator;
 
 class InviteFirstAdminRequest extends FormRequest
 {
-    use CompanyValidationRules;
+    use CompanyValidationRules, LowercasesInput;
 
     /**
      * @return array<string, array<int, ValidationRule|string>>
@@ -32,6 +33,10 @@ class InviteFirstAdminRequest extends FormRequest
 
                 if ($company instanceof Company && $company->hasActiveAdmin()) {
                     $validator->errors()->add('admin_email', __('This company already has an admin, who invites people.'));
+                } elseif ($company instanceof Company && $company->hasActiveMembers(apartFrom: $this->user())) {
+                    $validator->errors()->add('admin_email', __('This company has members. Make one of them its admin instead.'));
+                } elseif ($company instanceof Company && $this->hasJoined($company)) {
+                    $validator->errors()->add('admin_email', __('This person is already a member of this company.'));
                 }
 
                 if ($company instanceof Company && $company->is_demo && ! $this->isDemoFirstAdmin($company)) {
@@ -39,6 +44,19 @@ class InviteFirstAdminRequest extends FormRequest
                 }
             },
         ];
+    }
+
+    /**
+     * Whether the address belongs to someone who has joined the company, even if they left or their
+     * account was deactivated since, such as the platform admin when they are its only active member.
+     * They are already on the company's list, so an invitation can't add them.
+     */
+    private function hasJoined(Company $company): bool
+    {
+        return $company->memberships()
+            ->whereNotNull('joined_at')
+            ->whereHas('user', fn ($users) => $users->where('email', $this->input('admin_email')))
+            ->exists();
     }
 
     /**
@@ -63,6 +81,6 @@ class InviteFirstAdminRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->merge(['admin_email' => mb_strtolower(trim((string) $this->input('admin_email')))]);
+        $this->lowercaseInput('admin_email');
     }
 }

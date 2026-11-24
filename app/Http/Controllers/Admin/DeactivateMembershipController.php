@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Companies\AdminLock;
 use App\Events\MembershipDeactivated;
 use App\Http\Controllers\Controller;
 use App\Models\Membership;
@@ -15,13 +16,15 @@ use Inertia\Inertia;
  */
 class DeactivateMembershipController extends Controller
 {
-    public function __invoke(Request $request, Membership $membership): RedirectResponse
+    public function __invoke(Request $request, Membership $membership, AdminLock $adminLock): RedirectResponse
     {
-        $membership->rememberWhatTheCompanyKnew();
-        $membership->forceFill([
-            'deactivated_at' => now(),
-            'invitation_token' => null,
-        ])->save();
+        $adminLock->run($request->user(), function () use ($membership): void {
+            $membership->rememberWhatTheCompanyKnew();
+            $membership->forceFill([
+                'deactivated_at' => now(),
+                'invitation_token' => null,
+            ])->save();
+        });
 
         MembershipDeactivated::dispatch($membership, $request->user());
 
