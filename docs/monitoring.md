@@ -8,6 +8,7 @@ What to watch on a running server, and what to do when something looks wrong. Th
 | Is the service up and working?   | An uptime monitor calls `/health` every 1–5 minutes | Once, outside       |
 | Errors people run into           | Error reports to Sentry or GlitchTip (optional)     | Paste a DSN in .env |
 | What happened, in detail         | The containers' logs                                | Nothing to set up   |
+| Who signed in and changed what   | Security events in the logs, kept on another system | Once, outside       |
 | Is the disk filling up?          | A small timed check on the server                   | Once, on the server |
 | Can we really get the data back? | The restore drill in [backups.md](backups.md)       | Every month         |
 
@@ -98,16 +99,22 @@ Each report names the release (`APP_VERSION` of the image) and the environment (
 tell which version an error came from.
 
 **What a report holds:** the error, the stack trace (with lines of our own open-source code), the
-route (such as `/{company}/suppliers/{supplier}`), the user's **id** and the open company's **id**,
-and the SQL of the queries before it, **without their values**. Look the ids up in the app when you
-need to know who it was.
+route (such as `/{company}/suppliers/{supplier}`), the user's **id**, the open company's **id**, the
+**request id** (tag `request_id`, the same as the request's log lines, see [Logs](#logs)), and the SQL
+of the queries before it, **without their values**. Look the ids up in the app when you need to know
+who it was.
 
-**What it never holds:** names, email addresses (they are cut out of error messages too), request
+**What it never holds:** names, email addresses, the values an error message quotes (see below), request
 bodies and form fields, cookies, headers, the query string, IP addresses, values of SQL queries, the
 contents of queued jobs, or log messages. A database error is reported by its SQLSTATE code and its
 SQL with placeholders, as PostgreSQL's own message can quote the values ("Key (email)=(...) already
-exists"); the full message is in the logs, which stay on your server. The rules are in
-`config/sentry.php` and `app/Monitoring/ErrorReportPrivacy.php`.
+exists"); the full message is in the logs, which stay on your server. Other error messages keep their
+words but lose what they quote, as that is where a message puts a value someone typed: text in quotes
+or round brackets becomes `[value]`, numbers of five digits or more (with or without spaces or dashes,
+like a phone number) become `[number]`, and email addresses `[email]`. Code stays readable: `bar()`,
+`($id)`, a quoted class name, `[route.name]` and short numbers such as line numbers are kept, and the
+exception's class, file and line are untouched. The rules are in `config/sentry.php` and
+`app/Monitoring/ErrorReportPrivacy.php`.
 
 **Not reported,** as they are answers to a person rather than faults: form errors, "not found",
 "signed out", "not allowed", an expired form (CSRF) and "too many attempts". Failed background jobs
@@ -139,9 +146,95 @@ docker compose logs --no-log-prefix web worker scheduler \
 stays a file (`storage/logs/api-*.log`, kept 90 days, in the `app-logs` volume) because it is a record
 of who called the API, not a message to read now.
 
-The app's logs never hold passwords, tokens or request bodies. They can hold email addresses (for
-example in the message of a failed database query), so treat them like the database: only people who
-may see the data read them.
+Every line written during a request also names the request in `extra`: `request_id`, the visitor's
+`ip`, the `method` and the `route` (its name, or its pattern such as `/{company}/...`, never the
+address's values). The app sends the same id back in the **`X-Request-Id`** response header and tags
+error reports with it, so a report, a browser's network tab and the log lines of one request can be
+matched. The app makes the id itself and ignores one sent by the visitor. Lines from a background job
+carry the request that queued it.
+
+The app's logs never hold passwords, tokens or request bodies. They hold visitors' IP addresses and
+can hold email addresses (for example in the message of a failed database query), so treat them like
+the database: only people who may see the data read them.
+
+## Security events
+
+The app writes one log line for every event that matters when looking into a break-in or a misuse,
+so you can answer "who signed in, from where, and what did they change?". They are ordinary log
+lines (above) with the message `Security event`, level `INFO`, or `WARNING` for failures and refusals:
+
+```json
+{
+    "message": "Security event",
+    "context": {
+        "event": "auth.signed_in",
+        "user_id": 42,
+        "company_id": null,
+        "method": "password"
+    },
+    "level_name": "INFO",
+    "datetime": "...",
+    "extra": {
+        "request_id": "9b1d...",
+        "ip": "203.0.113.7",
+        "method": "POST",
+        "route": "login.store"
+    }
+}
+```
+
+Every line has `event`, `user_id` (who did it; empty when nobody is signed in) and `company_id` (the
+company it concerns: the open one, or the one a platform action or membership change is about), and
+`extra` as above. Some events add more:
+
+| Event                                                                                                                             | Level         | Extra fields                                                              |
+| --------------------------------------------------------------------------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------- |
+| `auth.signed_in`                                                                                                                  | info          | `method`: password, two_factor, passkey, invitation, remember_me or other |
+| `auth.sign_in_failed`                                                                                                             | warning       | none, and no `user_id` (see below)                                        |
+| `auth.lockout` (too many sign-in or two-factor attempts)                                                                          | warning       | `user_id` only for two-factor codes                                       |
+| `auth.two_factor_failed`, `auth.recovery_code_used`                                                                               | warning, info | none                                                                      |
+| `auth.signed_out`                                                                                                                 | info          | none                                                                      |
+| `account.password_reset` (with an emailed link), `account.password_changed` (in the settings)                                     | info          | none                                                                      |
+| `account.email_change_requested`, `account.email_changed` (the link was opened)                                                   | info          | none                                                                      |
+| `account.two_factor_enabled`, `account.two_factor_confirmed`, `account.two_factor_disabled`, `account.recovery_codes_regenerated` | info          | none                                                                      |
+| `account.passkey_registered`, `account.passkey_deleted`                                                                           | info          | `passkey_id`                                                              |
+| `membership.invited`, `membership.joined`, `membership.role_changed`, `membership.deactivated`, `membership.reactivated`          | info          | `membership_id`, `member_user_id`, `role` (and `old_role`)                |
+| `platform.company_created`, `platform.demo_company_created`, `platform.company_suspended`, `platform.company_reopened`            | info          | none                                                                      |
+| `platform.first_admin_invited`                                                                                                    | info          | as `membership.invited`                                                   |
+| `api_client.created`, `api_client.secret_regenerated`, `api_client.scopes_changed`, `api_client.revoked`                          | info          | `api_client_id`                                                           |
+| `authorization.denied` (a permission check refused: 403, or 404 where the app hides the record)                                   | warning       | `status`                                                                  |
+| `authorization.platform_denied` (someone who isn't a platform admin tried the platform pages; they see "not found")               | warning       | `status`                                                                  |
+| `request.rate_limited` (any other "too many requests")                                                                            | warning       | none                                                                      |
+
+A demo company logs `platform.company_created` and then `platform.demo_company_created`; creating a
+company also logs its first admin's invitation. The API's own calls and token requests are in the API
+call log instead (see [Logs](#logs)). The code is `app/Monitoring/SecurityEvents.php`.
+
+**Deliberately left out:** email addresses, names, passwords, two-factor and recovery codes, tokens,
+API secrets, cookies, session ids and anything else someone typed. People and records are named by
+id; look them up in the app. A **failed sign-in names nobody**: its line is the same whether or not
+the address has an account (apart from the time and the request id), so the log can't be used to
+find out who has one. Many failures from one `ip` are the thing to look for.
+
+Find them:
+
+```bash
+docker compose logs --no-log-prefix web \
+    | jq -cR 'fromjson? | select(.message? == "Security event") | [.datetime, .context.event, .context.user_id, .extra.ip]'
+```
+
+**Keep them somewhere else.** Someone who breaks into the server can delete its logs, and Docker
+keeps only the last 50 MB per container anyway, which a busy server fills in days. Send the
+containers' logs to a separate system as they are written: any log service that reads Docker's JSON
+logs (a hosted log service, or a self-hosted one such as Grafana Loki on another server). Give the
+server only the right to add lines there, not to delete them. Useful alerts: many
+`auth.sign_in_failed` or `auth.lockout` from one address, any `authorization.platform_denied`, and
+`account.two_factor_disabled` or `account.email_changed` for a platform admin.
+
+**How long:** keep security events for **one year**, so a break-in found months later can still be
+traced, and the other logs for **30 days**. Set these retention times in the log service. Logs hold
+IP addresses, which are personal data: delete them when the time is up, and check whether your own
+legal or contractual duties ask for something else.
 
 ## Disk space
 

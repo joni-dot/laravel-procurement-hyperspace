@@ -4,6 +4,7 @@ namespace App\Monitoring;
 
 use Illuminate\Database\QueryException;
 use Illuminate\Routing\Route;
+use Illuminate\Support\Facades\Context;
 use PDOException;
 use Sentry\Breadcrumb;
 use Sentry\Event;
@@ -42,13 +43,25 @@ final class ErrorReportPrivacy
     /** Anything that looks like an email address, as error messages sometimes quote one. */
     private const string EMAIL_ADDRESS = '/[^\s@<>()\[\]{}"\'`,;:]++@[^\s@<>()\[\]{}"\'`,;:.]++(?:\.[^\s@<>()\[\]{}"\'`,;:.]++)++/u';
 
+    /**
+     * Where error messages put the values they complain about: in quotes ('…', "…", `…`; an apostrophe
+     * inside a word starts none), in round brackets (`Failed to parse time string (…)`), or as a long
+     * number (a phone, account or ID number, possibly with spaces or dashes). PHP writes code there too
+     * (`bar()`, `($id)`), which is kept, and so are quoted class names; square brackets, which Laravel
+     * uses for routes, views and models, are left alone.
+     */
+    private const string TYPED_VALUE = '/(?<![\p{L}\p{N}])\'[^\'\n]*+\'|"[^"\n]*+"|`[^`\n]*+`|\((?![$)])[^()\n]*+\)|\p{N}(?:[\s.\/-]?+\p{N}){4,}+/u';
+
+    /** A class name such as "App\Models\Supplier": code, so a quoted one stays. */
+    private const string CLASS_NAME = '/^[\'"`]\\\\?+[A-Za-z_]\w*+(?:\\\\[A-Za-z_]\w*+)++[\'"`]$/';
+
     public static function beforeSend(Event $event, ?EventHint $hint = null): Event
     {
         self::keepOnlyIds($event);
         self::cleanExceptionMessages($event, $hint?->exception);
 
         if ($event->getMessage() !== null) {
-            $event->setMessage(self::withoutEmailAddresses($event->getMessage()));
+            $event->setMessage(self::withoutTypedValues($event->getMessage()));
         }
 
         return $event;
@@ -86,7 +99,8 @@ final class ErrorReportPrivacy
     }
 
     /**
-     * Ids only: the user's and the open company's. The request and its name become the route's
+     * Ids only: the user's, the open company's and the request's (the X-Request-Id header and the log
+     * lines' request_id, to find the logs of the request). The request and its name become the route's
      * pattern, and trace data keeps only what describes code.
      */
     private static function keepOnlyIds(Event $event): void
@@ -127,8 +141,12 @@ final class ErrorReportPrivacy
     private static function tags(): array
     {
         $companyId = app(ReportedCompany::class)->id();
+        $requestId = Context::get('request_id');
 
-        return $companyId === null ? [] : ['company_id' => (string) $companyId];
+        return array_filter([
+            'company_id' => $companyId === null ? null : (string) $companyId,
+            'request_id' => is_string($requestId) ? $requestId : null,
+        ]);
     }
 
     /**
@@ -163,7 +181,7 @@ final class ErrorReportPrivacy
     /**
      * Database errors quote the values of the failed query ("Key (email)=(...) already exists"),
      * so they are reported by their SQLSTATE code and SQL with placeholders. The full message
-     * stays in the server's own log.
+     * stays in the server's own log. Other messages lose email addresses and the values they quote.
      */
     private static function cleanExceptionMessages(Event $event, ?Throwable $exception): void
     {
@@ -179,7 +197,7 @@ final class ErrorReportPrivacy
 
             $reported->setValue($throwable instanceof PDOException
                 ? self::databaseErrorMessage($throwable)
-                : self::withoutEmailAddresses($reported->getValue()));
+                : self::withoutTypedValues($reported->getValue()));
         }
     }
 
@@ -188,6 +206,22 @@ final class ErrorReportPrivacy
         $code = 'SQLSTATE['.$exception->getCode().']';
 
         return $exception instanceof QueryException ? $code.' in: '.$exception->getSql() : $code;
+    }
+
+    private static function withoutTypedValues(string $text): string
+    {
+        $cleaned = preg_replace_callback(
+            self::TYPED_VALUE,
+            fn (array $match): string => match (true) {
+                preg_match(self::CLASS_NAME, $match[0]) === 1 => $match[0],
+                str_starts_with($match[0], '(') => '([value])',
+                in_array($match[0][0], ['"', "'", '`'], true) => $match[0][0].'[value]'.$match[0][0],
+                default => '[number]',
+            },
+            self::withoutEmailAddresses($text),
+        );
+
+        return $cleaned ?? '[removed]';
     }
 
     private static function withoutEmailAddresses(string $text): string
